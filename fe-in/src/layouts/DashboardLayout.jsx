@@ -1,11 +1,21 @@
+import Sidebar from "../components/layout/Sidebar";
+
 function DashboardLayout({ children }) {
   return (
-    <div>
-      {/* Navbar nanti */}
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+      }}
+    >
+      <Sidebar />
 
-      {/* Sidebar nanti */}
-
-      <main>
+      <main
+        style={{
+          flex: 1,
+          padding: "24px",
+        }}
+      >
         {children}
       </main>
     </div>

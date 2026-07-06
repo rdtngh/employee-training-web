@@ -1,0 +1,58 @@
+:root {
+  /* ========= COLORS ========= */
+  --color-primary: #2E7D32;
+  --color-primary-dark: #1B5E20;
+  --color-secondary: #4CAF50;
+
+  --color-danger: #E53935;
+  --color-danger-dark: #C62828;
+
+  --color-white: #FFFFFF;
+  --color-black: #1F1F1F;
+
+  --color-background: #F7F8FA;
+
+  --color-border: #D9D9D9;
+
+  --color-text: #222222;
+  --color-text-light: #666666;
+
+  /* ========= FONT ========= */
+
+  --font-family: "Poppins", sans-serif;
+
+  --font-xs: 12px;
+  --font-sm: 14px;
+  --font-md: 16px;
+  --font-lg: 20px;
+  --font-xl: 28px;
+  --font-2xl: 36px;
+
+  /* ========= SPACING ========= */
+
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* ========= BORDER ========= */
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  /* ========= SHADOW ========= */
+
+  --shadow-sm: 0 2px 6px rgba(0,0,0,.08);
+
+  --shadow-md: 0 5px 18px rgba(0,0,0,.12);
+
+  /* ========= SIDEBAR ========= */
+
+  --sidebar-width: 280px;
+
+  /* ========= TRANSITION ========= */
+
+  --transition: all .3s ease;
+}

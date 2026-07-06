@@ -3,11 +3,9 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-
-    return [
-        "nama" => "Radit",
-        "umur" => 20,
-        "kampus" => "ITERA"
-    ];
-
+    return response()->json([
+        'application' => 'Advent Training API',
+        'version' => '1.0.0',
+        'status' => 'Running'
+    ]);
 });

@@ -1,17 +1,14 @@
-import Button from "../../components/ui/Button";
+import "./LandingPage.css";
+import Navbar from "../../components/landing/Navbar";
+import Hero from "../../components/landing/Hero";
+import Footer from "../../components/common/Footer";
 
 function LandingPage() {
   return (
-    <div>
-
-      <h1>Landing Page</h1>
-
-      <Button>
-
-        Login
-
-      </Button>
-
+    <div className="landing-page">
+      <Navbar />
+      <Hero />
+      <Footer />
     </div>
   );
 }

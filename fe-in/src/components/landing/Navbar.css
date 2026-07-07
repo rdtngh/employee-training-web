@@ -1,0 +1,117 @@
+/* ==========================
+   NAVBAR
+========================== */
+
+.navbar {
+  width: 100%;
+  height: 109px;
+
+  background: #ffffff;
+
+  border-radius: 0 0 35px 35px;
+
+  position:absolute;
+
+  top:0;
+
+  left:0;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 0px 48px 0 35px;
+
+  box-sizing: border-box;
+
+  z-index: 100;
+}
+
+/* ==========================
+   LEFT SIDE
+========================== */
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* ==========================
+   LOGO
+========================== */
+
+.navbar-logo {
+  width: 89px;
+  height: 89px;
+
+  object-fit: contain;
+
+  flex-shrink: 0;
+}
+
+/* ==========================
+   TITLE
+========================== */
+
+.navbar-title {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.navbar-title h1 {
+  margin: 0;
+
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 100%;
+
+  color: #327537;
+}
+
+.navbar-title h2 {
+  margin: 2px 0 0 0;
+
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 100%;
+
+  color: #327537;
+}
+
+/* ==========================
+   LOGIN BUTTON
+========================== */
+
+.login-btn {
+  width: 150px;
+  height: 60px;
+
+  background: #327537;
+
+  border: none;
+  border-radius: 999px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  text-decoration: none;
+
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+
+  color: #ffffff;
+
+  cursor: pointer;
+
+  transition: 0.25s ease;
+}
+
+.login-btn:hover {
+  background: #285f2c;
+}

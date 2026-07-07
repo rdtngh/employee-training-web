@@ -1,7 +1,5 @@
 function NotFoundPage() {
-  return (
-    <h1>404 - Halaman Tidak Ditemukan</h1>
-  );
+  return <div style={{ padding: "2rem" }}>Halaman tidak ditemukan.</div>;
 }
 
 export default NotFoundPage;

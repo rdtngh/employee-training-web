@@ -2,27 +2,16 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Public
 import LandingPage from "../pages/public/LandingPage";
-import LoginPage from "../pages/auth/LoginPage";
+import LoginPage from "../pages/public/LoginPage";
 
 // Employee
-import DashboardEmployee from "../pages/employee/Dashboard";
-import Materi from "../pages/employee/Materi";
-import PreTest from "../pages/employee/PreTest";
-import PostTest from "../pages/employee/PostTest";
-import Result from "../pages/employee/Result";
+import DashboardEmployee from "../pages/employee/DashboardEmployee";
 
 // Admin
-import DashboardAdmin from "../pages/admin/Dashboard";
-import ManageMateri from "../pages/admin/ManageMateri";
-import ManageExam from "../pages/admin/ManageExam";
-import ManageTraining from "../pages/admin/ManageTraining";
+import DashboardAdmin from "../pages/admin/DashboardAdmin";
 
 // Super Admin
-import DashboardSuperAdmin from "../pages/superadmin/Dashboard";
-import ManageUser from "../pages/superadmin/ManageUser";
-import ManageMateriSuper from "../pages/superadmin/ManageMateri";
-import ManageExamSuper from "../pages/superadmin/ManageExam";
-import ManageTrainingSuper from "../pages/superadmin/ManageTraining";
+import DashboardSuperAdmin from "../pages/superadmin/DashboardSuperAdmin";
 
 // Error Page
 import NotFoundPage from "../pages/NotFoundPage";
@@ -32,32 +21,41 @@ function AppRouter() {
     <BrowserRouter>
       <Routes>
 
-        {/* Public */}
+        {/* ================= PUBLIC ================= */}
+
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
 
-        {/* Employee */}
-        <Route path="/employee/dashboard" element={<DashboardEmployee />} />
-        <Route path="/employee/materi" element={<Materi />} />
-        <Route path="/employee/pretest" element={<PreTest />} />
-        <Route path="/employee/posttest" element={<PostTest />} />
-        <Route path="/employee/result" element={<Result />} />
+        {/* ================= EMPLOYEE ================= */}
 
-        {/* Admin */}
-        <Route path="/admin/dashboard" element={<DashboardAdmin />} />
-        <Route path="/admin/manage-materi" element={<ManageMateri />} />
-        <Route path="/admin/manage-exam" element={<ManageExam />} />
-        <Route path="/admin/manage-training" element={<ManageTraining />} />
+        <Route
+          path="/employee"
+          element={<DashboardEmployee />}
+        />
 
-        {/* Super Admin */}
-        <Route path="/superadmin/dashboard" element={<DashboardSuperAdmin />} />
-        <Route path="/superadmin/manage-user" element={<ManageUser />} />
-        <Route path="/superadmin/manage-materi" element={<ManageMateriSuper />} />
-        <Route path="/superadmin/manage-exam" element={<ManageExamSuper />} />
-        <Route path="/superadmin/manage-training" element={<ManageTrainingSuper />} />
 
-        {/* 404 */}
-        <Route path="*" element={<NotFoundPage />} />
+        {/* ================= ADMIN ================= */}
+
+        <Route
+          path="/admin"
+          element={<DashboardAdmin />}
+        />
+
+
+        {/* ================= SUPER ADMIN ================= */}
+
+        <Route
+          path="/superadmin"
+          element={<DashboardSuperAdmin />}
+        />
+
+
+        {/* ================= 404 ================= */}
+
+        <Route
+          path="*"
+          element={<NotFoundPage />}
+        />
 
       </Routes>
     </BrowserRouter>

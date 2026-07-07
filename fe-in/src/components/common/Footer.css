@@ -4,16 +4,14 @@
 
 .footer {
   width: 100%;
-
   background: #327537;
-
   display: flex;
   justify-content: center;
   align-items: center;
-
   padding: 18px 24px;
-
   box-sizing: border-box;
+  position: relative;
+  z-index: 3;
 }
 
 /* ==========================
@@ -22,14 +20,11 @@
 
 .footer-text {
   margin: 0;
-
   color: #ffffff;
-
   font-family: "Instrument Sans", sans-serif;
-  font-size: 15px;
+  font-size: clamp(0.8rem, 1.1vw, 0.95rem);
   font-weight: 400;
   line-height: 1.5;
-
   text-align: center;
 }
 

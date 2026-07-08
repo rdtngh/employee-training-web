@@ -64,6 +64,23 @@
   padding-right: 48px;
 }
 
+/* Hide native password reveal/clear icons on different browsers so only our custom toggle shows */
+.password-wrapper input::-ms-reveal,
+.password-wrapper input::-ms-clear {
+  display: none;
+}
+
+.password-wrapper input::-webkit-credentials-auto-fill-button,
+.password-wrapper input::-webkit-textfield-decoration-container {
+  display: none !important;
+}
+
+.password-wrapper input::-webkit-outer-spin-button,
+.password-wrapper input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .toggle-password {
   position: absolute;
   top: 50%;

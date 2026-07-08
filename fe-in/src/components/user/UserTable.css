@@ -1,0 +1,51 @@
+.user-table-wrap {
+  overflow-x: auto;
+}
+
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Instrument Sans", sans-serif;
+}
+
+.user-table th,
+.user-table td {
+  text-align: left;
+  padding: 12px 10px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.98rem;
+  color: #4b5563;
+}
+
+.user-table thead th {
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.user-table tbody tr.row-super td {
+  color: #6b7280;
+}
+
+.muted {
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+.btn-edit {
+  background: transparent;
+  border: 1px solid #2563eb;
+  color: #2563eb;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.btn-delete {
+  background: transparent;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}

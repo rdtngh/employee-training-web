@@ -9,6 +9,10 @@ function Footer() {
         <span className="footer-separator"> | </span>
 
         Dikembangkan oleh Bening Apni Prameswari, Raditya Alrasyid Nugroho, dan Najlatika
+
+         <span className="footer-separator"> | </span>
+
+         IF 23 ITERA
       </p>
     </footer>
   );

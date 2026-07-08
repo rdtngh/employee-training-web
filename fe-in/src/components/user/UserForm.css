@@ -1,0 +1,67 @@
+.user-form-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+
+.user-form-dialog {
+  background: #fff;
+  padding: 20px 22px;
+  border-radius: 12px;
+  width: 420px;
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.2);
+}
+
+.user-form-title {
+  margin: 0 0 8px 0;
+  font-family: "Instrument Sans", sans-serif;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.user-form-form label {
+  display: block;
+  font-family: "Instrument Sans", sans-serif;
+  color: #374151;
+  font-size: 0.95rem;
+  margin-bottom: 10px;
+}
+
+.user-form-form input,
+.user-form-form select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  margin-top: 6px;
+  box-sizing: border-box;
+}
+
+.user-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.btn-cancel {
+  background: transparent;
+  border: 1px solid #9ca3af;
+  color: #374151;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-save {
+  background: #327537;
+  border: 0;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}

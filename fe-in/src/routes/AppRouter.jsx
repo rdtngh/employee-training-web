@@ -12,6 +12,7 @@ import DashboardAdmin from "../pages/admin/DashboardAdmin";
 
 // Super Admin
 import DashboardSuperAdmin from "../pages/superadmin/DashboardSuperAdmin";
+import UserManagement from "../pages/superadmin/UserManagement";
 
 // Error Page
 import NotFoundPage from "../pages/NotFoundPage";
@@ -47,6 +48,11 @@ function AppRouter() {
         <Route
           path="/superadmin"
           element={<DashboardSuperAdmin />}
+        />
+
+        <Route
+          path="/superadmin/manage-user"
+          element={<UserManagement />}
         />
 
 

@@ -1,0 +1,56 @@
+.user-management-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 32px 36px;
+  background: #ffffff;
+  border: 1px solid #327537;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(31, 41, 55, 0.06);
+}
+
+.user-management-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.user-management-title {
+  margin: 0;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.user-management-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #327537;
+  color: #ffffff;
+  border: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-family: "Instrument Sans", sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.user-management-add-icon {
+  width: 20px;
+  height: 20px;
+}
+
+
+@media (max-width: 640px) {
+  .kelola-card {
+    padding: 20px;
+  }
+
+  .kelola-title {
+    font-size: 1.25rem;
+  }
+}

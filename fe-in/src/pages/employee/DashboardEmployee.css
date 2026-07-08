@@ -1,0 +1,164 @@
+.dashboard-employee-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 36px 40px;
+  background: #ffffff;
+  border: 1px solid #327537;
+  border-radius: 24px;
+  box-shadow: 0 4px 16px rgba(31, 41, 55, 0.06);
+  overflow: hidden;
+}
+
+.dashboard-employee-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("../../assets/logo/logo-rsabl.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: min(48%, 360px);
+  opacity: 0.05;
+  pointer-events: none;
+}
+
+.dashboard-employee-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.dashboard-employee-icon {
+  width: 95px;
+  height: 95px;
+  flex-shrink: 0;
+}
+
+.dashboard-employee-title {
+  margin: 0;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: clamp(1.8rem, 2.5vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1.15;
+  color: #1f2937;
+}
+
+.dashboard-employee-copy {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.7;
+  color: #4b5563;
+}
+
+.dashboard-employee-section {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 28px;
+}
+
+.dashboard-employee-section-icon {
+  width: 110px;
+  height: 110px;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.dashboard-employee-section-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-employee-section-title {
+  margin: 0;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.dashboard-employee-list {
+  margin: 12px 0 0;
+  padding-left: 22px;
+  list-style: disc outside;
+}
+
+.dashboard-employee-list li {
+  margin-bottom: 10px;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.7;
+  color: #4b5563;
+}
+
+.dashboard-employee-list li:last-child {
+  margin-bottom: 0;
+}
+
+.dashboard-employee-divider {
+  position: relative;
+  z-index: 1;
+  border: 0;
+  border-top: 1px solid #d1d5db;
+  margin: 8px 0 0;
+}
+
+@media (max-width: 900px) {
+  .dashboard-employee-card {
+    padding: 28px 24px;
+  }
+
+  .dashboard-employee-header {
+    align-items: flex-start;
+  }
+
+  .dashboard-employee-section {
+    gap: 20px;
+  }
+
+  .dashboard-employee-section-icon {
+    width: 90px;
+    height: 90px;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-employee-card {
+    padding: 24px 18px;
+  }
+
+  .dashboard-employee-header,
+  .dashboard-employee-section {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dashboard-employee-icon {
+    width: 70px;
+    height: 70px;
+  }
+
+  .dashboard-employee-section-icon {
+    width: 70px;
+    height: 70px;
+    margin-bottom: 8px;
+  }
+
+  .dashboard-employee-title {
+    font-size: 2rem;
+  }
+
+  .dashboard-employee-section-title {
+    font-size: 1.3rem;
+  }
+}

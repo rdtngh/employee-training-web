@@ -2,6 +2,7 @@ import "./DashboardLayout.css";
 
 import Navbar from "../landing/Navbar";
 import Sidebar from "./Sidebar";
+import Footer from "../common/Footer";
 
 function DashboardLayout({ children, role = "superadmin" }) {
   return (
@@ -16,9 +17,13 @@ function DashboardLayout({ children, role = "superadmin" }) {
         <Sidebar role={role} />
 
         <main className="dashboard-content">
-          <div className="dashboard-content-inner">{children}</div>
+          <div className="dashboard-content-inner">
+            {children}
+          </div>
         </main>
       </div>
+
+      <Footer />
     </div>
   );
 }

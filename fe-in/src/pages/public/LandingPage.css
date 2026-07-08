@@ -1,9 +1,43 @@
 .landing-page {
   position: relative;
   width: 100%;
-  min-height: 100vh;
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
   background: #ffffff;
-  overflow-x: hidden;
+}
+
+.landing-background,
+.landing-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.landing-background {
+  object-fit: cover;
+  object-position: center;
+  z-index: 1;
+}
+
+.landing-overlay {
+  background: rgba(0, 0, 0, 0.38);
+  z-index: 2;
+}
+
+.landing-content {
+  position: relative;
+  z-index: 3;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 0;
+  padding: clamp(96px, 13vh, 160px) clamp(32px, 5vw, 92px) clamp(48px, 8vh, 72px);
+}
+
+.landing-page > header,
+.landing-page > footer {
+  width: 100%;
 }

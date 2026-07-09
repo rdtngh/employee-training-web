@@ -17,6 +17,12 @@
   margin-top: 8px;
 }
 
+.sidebar-menu-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .sidebar-link {
   display: flex;
   align-items: center;
@@ -30,6 +36,10 @@
   font-weight: 600;
   line-height: 1.2;
   transition: background 0.25s ease, color 0.25s ease, transform 0.25s ease;
+}
+
+.sidebar-link span {
+  flex: 1;
 }
 
 .sidebar-link:hover {
@@ -49,6 +59,99 @@
   object-fit: contain;
   flex-shrink: 0;
   transition: filter 0.25s ease;
+}
+
+.sidebar-chevron {
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.sidebar-chevron::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 5px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.25s ease, top 0.25s ease;
+}
+
+.sidebar-chevron.expanded::before {
+  top: 5px;
+  transform: rotate(45deg);
+}
+
+.sidebar-submenu {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  max-height: 0;
+  overflow: hidden;
+  margin-left: 28px;
+  padding-left: 20px;
+  opacity: 0;
+  transition: max-height 0.25s ease, opacity 0.2s ease, margin-top 0.25s ease;
+}
+
+.sidebar-submenu.expanded {
+  max-height: 90px;
+  margin-top: 2px;
+  opacity: 1;
+}
+
+.sidebar-submenu::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.sidebar-submenu-link {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  width: fit-content;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  transition: background 0.25s ease, color 0.25s ease, transform 0.25s ease;
+}
+
+.sidebar-submenu-link::before {
+  content: "";
+  position: absolute;
+  left: -18px;
+  top: 50%;
+  width: 12px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.sidebar-submenu-link:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateX(2px);
+}
+
+.sidebar-submenu-link.active {
+  background: #ffffff;
+  color: #327537;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .sidebar-logout {
@@ -88,5 +191,14 @@
   .sidebar-link,
   .sidebar-logout {
     font-size: 16px;
+  }
+
+  .sidebar-submenu {
+    margin-left: 26px;
+    padding-left: 18px;
+  }
+
+  .sidebar-submenu-link {
+    font-size: 14px;
   }
 }

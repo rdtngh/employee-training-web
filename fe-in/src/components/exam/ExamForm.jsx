@@ -7,20 +7,40 @@ function ExamForm({
   selectedQuestion,
   onSubmit,
   onCancel,
-  errors,
-  loading,
+  errors = {},
+  loading = false,
   resetSignal = 0,
 }) {
   const questionInputRef = useRef(null);
+
   const [form, setForm] = useState({
     question: "",
-    options: { a: "", b: "", c: "", d: "" },
+    options: {
+      a: "",
+      b: "",
+      c: "",
+      d: "",
+    },
     correctAnswer: "",
   });
 
-  // Isi form saat ada selectedQuestion untuk editing
+  const isEditMode = mode === "edit";
+
+  const resetFormData = () => {
+    setForm({
+      question: "",
+      options: {
+        a: "",
+        b: "",
+        c: "",
+        d: "",
+      },
+      correctAnswer: "",
+    });
+  };
+
   useEffect(() => {
-    if (mode === "edit" && selectedQuestion) {
+    if (isEditMode && selectedQuestion) {
       setForm({
         question: selectedQuestion.question,
         options: { ...selectedQuestion.options },
@@ -29,166 +49,192 @@ function ExamForm({
     } else {
       resetFormData();
     }
-  }, [selectedQuestion, mode]);
+  }, [selectedQuestion, isEditMode]);
 
   useEffect(() => {
-    if (mode !== "add" || resetSignal === 0) return;
+    if (!isEditMode && resetSignal !== 0) {
+      resetFormData();
+      questionInputRef.current?.focus();
+    }
+  }, [resetSignal, isEditMode]);
 
-    resetFormData();
-    questionInputRef.current?.focus();
-  }, [mode, resetSignal]);
-
-  // Reset form data
-  const resetFormData = () => {
-    setForm({
-      question: "",
-      options: { a: "", b: "", c: "", d: "" },
-      correctAnswer: "",
-    });
-  };
-
-  // Handle input perubahan
   const handleQuestionChange = (e) => {
-    setForm({ ...form, question: e.target.value });
+    setForm((prev) => ({
+      ...prev,
+      question: e.target.value,
+    }));
   };
 
   const handleOptionChange = (key, value) => {
-    setForm({
-      ...form,
-      options: { ...form.options, [key]: value },
-    });
+    setForm((prev) => ({
+      ...prev,
+      options: {
+        ...prev.options,
+        [key]: value,
+      },
+    }));
   };
 
   const handleCorrectAnswerChange = (e) => {
-    setForm({ ...form, correctAnswer: e.target.value });
+    setForm((prev) => ({
+      ...prev,
+      correctAnswer: e.target.value,
+    }));
   };
 
-  // Submit form
   const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(form, mode === "edit" ? selectedQuestion.id : null);
-  };
+  e.preventDefault();
 
-  // Handle cancel/reset
+  const questionId = isEditMode ? selectedQuestion?.id : null;
+  onSubmit(form, questionId);
+};
+
   const handleCancel = () => {
-    resetFormData();
-    onCancel();
-  };
+  resetFormData();
+  onCancel();
+};
 
-  const isEditMode = mode === "edit";
   const pageTitle = isEditMode ? "Edit Soal" : "Tambah Soal";
-  const buttonText = isEditMode
-    ? loading
-      ? "Menyimpan..."
-      : "Simpan Perubahan"
-    : loading
-      ? "Memproses..."
-      : "Tambah Soal";
 
-  return (
-    <div className="exam-form-container">
-      <div className="exam-form-header">
-        <img src={addQuestionIcon} alt="" className="exam-form-icon" />
-        <h2 className="exam-form-title">{pageTitle}</h2>
-      </div>
+const buttonText = isEditMode
+  ? loading
+    ? "Menyimpan..."
+    : "Simpan Perubahan"
+  : loading
+    ? "Memproses..."
+    : "Tambah Soal";
 
-      <form onSubmit={handleSubmit} className="exam-form">
-        {/* Input Soal */}
-        <div className="exam-form-group">
-          <label htmlFor="question" className="exam-form-label">
-            Masukkan Soal
-          </label>
-          <textarea
-            id="question"
-            ref={questionInputRef}
-            className={`exam-form-input exam-form-textarea ${
-              errors.question ? "error" : ""
-            }`}
-            placeholder="Ketik soal di sini..."
-            value={form.question}
-            onChange={handleQuestionChange}
-            rows={3}
-            disabled={loading}
+return (
+    <>
+      <div className="exam-form-container">
+        <div className="exam-form-header">
+          <img
+            src={addQuestionIcon}
+            alt="Tambah Soal"
+            className="exam-form-icon"
           />
-          {errors.question && (
-            <span className="exam-form-error">{errors.question}</span>
-          )}
+          <h2 className="exam-form-title">{pageTitle}</h2>
         </div>
 
-        {/* Input Options */}
-        {["a", "b", "c", "d"].map((key, idx) => (
-          <div key={key} className="exam-form-group">
-            <label htmlFor={`option-${key}`} className="exam-form-label">
-              Masukkan Option {String.fromCharCode(65 + idx)}
+        <form onSubmit={handleSubmit} className="exam-form">
+
+          <div className="exam-form-group">
+            <label htmlFor="question" className="exam-form-label">
+              Masukkan Soal
             </label>
-            <input
-              id={`option-${key}`}
-              type="text"
-              className={`exam-form-input ${
-                errors[`option${String.fromCharCode(65 + idx)}`]
-                  ? "error"
-                  : ""
+
+            <textarea
+              id="question"
+              ref={questionInputRef}
+              rows={3}
+              placeholder="Ketik soal di sini..."
+              className={`exam-form-input exam-form-textarea ${
+                errors.question ? "error" : ""
               }`}
-              placeholder={`Option ${String.fromCharCode(65 + idx)}`}
-              value={form.options[key]}
-              onChange={(e) => handleOptionChange(key, e.target.value)}
+              value={form.question}
+              onChange={handleQuestionChange}
               disabled={loading}
             />
-            {errors[`option${String.fromCharCode(65 + idx)}`] && (
+
+            {errors.question && (
               <span className="exam-form-error">
-                {errors[`option${String.fromCharCode(65 + idx)}`]}
+                {errors.question}
               </span>
             )}
           </div>
-        ))}
 
-        {/* Dropdown Jawaban Benar */}
-        <div className="exam-form-group">
-          <label htmlFor="correctAnswer" className="exam-form-label">
-            Jawaban Benar
-          </label>
-          <select
-            id="correctAnswer"
-            className={`exam-form-select ${
-              errors.correctAnswer ? "error" : ""
-            }`}
-            value={form.correctAnswer}
-            onChange={handleCorrectAnswerChange}
-            disabled={loading}
-          >
-            <option value="">Pilih jawaban yang benar</option>
-            <option value="a">Option A</option>
-            <option value="b">Option B</option>
-            <option value="c">Option C</option>
-            <option value="d">Option D</option>
-          </select>
-          {errors.correctAnswer && (
-            <span className="exam-form-error">{errors.correctAnswer}</span>
-          )}
-        </div>
+          {["a", "b", "c", "d"].map((key, index) => (
+            <div key={key} className="exam-form-group">
+              <label
+                htmlFor={`option-${key}`}
+                className="exam-form-label"
+              >
+                Masukkan Option {String.fromCharCode(65 + index)}
+              </label>
 
-        {/* Buttons */}
-        <div className="exam-form-actions">
-          {isEditMode && (
-            <button
-              type="button"
-              className="exam-form-btn exam-form-btn-cancel"
-              onClick={handleCancel}
+              <input
+                id={`option-${key}`}
+                type="text"
+                placeholder={`Option ${String.fromCharCode(65 + index)}`}
+                className={`exam-form-input ${
+                  errors[`option${String.fromCharCode(65 + index)}`]
+                    ? "error"
+                    : ""
+                }`}
+                value={form.options[key]}
+                onChange={(e) =>
+                  handleOptionChange(key, e.target.value)
+                }
+                disabled={loading}
+              />
+
+              {errors[`option${String.fromCharCode(65 + index)}`] && (
+                <span className="exam-form-error">
+                  {errors[`option${String.fromCharCode(65 + index)}`]}
+                </span>
+              )}
+            </div>
+          ))}
+
+          <div className="exam-form-group">
+            <label
+              htmlFor="correctAnswer"
+              className="exam-form-label"
+            >
+              Jawaban Benar
+            </label>
+
+            <select
+              id="correctAnswer"
+              className={`exam-form-select ${
+                errors.correctAnswer ? "error" : ""
+              }`}
+              value={form.correctAnswer}
+              onChange={handleCorrectAnswerChange}
               disabled={loading}
             >
-              Batal
+              <option value="">
+                Pilih jawaban yang benar
+              </option>
+
+              <option value="a">Option A</option>
+              <option value="b">Option B</option>
+              <option value="c">Option C</option>
+              <option value="d">Option D</option>
+            </select>
+
+            {errors.correctAnswer && (
+              <span className="exam-form-error">
+                {errors.correctAnswer}
+              </span>
+            )}
+          </div>
+
+          <div className="exam-form-actions">
+
+            {isEditMode && (
+              <button
+                type="button"
+                className="exam-form-btn exam-form-btn-cancel"
+                onClick={handleCancel}
+                disabled={loading}
+              >
+                Batal
+              </button>
+            )}
+
+            <button
+              type="submit"
+              className="exam-form-btn exam-form-btn-submit"
+              disabled={loading}
+            >
+              {buttonText}
             </button>
-          )}
-          <button
-            type="submit"
-            className="exam-form-btn exam-form-btn-submit"
-            disabled={loading}
-          >
-            {buttonText}
-          </button>
-        </div>
-      </form>
-    </div>
+
+          </div>
+        </form>
+      </div>
+    </>
   );
 }
 

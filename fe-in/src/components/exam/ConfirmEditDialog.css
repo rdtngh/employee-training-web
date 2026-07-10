@@ -1,0 +1,113 @@
+/* Confirm Edit Dialog Styling */
+.confirm-edit-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 70;
+}
+
+.confirm-edit-dialog {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.2);
+  animation: slideIn 0.2s ease;
+  text-align: center;
+  border: 1px solid rgba(0, 0, 0, 0.02);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.confirm-edit-title {
+  margin: 0 0 10px 0;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.confirm-edit-message {
+  margin: 0 0 18px 0;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 0.95rem;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.confirm-edit-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.confirm-edit-btn {
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 150px;
+}
+
+.confirm-edit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.confirm-edit-btn-cancel {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+.confirm-edit-btn-cancel:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.confirm-edit-btn-confirm {
+  background: #327537;
+  color: #ffffff;
+}
+
+.confirm-edit-btn-confirm:hover:not(:disabled) {
+  background: #275c2a;
+}
+
+@media (max-width: 480px) {
+  .confirm-edit-overlay {
+    padding: 16px;
+  }
+
+  .confirm-edit-dialog {
+    max-width: 100%;
+  }
+
+  .confirm-edit-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .confirm-edit-btn {
+    width: 100%;
+    min-width: unset;
+  }
+}
+

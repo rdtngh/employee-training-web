@@ -1,5 +1,6 @@
 import { useState } from "react";
 import uploadIcon from "../../assets/icons/icon-upload.svg";
+import DeleteMaterialUploadDialog from "./DeleteMaterialUploadDialog";
 import "./MaterialForm.css";
 
 const createEditForm = (material) => ({
@@ -23,6 +24,7 @@ function MaterialFormContent({
 }) {
   const [editForm, setEditForm] = useState(() => createEditForm(material));
   const [errors, setErrors] = useState({});
+  const [selectedMaterial, setSelectedMaterial] = useState(null);
   const isAddMode = mode === "add";
   const items = isAddMode ? selectedFiles : [];
   const fileName = isAddMode
@@ -48,11 +50,14 @@ function MaterialFormContent({
     return Object.keys(nextErrors).length === 0;
   }
 
-  function removeSelectedFile(indexToRemove = 0) {
+  function confirmRemoveSelectedFile() {
+    if (!selectedMaterial) return;
+
     setErrors({});
     onSelectedFilesChange?.(
-      items.filter((_, index) => index !== indexToRemove)
+      items.filter((item) => item.id !== selectedMaterial.id)
     );
+    setSelectedMaterial(null);
   }
 
   function clearSelectedFiles() {
@@ -169,7 +174,7 @@ function MaterialFormContent({
                     <button
                       type="button"
                       className="material-remove-file-btn"
-                      onClick={() => removeSelectedFile(index)}
+                      onClick={() => setSelectedMaterial(item)}
                       disabled={loading}
                     >
                       Hapus
@@ -207,6 +212,12 @@ function MaterialFormContent({
           ? `+ Tambah Materi${items.length > 1 ? ` (${items.length})` : ""}`
           : "Simpan"}
       </button>
+
+      <DeleteMaterialUploadDialog
+        isOpen={Boolean(selectedMaterial)}
+        onConfirm={confirmRemoveSelectedFile}
+        onCancel={() => setSelectedMaterial(null)}
+      />
     </form>
   );
 }

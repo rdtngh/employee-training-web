@@ -66,6 +66,7 @@
   height: 22px;
   border: none;
   background: transparent;
+  color: #ffffff;
   cursor: pointer;
   flex-shrink: 0;
   position: relative;
@@ -87,6 +88,10 @@
 .sidebar-chevron.expanded::before {
   top: 5px;
   transform: rotate(45deg);
+}
+
+.sidebar-chevron.expanded {
+  color: #111111;
 }
 
 .sidebar-submenu {

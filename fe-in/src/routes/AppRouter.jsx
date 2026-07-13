@@ -11,12 +11,18 @@ import DashboardEmployee from "../pages/employee/DashboardEmployee";
 import DashboardAdmin from "../pages/admin/DashboardAdmin";
 import ManageMaterialAdmin from "../pages/admin/ManageMaterial";
 import ManageExamAdmin from "../pages/admin/ManageExam";
+import ExamResultAdmin from "../pages/admin/ExamResult";
+import StatisticsPageAdmin from "../pages/admin/StatisticsPage";
+import CertificatePageAdmin from "../pages/admin/CertificatePage";
 
 // Super Admin
 import DashboardSuperAdmin from "../pages/superadmin/DashboardSuperAdmin";
 import UserManagement from "../pages/superadmin/UserManagement";
 import ManageMaterialSuperAdmin from "../pages/superadmin/ManageMaterial";
 import ManageExamSuperAdmin from "../pages/superadmin/ManageExam";
+import ExamResultSuperAdmin from "../pages/superadmin/ExamResult";
+import StatisticsPageSuperAdmin from "../pages/superadmin/StatisticsPage";
+import CertificatePageSuperAdmin from "../pages/superadmin/CertificatePage";
 
 // Error Page
 import NotFoundPage from "../pages/NotFoundPage";
@@ -56,6 +62,10 @@ function AppRouter() {
           element={<ManageMaterialAdmin />}
         />
 
+        <Route path="/admin/exam-results" element={<ExamResultAdmin />} />
+        <Route path="/admin/statistics" element={<StatisticsPageAdmin />} />
+        <Route path="/admin/certificates" element={<CertificatePageAdmin />} />
+
 
         {/* ================= SUPER ADMIN ================= */}
 
@@ -78,6 +88,10 @@ function AppRouter() {
           path="/superadmin/manage-materi"
           element={<ManageMaterialSuperAdmin />}
         />
+
+        <Route path="/superadmin/exam-results" element={<ExamResultSuperAdmin />} />
+        <Route path="/superadmin/statistics" element={<StatisticsPageSuperAdmin />} />
+        <Route path="/superadmin/certificates" element={<CertificatePageSuperAdmin />} />
 
 
         {/* ================= 404 ================= */}

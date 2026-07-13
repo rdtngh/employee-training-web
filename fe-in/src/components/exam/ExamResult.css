@@ -1,0 +1,165 @@
+.exam-result-page {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.exam-result-title {
+  margin-bottom: 24px;
+  color: #111827;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+}
+
+.exam-result-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.exam-result-card,
+.exam-result-placeholder-card {
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(17, 24, 39, 0.08);
+}
+
+.exam-result-card-header {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px;
+  background: #ffffff;
+  color: #111827;
+  text-align: left;
+  transition: background-color 160ms ease;
+}
+
+.exam-result-card-header:hover {
+  background: #f7faf7;
+}
+
+.exam-result-card-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.exam-result-card-title {
+  flex: 1;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.exam-result-arrow {
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid #327537;
+  border-bottom: 2px solid #327537;
+  transform: rotate(45deg);
+  transition: transform 200ms ease;
+}
+
+.exam-result-arrow.open {
+  transform: rotate(225deg);
+}
+
+.exam-result-card-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  border-top: 0 solid #e5e7eb;
+  transition: grid-template-rows 220ms ease, border-top-width 220ms ease;
+}
+
+.exam-result-card-content.open {
+  grid-template-rows: 1fr;
+  border-top-width: 1px;
+}
+
+.exam-result-card-content-inner {
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 24px;
+  transition: padding 220ms ease;
+}
+
+.exam-result-card-content.open .exam-result-card-content-inner {
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.exam-result-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.exam-result-menu-button,
+.exam-result-primary-button,
+.exam-result-back-button {
+  font-family: "Instrument Sans", sans-serif;
+  font-weight: 600;
+}
+
+.exam-result-menu-button {
+  width: fit-content;
+  padding: 6px 0;
+  background: transparent;
+  color: #327537;
+  text-align: left;
+}
+
+.exam-result-menu-button:hover {
+  text-decoration: underline;
+}
+
+.exam-result-certificate-content p,
+.exam-result-placeholder-card p {
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.exam-result-primary-button {
+  margin-top: 18px;
+  padding: 10px 18px;
+  border-radius: 4px;
+  background: #327537;
+  color: #ffffff;
+}
+
+.exam-result-back-button {
+  margin-bottom: 16px;
+  padding: 0;
+  background: transparent;
+  color: #327537;
+}
+
+.exam-result-back-button:hover {
+  text-decoration: underline;
+}
+
+.exam-result-placeholder-card {
+  min-height: 220px;
+  padding: 32px;
+}
+
+@media (max-width: 600px) {
+  .exam-result-card-header {
+    padding: 16px;
+  }
+
+  .exam-result-card-content-inner {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .exam-result-placeholder-card {
+    min-height: 180px;
+    padding: 24px;
+  }
+}

@@ -10,12 +10,8 @@ const initialForm = {
   items: [],
 };
 
-const titleFromFileName = (fileName) =>
-  fileName
-    .replace(/\.[^/.]+$/, "")
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+const createItemId = () =>
+  globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 
 function MaterialForm({
   mode = "add",
@@ -54,7 +50,7 @@ function MaterialForm({
   }, [selectedFileName]);
 
   useEffect(() => {
-    if (!selectedFiles) return;
+    if (mode !== "add" || !selectedFiles) return;
 
     if (selectedFiles.length === 0) {
       setForm((prev) => ({
@@ -67,34 +63,31 @@ function MaterialForm({
       return;
     }
 
-    if (selectedFiles.length === 1) {
-      const [selected] = selectedFiles;
-      setForm((prev) => ({
-        ...prev,
-        file: selected.file,
-        fileName: selected.fileName,
-        fileType: selected.fileType,
-        items: [],
-      }));
-      return;
-    }
+    setForm((prev) => {
+      const items = selectedFiles.map((selected) => {
+        const existingItem = prev.items.find((item) => item.file === selected.file);
 
-    setForm((prev) => ({
-      ...prev,
-      file: null,
-      fileName: `${selectedFiles.length} file dipilih`,
-      fileType: "",
-      items: selectedFiles.map((selected) => ({
-        file: selected.file,
-        fileName: selected.fileName,
-        fileType: selected.fileType,
-        title: titleFromFileName(selected.fileName),
-      })),
-    }));
-  }, [selectedFiles]);
+        return existingItem ?? {
+          id: createItemId(),
+          file: selected.file,
+          fileName: selected.fileName,
+          fileType: selected.fileType,
+          title: "",
+        };
+      });
+
+      return {
+        ...prev,
+        file: null,
+        fileName: items.length === 1 ? items[0].fileName : `${items.length} file dipilih`,
+        fileType: "",
+        items,
+      };
+    });
+  }, [mode, selectedFiles]);
 
   useEffect(() => {
-    if (!selectedFile) return;
+    if (mode !== "edit" || !selectedFile) return;
 
     setForm((prev) => ({
       ...prev,
@@ -103,7 +96,7 @@ function MaterialForm({
       fileType: selectedFile.fileType,
       items: [],
     }));
-  }, [selectedFile]);
+  }, [mode, selectedFile]);
 
   useEffect(() => {
     if (mode !== "add" || resetSignal === 0) return;
@@ -117,7 +110,13 @@ function MaterialForm({
 
     if (!form.fileName) nextErrors.fileName = "Upload File Materi wajib diisi";
 
-    if (!form.title.trim()) {
+    if (mode === "add") {
+      const itemTitles = {};
+      form.items.forEach((item) => {
+        if (!item.title.trim()) itemTitles[item.id] = "Judul Materi wajib diisi";
+      });
+      if (Object.keys(itemTitles).length > 0) nextErrors.itemTitles = itemTitles;
+    } else if (!form.title.trim()) {
       nextErrors.title = "Judul Materi wajib diisi";
     }
 
@@ -128,19 +127,7 @@ function MaterialForm({
   function removeSelectedFile(indexToRemove = 0) {
     setErrors({});
 
-    const currentItems =
-      form.items.length > 0
-        ? form.items
-        : form.file
-          ? [
-              {
-                file: form.file,
-                fileName: form.fileName,
-                fileType: form.fileType,
-                title: form.title || titleFromFileName(form.fileName),
-              },
-            ]
-          : [];
+    const currentItems = form.items;
     const nextItems = currentItems.filter((_, index) => index !== indexToRemove);
 
     onSelectedFilesChange?.(
@@ -162,23 +149,10 @@ function MaterialForm({
       return;
     }
 
-      if (nextItems.length === 1) {
-        const [nextItem] = nextItems;
-        setForm((prev) => ({
-          ...prev,
-          title: prev.title || nextItem.title,
-          file: nextItem.file,
-          fileName: nextItem.fileName,
-          fileType: nextItem.fileType,
-        items: [],
-      }));
-      return;
-    }
-
     setForm((prev) => ({
       ...prev,
       file: null,
-      fileName: `${nextItems.length} file dipilih`,
+      fileName: nextItems.length === 1 ? nextItems[0].fileName : `${nextItems.length} file dipilih`,
       fileType: "",
       items: nextItems,
     }));
@@ -196,19 +170,37 @@ function MaterialForm({
     }));
   }
 
+  function updateItemTitle(id, title) {
+    setForm((prev) => ({
+      ...prev,
+      items: prev.items.map((item) =>
+        item.id === id ? { ...item, title } : item
+      ),
+    }));
+    setErrors((prev) => {
+      if (!prev.itemTitles?.[id]) return prev;
+
+      const itemTitles = { ...prev.itemTitles };
+      delete itemTitles[id];
+      return { ...prev, itemTitles };
+    });
+  }
+
   function handleSubmit(e) {
     e.preventDefault();
     if (!validate()) return;
-    onSubmit(
-      form.items.length > 1
-        ? {
-            items: form.items.map((item) => ({
-              ...item,
-              title: form.title,
-            })),
-          }
-        : form
-    );
+    if (mode === "add" && form.items.length > 1) {
+      onSubmit({ items: form.items });
+      return;
+    }
+
+    if (mode === "add") {
+      const [item] = form.items;
+      onSubmit({ ...form, ...item, items: [] });
+      return;
+    }
+
+    onSubmit(form);
   }
 
   return (
@@ -225,14 +217,14 @@ function MaterialForm({
             className={`material-form-input ${errors.fileName ? "error" : ""}`}
             placeholder=""
           />
-          {form.fileName && mode === "add" && (
+          {form.items.length > 1 && mode === "add" && (
             <button
               type="button"
               className="material-clear-file-btn"
-              onClick={form.items.length > 1 ? clearSelectedFiles : () => removeSelectedFile()}
+              onClick={clearSelectedFiles}
               disabled={loading}
             >
-              {form.items.length > 1 ? "Hapus Semua" : "Hapus"}
+              Hapus Semua
             </button>
           )}
           <button
@@ -250,6 +242,7 @@ function MaterialForm({
         )}
       </div>
 
+      {mode === "edit" && (
       <div className="material-form-group">
         <label htmlFor={`${mode}-material-title`} className="material-form-label">
           Judul Materi
@@ -265,17 +258,18 @@ function MaterialForm({
           <span className="material-form-error">{errors.title}</span>
         )}
       </div>
+      )}
 
-      {form.items.length > 1 && (
+      {mode === "add" && form.items.length > 0 && (
         <div className="material-form-group">
           <span className="material-form-label">File Materi Dipilih</span>
           <div className="material-bulk-list">
             {form.items.map((item, index) => (
-              <div className="material-bulk-item" key={`${item.fileName}-${index}`}>
+              <div className="material-bulk-item" key={item.id}>
                 <span className="material-bulk-index">{index + 1}</span>
                 <div className="material-bulk-fields">
                   <div className="material-bulk-file-row">
-                    <span className="material-bulk-file">{item.fileName}</span>
+                    <span className="material-bulk-file">📄 {item.fileName}</span>
                     <button
                       type="button"
                       className="material-remove-file-btn"
@@ -285,6 +279,19 @@ function MaterialForm({
                       Hapus
                     </button>
                   </div>
+                  <label className="material-bulk-title-label" htmlFor={`${mode}-material-title-${item.id}`}>
+                    Judul Materi
+                  </label>
+                  <input
+                    id={`${mode}-material-title-${item.id}`}
+                    value={item.title}
+                    onChange={(e) => updateItemTitle(item.id, e.target.value)}
+                    className={`material-form-input ${errors.itemTitles?.[item.id] ? "error" : ""}`}
+                    disabled={loading}
+                  />
+                  {errors.itemTitles?.[item.id] && (
+                    <span className="material-form-error">{errors.itemTitles[item.id]}</span>
+                  )}
                 </div>
               </div>
             ))}

@@ -25,6 +25,7 @@ function MaterialForm({
   selectedFileName,
   selectedFile,
   selectedFiles,
+  onSelectedFilesChange,
   resetSignal = 0,
   loading = false,
 }) {
@@ -116,10 +117,7 @@ function MaterialForm({
 
     if (!form.fileName) nextErrors.fileName = "Upload File Materi wajib diisi";
 
-    if (form.items.length > 1) {
-      const hasEmptyTitle = form.items.some((item) => !item.title.trim());
-      if (hasEmptyTitle) nextErrors.items = "Semua judul materi wajib diisi";
-    } else if (!form.title.trim()) {
+    if (!form.title.trim()) {
       nextErrors.title = "Judul Materi wajib diisi";
     }
 
@@ -127,19 +125,90 @@ function MaterialForm({
     return Object.keys(nextErrors).length === 0;
   }
 
-  function updateItemTitle(index, title) {
+  function removeSelectedFile(indexToRemove = 0) {
+    setErrors({});
+
+    const currentItems =
+      form.items.length > 0
+        ? form.items
+        : form.file
+          ? [
+              {
+                file: form.file,
+                fileName: form.fileName,
+                fileType: form.fileType,
+                title: form.title || titleFromFileName(form.fileName),
+              },
+            ]
+          : [];
+    const nextItems = currentItems.filter((_, index) => index !== indexToRemove);
+
+    onSelectedFilesChange?.(
+      nextItems.map(({ file, fileName, fileType }) => ({
+        file,
+        fileName,
+        fileType,
+      }))
+    );
+
+    if (nextItems.length === 0) {
+      setForm((prev) => ({
+        ...prev,
+        fileName: "",
+        fileType: "",
+        file: null,
+        items: [],
+      }));
+      return;
+    }
+
+      if (nextItems.length === 1) {
+        const [nextItem] = nextItems;
+        setForm((prev) => ({
+          ...prev,
+          title: prev.title || nextItem.title,
+          file: nextItem.file,
+          fileName: nextItem.fileName,
+          fileType: nextItem.fileType,
+        items: [],
+      }));
+      return;
+    }
+
     setForm((prev) => ({
       ...prev,
-      items: prev.items.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, title } : item
-      ),
+      file: null,
+      fileName: `${nextItems.length} file dipilih`,
+      fileType: "",
+      items: nextItems,
+    }));
+  }
+
+  function clearSelectedFiles() {
+    setErrors({});
+    onSelectedFilesChange?.([]);
+    setForm((prev) => ({
+      ...prev,
+      fileName: "",
+      fileType: "",
+      file: null,
+      items: [],
     }));
   }
 
   function handleSubmit(e) {
     e.preventDefault();
     if (!validate()) return;
-    onSubmit(form.items.length > 1 ? { items: form.items } : form);
+    onSubmit(
+      form.items.length > 1
+        ? {
+            items: form.items.map((item) => ({
+              ...item,
+              title: form.title,
+            })),
+          }
+        : form
+    );
   }
 
   return (
@@ -156,6 +225,16 @@ function MaterialForm({
             className={`material-form-input ${errors.fileName ? "error" : ""}`}
             placeholder=""
           />
+          {form.fileName && mode === "add" && (
+            <button
+              type="button"
+              className="material-clear-file-btn"
+              onClick={form.items.length > 1 ? clearSelectedFiles : () => removeSelectedFile()}
+              disabled={loading}
+            >
+              {form.items.length > 1 ? "Hapus Semua" : "Hapus"}
+            </button>
+          )}
           <button
             type="button"
             className="material-upload-btn"
@@ -171,44 +250,45 @@ function MaterialForm({
         )}
       </div>
 
-      {form.items.length > 1 ? (
+      <div className="material-form-group">
+        <label htmlFor={`${mode}-material-title`} className="material-form-label">
+          Judul Materi
+        </label>
+        <input
+          id={`${mode}-material-title`}
+          value={form.title}
+          onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+          className={`material-form-input ${errors.title ? "error" : ""}`}
+          disabled={loading}
+        />
+        {errors.title && (
+          <span className="material-form-error">{errors.title}</span>
+        )}
+      </div>
+
+      {form.items.length > 1 && (
         <div className="material-form-group">
-          <span className="material-form-label">Judul Materi</span>
+          <span className="material-form-label">File Materi Dipilih</span>
           <div className="material-bulk-list">
             {form.items.map((item, index) => (
               <div className="material-bulk-item" key={`${item.fileName}-${index}`}>
                 <span className="material-bulk-index">{index + 1}</span>
                 <div className="material-bulk-fields">
-                  <span className="material-bulk-file">{item.fileName}</span>
-                  <input
-                    value={item.title}
-                    onChange={(e) => updateItemTitle(index, e.target.value)}
-                    className={`material-form-input ${errors.items && !item.title.trim() ? "error" : ""}`}
-                    disabled={loading}
-                  />
+                  <div className="material-bulk-file-row">
+                    <span className="material-bulk-file">{item.fileName}</span>
+                    <button
+                      type="button"
+                      className="material-remove-file-btn"
+                      onClick={() => removeSelectedFile(index)}
+                      disabled={loading}
+                    >
+                      Hapus
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
-          {errors.items && (
-            <span className="material-form-error">{errors.items}</span>
-          )}
-        </div>
-      ) : (
-        <div className="material-form-group">
-          <label htmlFor={`${mode}-material-title`} className="material-form-label">
-            Judul Materi
-          </label>
-          <input
-            id={`${mode}-material-title`}
-            value={form.title}
-            onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-            className={`material-form-input ${errors.title ? "error" : ""}`}
-            disabled={loading}
-          />
-          {errors.title && (
-            <span className="material-form-error">{errors.title}</span>
-          )}
         </div>
       )}
 

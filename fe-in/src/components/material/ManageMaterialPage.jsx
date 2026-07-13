@@ -70,6 +70,17 @@ function ManageMaterialPage({ role }) {
     setUploadTarget(null);
   }
 
+  function handleAddFilesChange(files) {
+    setAddFiles(files);
+    setAddFileName(
+      files.length === 0
+        ? ""
+        : files.length === 1
+          ? files[0].fileName
+          : `${files.length} file dipilih`
+    );
+  }
+
   function openMaterialFile(material) {
     const file = material.files && material.files[0];
     if (!file) {
@@ -152,6 +163,7 @@ function ManageMaterialPage({ role }) {
             onOpenUpload={() => setUploadTarget("add")}
             selectedFileName={addFileName}
             selectedFiles={addFiles}
+            onSelectedFilesChange={handleAddFilesChange}
             resetSignal={addResetSignal}
             loading={loading}
           />

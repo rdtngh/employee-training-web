@@ -1,12 +1,21 @@
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
+import * as dashboardService from "../../services/dashboardService";
+import { useServiceData } from "../../hooks/useServiceData";
 import "./DashboardAdmin.css";
 
 import welcomeIcon from "../../assets/icons/icon-welcomeadmin.svg";
 import taskIcon from "../../assets/icons/icon-tugasdashboard.svg";
 
 function DashboardAdmin() {
+  const { data: dashboard } = useServiceData(
+    dashboardService.getDashboard,
+    "admin",
+    null
+  );
+
   return (
     <DashboardLayout role="admin">
+      {dashboard && (
       <section className="dashboard-admin-card">
         <div className="dashboard-admin-header">
           <img
@@ -16,16 +25,12 @@ function DashboardAdmin() {
           />
 
           <h1 className="dashboard-admin-title">
-            Selamat Datang,
-            <br />
-            Admin!
+            {dashboard.title}
           </h1>
         </div>
 
         <p className="dashboard-admin-copy">
-          Selamat datang di Sistem Pelatihan Karyawan RS Advent Bandar Lampung.
-          Gunakan dashboard ini untuk mengelola materi pelatihan, soal ujian,
-          dan memantau proses pelatihan sesuai dengan hak akses yang diberikan.
+          {dashboard.description}
         </p>
 
         <div className="dashboard-admin-section">
@@ -36,13 +41,12 @@ function DashboardAdmin() {
           />
 
           <div className="dashboard-admin-section-content">
-            <h2 className="dashboard-admin-section-title">Tanggung Jawab Utama:</h2>
+            <h2 className="dashboard-admin-section-title">{dashboard.sectionTitle}</h2>
 
             <ul className="dashboard-admin-list">
-              <li>Mengelola materi pelatihan.</li>
-              <li>Mengelola soal pre-test dan post-test.</li>
-              <li>Memantau hasil pelatihan peserta.</li>
-              <li>Memastikan materi dan soal selalu diperbarui.</li>
+              {dashboard.items.map((item) => (
+                <li key={item.id}>{item.text}</li>
+              ))}
             </ul>
           </div>
         </div>
@@ -50,10 +54,10 @@ function DashboardAdmin() {
         <hr className="dashboard-admin-divider" />
 
         <p className="dashboard-admin-footer">
-          Pengelolaan materi dan evaluasi yang baik membantu menciptakan proses
-          pelatihan yang efektif serta mendukung peningkatan kompetensi karyawan.
+          {dashboard.footer}
         </p>
       </section>
+      )}
     </DashboardLayout>
   );
 }

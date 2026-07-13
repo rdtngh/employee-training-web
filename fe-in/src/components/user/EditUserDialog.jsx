@@ -1,7 +1,15 @@
 import UserForm from "./UserForm";
 import "./EditUserDialog.css";
 
-function EditUserDialog({ isOpen, user, onSave, onCancel, loading = false }) {
+function EditUserDialog({
+  isOpen,
+  user,
+  onSave,
+  onCancel,
+  loading = false,
+  departments,
+  roles,
+}) {
   if (!isOpen || !user) return null;
 
   return (
@@ -14,6 +22,8 @@ function EditUserDialog({ isOpen, user, onSave, onCancel, loading = false }) {
           onCancel={onCancel}
           submitLabel="Simpan"
           disabled={loading}
+          departments={departments}
+          roles={roles}
         />
       </div>
     </div>

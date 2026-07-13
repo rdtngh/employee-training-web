@@ -112,13 +112,13 @@ export function ExamResultPlaceholder({ title, message }) {
 
   return (
     <main className="exam-result-page">
-      <button type="button" className="exam-result-back-button" onClick={() => navigate(-1)}>
-        ← Back
-      </button>
       <h1 className="exam-result-title">{title}</h1>
       <section className="exam-result-placeholder-card">
         <p>{message}</p>
       </section>
+      <button type="button" className="exam-result-back-button" onClick={() => navigate(-1)}>
+        ← Back
+      </button>
     </main>
   );
 }

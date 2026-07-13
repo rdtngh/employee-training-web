@@ -1,15 +1,14 @@
-/* Manage Exam Page Styling */
 .manage-exam-page {
   width: 100%;
   max-width: 100%;
 }
 
 .manage-exam-title {
-  margin: 0 0 24px 0;
+  margin: 0 0 24px;
+  color: #1f2937;
   font-family: "Instrument Sans", sans-serif;
   font-size: 1.8rem;
   font-weight: 700;
-  color: #1f2937;
 }
 
 .manage-exam-section {
@@ -17,11 +16,11 @@
 }
 
 .manage-exam-section-title {
-  margin: 0 0 16px 0;
+  margin: 0 0 16px;
+  color: #1f2937;
   font-family: "Instrument Sans", sans-serif;
   font-size: 1.15rem;
   font-weight: 700;
-  color: #1f2937;
 }
 
 .manage-exam-form-section {
@@ -36,22 +35,17 @@
   padding: 12px 16px;
   border-radius: 8px;
   background: #327537;
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.18);
   color: #ffffff;
   font-family: "Instrument Sans", sans-serif;
   font-size: 0.95rem;
   font-weight: 700;
-  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.18);
 }
 
-/* Responsive */
 @media (max-width: 768px) {
-  .manage-exam-page {
-    width: 100%;
-  }
-
   .manage-exam-title {
-    font-size: 1.5rem;
     margin-bottom: 20px;
+    font-size: 1.5rem;
   }
 
   .manage-exam-section {
@@ -59,8 +53,8 @@
   }
 
   .manage-exam-section-title {
-    font-size: 1.05rem;
     margin-bottom: 12px;
+    font-size: 1.05rem;
   }
 
   .manage-exam-form-section {
@@ -68,8 +62,8 @@
   }
 
   .manage-exam-toast {
-    left: 16px;
     right: 16px;
     bottom: 16px;
+    left: 16px;
   }
 }

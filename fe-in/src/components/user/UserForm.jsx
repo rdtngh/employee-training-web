@@ -9,16 +9,6 @@ const initialForm = {
   role: "",
 };
 
-const departments = [
-  "IT",
-  "HRD",
-  "Keuangan",
-  "Pelayanan",
-  "Manajemen",
-];
-
-const roles = ["Super Admin", "Admin", "Karyawan"];
-
 function UserFormContent({
   mode = "add",
   user,
@@ -26,6 +16,8 @@ function UserFormContent({
   onCancel,
   submitLabel,
   disabled = false,
+  departments = [],
+  roles = [],
 }) {
   const [form, setForm] = useState(() =>
     mode === "edit" && user

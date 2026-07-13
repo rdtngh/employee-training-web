@@ -8,7 +8,15 @@ import { useUsers } from "../../hooks/useUsers";
 import "./UserManagement.css";
 
 function UserManagement() {
-  const { users, loading, loadUsers, addUser, updateUser, deleteUser } = useUsers();
+  const {
+    users,
+    userFormOptions,
+    loading,
+    loadUsers,
+    addUser,
+    updateUser,
+    deleteUser,
+  } = useUsers();
   const [editingUser, setEditingUser] = useState(null);
   const [deletingUserId, setDeletingUserId] = useState(null);
   const [toast, setToast] = useState("");
@@ -77,7 +85,13 @@ function UserManagement() {
         </section>
 
         <section className="user-management-card user-management-add-card">
-          <UserForm mode="add" onSubmit={handleAdd} disabled={loading} />
+          <UserForm
+            mode="add"
+            onSubmit={handleAdd}
+            disabled={loading}
+            departments={userFormOptions.departments}
+            roles={userFormOptions.roles}
+          />
         </section>
       </div>
 
@@ -87,6 +101,8 @@ function UserManagement() {
         onSave={handleEdit}
         onCancel={() => setEditingUser(null)}
         loading={loading}
+        departments={userFormOptions.departments}
+        roles={userFormOptions.roles}
       />
 
       <DeleteUserDialog

@@ -45,6 +45,7 @@
   font-weight: 700;
   line-height: 1.15;
   color: #1f2937;
+  white-space: pre-line;
 }
 
 .dashboard-superadmin-copy,

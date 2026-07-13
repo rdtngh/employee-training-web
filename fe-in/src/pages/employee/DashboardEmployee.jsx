@@ -1,45 +1,52 @@
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
+import * as dashboardService from "../../services/dashboardService";
+import { useServiceData } from "../../hooks/useServiceData";
 import "./DashboardEmployee.css";
 import welcomeIcon from "../../assets/icons/icon-welcomekaryawan.svg";
 import flowIcon from "../../assets/icons/icon-alurpelatihan.svg";
 
 function DashboardEmployee() {
+  const { data: dashboard } = useServiceData(
+    dashboardService.getDashboard,
+    "employee",
+    null
+  );
+
   return (
     <DashboardLayout role="employee">
+      {dashboard && (
       <section className="dashboard-employee-card">
         <div className="dashboard-employee-header">
           <img src={welcomeIcon} alt="Welcome" className="dashboard-employee-icon" />
-          <h1 className="dashboard-employee-title">Selamat Datang!</h1>
+          <h1 className="dashboard-employee-title">{dashboard.title}</h1>
         </div>
 
         <p className="dashboard-employee-copy">
-          Selamat Datang di Sistem Pelatihan Karyawan RS Advent Bandar Lampung
+          {dashboard.description}
         </p>
 
         <p className="dashboard-employee-footer">
-          Platform ini dirancang untuk mendukung proses pembelajaran dan
-          pengembangan kompetensi seluruh karyawan melalui materi pelatihan,
-          pre-test, dan post-test yang terstruktur.
+          {dashboard.footer}
         </p>
 
         <div className="dashboard-employee-section">
           <img src={flowIcon} alt="Alur Pelatihan" className="dashboard-employee-section-icon" />
           <div className="dashboard-employee-section-content">
             <div className="dashboard-employee-section-header">
-              <h2 className="dashboard-employee-section-title">Alur Pelatihan</h2>
+              <h2 className="dashboard-employee-section-title">{dashboard.sectionTitle}</h2>
             </div>
 
             <ul className="dashboard-employee-list">
-              <li>Kerjakan Pre-Test untuk mengukur kemampuan awal.</li>
-              <li>Pelajari seluruh materi pelatihan yang tersedia.</li>
-              <li>Selesaikan Post-Test sebagai evaluasi akhir.</li>
-              <li>Lihat hasil pembelajaran setelah seluruh tahapan selesai.</li>
+              {dashboard.items.map((item) => (
+                <li key={item.id}>{item.text}</li>
+              ))}
             </ul>
           </div>
         </div>
 
         <hr className="dashboard-employee-divider" />
       </section>
+      )}
     </DashboardLayout>
   );
 }

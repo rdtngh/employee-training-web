@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useState } from "react";
+import * as authService from "../../services/authService";
 import "./Sidebar.css";
 
 import iconHome from "../../assets/icons/icon-berandaputih.svg";
@@ -17,61 +18,68 @@ import iconMaterial from "../../assets/icons/icon-kelola-materi.svg";
 const menuByRole = {
   superadmin: [
     {
+      id: "superadmin-dashboard",
       label: "Dashboard",
       to: "/superadmin",
       icon: iconHome,
       activeIcon: iconHomeActive,
     },
     {
+      id: "superadmin-users",
       label: "Kelola Pengguna",
       to: "/superadmin/manage-user",
       icon: iconUsers,
       activeIcon: iconUsersActive,
     },
-    { label: "Kelola Materi", to: "/superadmin/manage-materi", icon: iconMateri },
+    { id: "superadmin-materials", label: "Kelola Materi", to: "/superadmin/manage-materi", icon: iconMateri },
     {
+      id: "superadmin-exams",
       label: "Kelola Ujian",
       to: "/superadmin/manage-exam",
       icon: iconExam,
       activeIcon: iconExamActive,
       children: [
-        { label: "Hasil Ujian", to: "/superadmin/exam-results" },
+        { id: "superadmin-exam-results", label: "Hasil Ujian", to: "/superadmin/exam-results" },
       ],
     },
   ],
   admin: [
     {
+      id: "admin-dashboard",
       label: "Dashboard",
       to: "/admin",
       icon: iconHome,
       activeIcon: iconHomeActive,
     },
-    { label: "Kelola Materi", to: "/admin/manage-materi", icon: iconMateri },
+    { id: "admin-materials", label: "Kelola Materi", to: "/admin/manage-materi", icon: iconMateri },
     {
+      id: "admin-exams",
       label: "Kelola Ujian",
       to: "/admin/manage-exam",
       icon: iconExam,
       activeIcon: iconExamActive,
       children: [
-        { label: "Hasil Ujian", to: "/admin/exam-results" },
+        { id: "admin-exam-results", label: "Hasil Ujian", to: "/admin/exam-results" },
       ],
     },
   ],
   employee: [
     {
+      id: "employee-dashboard",
       label: "Dashboard",
       to: "/employee",
       icon: iconHome,
       activeIcon: iconHomeActive,
     },
-    { label: "Materi", to: "/employee/materi", icon: iconMaterial },
+    { id: "employee-materials", label: "Materi", to: "/employee/materi", icon: iconMaterial },
     {
+      id: "employee-pretest",
       label: "Pre-Test",
       to: "/employee/pretest",
       icon: iconPreTest,
       activeIcon: iconExamActive,
     },
-    { label: "Post-Test", to: "/employee/posttest", icon: iconPostTest },
+    { id: "employee-posttest", label: "Post-Test", to: "/employee/posttest", icon: iconPostTest },
   ],
 };
 
@@ -100,6 +108,13 @@ function Sidebar({ role = "superadmin" }) {
     }));
   };
 
+  const handleLogout = () => {
+    authService
+      .logout()
+      .catch(() => undefined)
+      .finally(() => window.location.assign("/"));
+  };
+
   return (
     <aside className="sidebar">
       <nav className="sidebar-nav" aria-label="Sidebar navigation">
@@ -110,7 +125,7 @@ function Sidebar({ role = "superadmin" }) {
           );
 
           return (
-          <div key={item.label} className="sidebar-menu-group">
+          <div key={item.id} className="sidebar-menu-group">
             <NavLink
               to={item.to}
               end={isBaseMenu(item)}
@@ -148,7 +163,7 @@ function Sidebar({ role = "superadmin" }) {
               <div className={`sidebar-submenu${expanded ? " expanded" : ""}`}>
                 {item.children.map((child) => (
                   <NavLink
-                    key={child.label}
+                    key={child.id}
                     to={child.to}
                     className={({ isActive }) =>
                       `sidebar-submenu-link${isActive ? " active" : ""}`
@@ -164,7 +179,7 @@ function Sidebar({ role = "superadmin" }) {
         })}
       </nav>
 
-      <button type="button" className="sidebar-logout" onClick={() => window.location.assign("/")}>
+      <button type="button" className="sidebar-logout" onClick={handleLogout}>
         <img src={iconLogout} alt="" className="sidebar-icon" />
         <span>Logout</span>
       </button>

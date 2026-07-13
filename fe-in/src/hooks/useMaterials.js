@@ -1,19 +1,28 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as materialService from "../services/materialService";
 
 export const useMaterials = () => {
+  const mountedRef = useRef(false);
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   const loadMaterials = useCallback(async () => {
+    if (!mountedRef.current) return;
     setLoading(true);
     try {
       const data = await materialService.getAllMaterials();
-      setMaterials(data);
+      if (mountedRef.current) setMaterials(data);
     } catch (error) {
       console.error("Error loading materials:", error);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, []);
 
@@ -26,13 +35,14 @@ export const useMaterials = () => {
         } else {
           await materialService.createMaterial(formData);
         }
+        if (!mountedRef.current) return false;
         await loadMaterials();
         return true;
       } catch (error) {
         console.error("Error adding material:", error);
         return false;
       } finally {
-        setLoading(false);
+        if (mountedRef.current) setLoading(false);
       }
     },
     [loadMaterials]
@@ -43,13 +53,14 @@ export const useMaterials = () => {
       setLoading(true);
       try {
         await materialService.updateMaterial(id, formData);
+        if (!mountedRef.current) return false;
         await loadMaterials();
         return true;
       } catch (error) {
         console.error("Error updating material:", error);
         return false;
       } finally {
-        setLoading(false);
+        if (mountedRef.current) setLoading(false);
       }
     },
     [loadMaterials]
@@ -60,13 +71,14 @@ export const useMaterials = () => {
       setLoading(true);
       try {
         await materialService.deleteMaterial(id);
+        if (!mountedRef.current) return false;
         await loadMaterials();
         return true;
       } catch (error) {
         console.error("Error deleting material:", error);
         return false;
       } finally {
-        setLoading(false);
+        if (mountedRef.current) setLoading(false);
       }
     },
     [loadMaterials]

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./LoginCard.css";
 
-import api from "../../services/api";
+import * as authService from "../../services/authService";
 import userIcon from "../../assets/icons/icon-login.svg";
 import eyeOpen from "../../assets/icons/icon-matabuka.svg";
 import eyeClose from "../../assets/icons/icon-matatutup.svg";
@@ -17,15 +17,13 @@ function LoginCard() {
     event.preventDefault();
 
     try {
-      const response = await api.post("/login", {
-        employee_number: employeeNumber,
+      const response = await authService.login({
+        employeeNumber,
         password,
       });
 
-      const { token, user } = response.data;
-      localStorage.setItem("authToken", token);
-      localStorage.setItem("authUser", JSON.stringify(user));
-      api.defaults.headers.common.Authorization = `Bearer ${token}`;
+      const { token, user } = response;
+      authService.storeSession({ token, user });
 
       if (user.role?.toLowerCase().includes("super")) {
         navigate("/superadmin");

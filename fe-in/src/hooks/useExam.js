@@ -1,7 +1,8 @@
-import { useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as examService from "../services/examService";
 
 export const useExam = () => {
+  const mountedRef = useRef(false);
   const [questions, setQuestions] = useState([]);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -9,6 +10,13 @@ export const useExam = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Validasi form
   const validateQuestion = useCallback((formData) => {
@@ -46,14 +54,15 @@ export const useExam = () => {
 
   // Load semua questions
   const loadQuestions = useCallback(async () => {
+    if (!mountedRef.current) return;
     setLoading(true);
     try {
       const data = await examService.getAllExam();
-      setQuestions(data);
+      if (mountedRef.current) setQuestions(data);
     } catch (error) {
       console.error("Error loading questions:", error);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, []);
 
@@ -67,13 +76,14 @@ export const useExam = () => {
       setLoading(true);
       try {
         await examService.createExam(formData);
+        if (!mountedRef.current) return false;
         await loadQuestions();
         return true;
       } catch (error) {
         console.error("Error adding question:", error);
         return false;
       } finally {
-        setLoading(false);
+        if (mountedRef.current) setLoading(false);
       }
     },
     [loadQuestions, validateQuestion]
@@ -89,6 +99,7 @@ export const useExam = () => {
       setLoading(true);
       try {
         await examService.updateExam(id, formData);
+        if (!mountedRef.current) return false;
         await loadQuestions();
         resetForm();
         return true;
@@ -96,7 +107,7 @@ export const useExam = () => {
         console.error("Error updating question:", error);
         return false;
       } finally {
-        setLoading(false);
+        if (mountedRef.current) setLoading(false);
       }
     },
     [loadQuestions, resetForm, validateQuestion]
@@ -107,15 +118,18 @@ export const useExam = () => {
     setLoading(true);
     try {
       await examService.deleteExam(id);
+      if (!mountedRef.current) return false;
       await loadQuestions();
       return true;
     } catch (error) {
       console.error("Error deleting question:", error);
       return false;
     } finally {
-      setLoading(false);
-      setShowDeleteDialog(false);
-      setDeletingId(null);
+      if (mountedRef.current) {
+        setLoading(false);
+        setShowDeleteDialog(false);
+        setDeletingId(null);
+      }
     }
   }, [loadQuestions]);
 

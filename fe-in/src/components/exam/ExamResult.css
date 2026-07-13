@@ -133,8 +133,11 @@
 }
 
 .exam-result-back-button {
-  margin-bottom: 16px;
-  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  margin-top: 12px;
+  padding: 6px 0;
   background: transparent;
   color: #327537;
 }

@@ -36,6 +36,20 @@ const initialExams = [
   },
 ];
 
+const dummyPreTest = {
+  test: {
+    id: 1,
+    training_id: 1,
+    type: "pre_test",
+    passing_grade: 70,
+  },
+  questions: initialExams.map(({ id, question, options }) => ({
+    id,
+    question,
+    options: { ...options },
+  })),
+};
+
 const examStorage = createCrudStorage({
   storageKey: "rsabl_exams",
   initialData: initialExams,
@@ -56,3 +70,12 @@ export const getAllExam = getData;
 export const createExam = addItem;
 export const updateExam = updateItem;
 export const deleteExam = deleteItem;
+
+// Kontrak Employee tidak mengekspos correctAnswer ke client.
+export const getPreTest = async () => ({
+  test: { ...dummyPreTest.test },
+  questions: dummyPreTest.questions.map((question) => ({
+    ...question,
+    options: { ...question.options },
+  })),
+});

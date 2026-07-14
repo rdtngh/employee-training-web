@@ -41,7 +41,7 @@ const dummyPreTest = {
     id: 1,
     training_id: 1,
     type: "pre_test",
-    passing_grade: 70,
+    passing_grade: 75,
   },
   questions: initialExams.map(({ id, question, options }) => ({
     id,
@@ -79,3 +79,31 @@ export const getPreTest = async () => ({
     options: { ...question.options },
   })),
 });
+
+// Payload: { test_id, answers: [{ question_id, answer }] }.
+// Saat endpoint Laravel tersedia, isi fungsi ini cukup diganti dengan:
+// api.post("/employee/pre-test/submit", payload).then(({ data }) => data.data ?? data)
+export const submitPreTest = async (payload) => {
+  const submittedAnswers = new Map(
+    (payload?.answers ?? []).map((item) => [String(item.question_id), item.answer])
+  );
+  const correctAnswers = initialExams.reduce(
+    (total, question) =>
+      total +
+      (submittedAnswers.get(String(question.id)) === question.correctAnswer ? 1 : 0),
+    0
+  );
+  const totalQuestions = initialExams.length;
+  const percentage = totalQuestions
+    ? Math.round((correctAnswers / totalQuestions) * 100)
+    : 0;
+
+  return {
+    score: percentage,
+    correct_answers: correctAnswers,
+    wrong_answers: totalQuestions - correctAnswers,
+    percentage,
+    passed: percentage >= dummyPreTest.test.passing_grade,
+    passing_grade: dummyPreTest.test.passing_grade,
+  };
+};

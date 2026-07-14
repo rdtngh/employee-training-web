@@ -47,7 +47,7 @@ function EmployeePreTest() {
           setShowStartDialog(true);
         }
       })
-      .catch(() => active && setError("Pre Test gagal dimuat. Silakan coba lagi."))
+      .catch(() => active && setError("Pre-Test gagal dimuat. Silakan coba lagi."))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, []);
@@ -84,7 +84,7 @@ function EmployeePreTest() {
   return (
     <DashboardLayout role="employee">
       <section className="employee-pretest-page">
-        {loading && <p className="pretest-status">Memuat Pre Test...</p>}
+        {loading && <p className="pretest-status">Memuat Pre-Test...</p>}
         {error && <p className="pretest-error" role="alert">{error}</p>}
 
         {!loading && result && (
@@ -138,20 +138,20 @@ function EmployeePreTest() {
         )}
 
         {!loading && !result && !currentQuestion && !error && (
-          <p className="pretest-status">Belum ada soal Pre Test.</p>
+          <p className="pretest-status">Belum ada soal Pre-Test.</p>
         )}
       </section>
 
       {showStartDialog && (
         <ConfirmDialog
-          title="Yakin ingin mengerjakan Pre Test sekarang?"
+          title="Yakin ingin mengerjakan Pre-Test sekarang?"
           onConfirm={() => { setStarted(true); setShowStartDialog(false); }}
           onCancel={() => setShowStartDialog(false)}
         />
       )}
       {showSubmitDialog && (
         <ConfirmDialog
-          title="Yakin ingin mengumpulkan Pre Test?"
+          title="Yakin ingin mengumpulkan Pre-Test?"
           onConfirm={submitAnswers}
           onCancel={() => setShowSubmitDialog(false)}
           busy={submitting}

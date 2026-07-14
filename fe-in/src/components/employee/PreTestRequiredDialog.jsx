@@ -9,10 +9,10 @@ function PreTestRequiredDialog() {
         aria-describedby="pretest-dialog-description"
       >
         <h2 id="pretest-dialog-title">
-          Anda belum Mengerjakan Pre Test.
+          Anda belum Mengerjakan Pre-Test.
         </h2>
         <p id="pretest-dialog-description">
-          Kerjakan Pre Test Untuk membuka Materi!
+          Kerjakan Pre-Test Untuk membuka Materi!
         </p>
       </section>
     </div>

@@ -8,6 +8,7 @@ import LoginPage from "../pages/public/LoginPage";
 import DashboardEmployee from "../pages/employee/DashboardEmployee";
 import EmployeeMaterials from "../pages/employee/EmployeeMaterials";
 import EmployeePreTest from "../pages/employee/EmployeePreTest";
+import EmployeePostTest from "../pages/employee/EmployeePostTest";
 
 // Admin
 import DashboardAdmin from "../pages/admin/DashboardAdmin";
@@ -52,6 +53,7 @@ function AppRouter() {
         />
 
         <Route path="/employee/pretest" element={<EmployeePreTest />} />
+        <Route path="/employee/posttest" element={<EmployeePostTest />} />
 
 
         {/* ================= ADMIN ================= */}

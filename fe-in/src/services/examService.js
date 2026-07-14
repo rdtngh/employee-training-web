@@ -107,3 +107,89 @@ export const submitPreTest = async (payload) => {
     passing_grade: dummyPreTest.test.passing_grade,
   };
 };
+
+const dummyPostTestQuestions = initialExams.map(({ id, question, options }) => ({
+  id: `post-${id}`,
+  question,
+  options: { ...options },
+}));
+
+const dummyPostTest = {
+  training: { id: 1, title: "Pelatihan Keselamatan Pasien" },
+  materials_completed: false,
+  post_test: {
+    id: 2,
+    status: "NOT_STARTED",
+    attempt: 1,
+    max_attempt: 2,
+    can_retry: false,
+    certificate_available: false,
+    passing_grade: 75,
+    score: 0,
+    correct: 0,
+    wrong: 0,
+    percentage: 0,
+    passed: false,
+  },
+};
+
+const clonePostTestResponse = () => ({
+  training: { ...dummyPostTest.training },
+  materials_completed: dummyPostTest.materials_completed,
+  post_test: { ...dummyPostTest.post_test },
+  questions: dummyPostTestQuestions.map((question) => ({
+    ...question,
+    options: { ...question.options },
+  })),
+});
+
+export const getPostTest = async () => clonePostTestResponse();
+
+export const getPostTestResult = async () => ({ ...dummyPostTest.post_test });
+
+// Keputusan lulus, retry, attempt, dan sertifikat di bawah ini mensimulasikan backend.
+export const submitPostTest = async (payload) => {
+  const submittedAnswers = new Map(
+    (payload?.answers ?? []).map((item) => [String(item.question_id), item.answer])
+  );
+  const correct = initialExams.reduce(
+    (total, question) =>
+      total +
+      (submittedAnswers.get(`post-${question.id}`) === question.correctAnswer ? 1 : 0),
+    0
+  );
+  const percentage = Math.round((correct / initialExams.length) * 100);
+  const passed = percentage >= dummyPostTest.post_test.passing_grade;
+
+  dummyPostTest.post_test = {
+    ...dummyPostTest.post_test,
+    status: passed ? "PASSED" : "FAILED",
+    score: percentage,
+    correct,
+    wrong: initialExams.length - correct,
+    percentage,
+    passed,
+    can_retry: !passed && dummyPostTest.post_test.attempt < dummyPostTest.post_test.max_attempt,
+    certificate_available: passed,
+  };
+
+  return { ...dummyPostTest.post_test };
+};
+
+export const retryPostTest = async () => {
+  if (!dummyPostTest.post_test.can_retry) return { ...dummyPostTest.post_test };
+
+  dummyPostTest.post_test = {
+    ...dummyPostTest.post_test,
+    status: "NOT_STARTED",
+    attempt: dummyPostTest.post_test.attempt + 1,
+    can_retry: false,
+    score: 0,
+    correct: 0,
+    wrong: 0,
+    percentage: 0,
+    passed: false,
+    certificate_available: false,
+  };
+  return clonePostTestResponse();
+};

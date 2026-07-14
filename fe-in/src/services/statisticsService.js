@@ -1,14 +1,17 @@
 const dummyStatistics = {
   title: "Statistik",
-  message: "Grafik statistik hasil pre-test dan post-test akan ditampilkan di sini.",
-  average_score: 0,
-  participant_count: 0,
-  passed_count: 0,
-  failed_count: 0,
-  chart: [],
+  training: { id: 1, title: "Pelatihan Keselamatan Pasien" },
+  average_score: 78,
+  participant_count: 40,
+  passed_count: 31,
+  failed_count: 9,
+  highest_score: 100,
+  lowest_score: 45,
+  pass_percentage: 77.5,
 };
 
-export const getStatistics = async () => ({
+export const getStatistics = async (role) => ({
   ...dummyStatistics,
-  chart: [...dummyStatistics.chart],
+  role,
+  training: { ...dummyStatistics.training },
 });

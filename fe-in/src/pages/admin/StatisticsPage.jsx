@@ -1,21 +1,18 @@
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
-import { ExamResultPlaceholder } from "../../components/exam/ExamResult";
+import StatisticsDashboard from "../../components/statistics/StatisticsDashboard";
 import * as statisticsService from "../../services/statisticsService";
 import { useServiceData } from "../../hooks/useServiceData";
 
 function StatisticsPage() {
-  const { data: statistics } = useServiceData(
+  const { data: statistics, loading, error } = useServiceData(
     statisticsService.getStatistics,
     "admin",
-    { title: "", message: "" }
+    null
   );
 
   return (
     <DashboardLayout role="admin">
-      <ExamResultPlaceholder
-        title={statistics.title}
-        message={statistics.message}
-      />
+      <StatisticsDashboard statistics={statistics} loading={loading} error={error} />
     </DashboardLayout>
   );
 }

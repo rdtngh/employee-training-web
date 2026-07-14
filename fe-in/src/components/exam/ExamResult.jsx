@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import statisticsIcon from "../../assets/icons/icon-statistik.svg";
 import certificateIcon from "../../assets/icons/icon-sertifikat.svg";
+import * as statisticsService from "../../services/statisticsService";
+import { downloadFile } from "../../utils/downloadFile";
 import "./ExamResult.css";
 
 const resultSections = [
@@ -22,6 +24,11 @@ function ExamResult({ role }) {
   const [certificateOpen, setCertificateOpen] = useState(false);
   const navigate = useNavigate();
   const rolePath = role === "superadmin" ? "superadmin" : "admin";
+
+  async function exportSpss() {
+    const file = await statisticsService.exportStatistics("spss");
+    downloadFile(file);
+  }
 
   function toggleSection(sectionId) {
     if (sectionId === "statistics") {
@@ -46,7 +53,7 @@ function ExamResult({ role }) {
           <button
             type="button"
             className="exam-result-menu-button"
-            onClick={() => alert("Fitur Export SPSS akan segera tersedia.")}
+            onClick={exportSpss}
           >
             Export SPSS
           </button>

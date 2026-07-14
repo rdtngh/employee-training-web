@@ -1,37 +1,23 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
+import ExamConfirmDialog from "../../components/exam/ExamConfirmDialog";
+import ExamResultCard from "../../components/exam/ExamResultCard";
+import { useSessionAnswers } from "../../hooks/useSessionAnswers";
 import * as examService from "../../services/examService";
 import * as certificateService from "../../services/certificateService";
-import passedIcon from "../../assets/icons/icon-lulus.svg";
-import failedIcon from "../../assets/icons/icon-tidaklulus.svg";
+import { downloadFile } from "../../utils/downloadFile";
 import "./EmployeePreTest.css";
 import "./EmployeePostTest.css";
 
 const unwrap = (response) => response?.data?.data ?? response?.data ?? response;
-
-function PostTestConfirm({ title, onConfirm, onCancel, busy, confirmLabel = "Ya", cancelLabel = "Tidak" }) {
-  return (
-    <div className="pretest-modal-backdrop">
-      <section className="pretest-modal" role="alertdialog" aria-modal="true" aria-labelledby="posttest-confirm-title">
-        <h2 id="posttest-confirm-title">{title}</h2>
-        <div className="pretest-modal-actions">
-          <button type="button" className="pretest-modal-confirm" onClick={onConfirm} disabled={busy}>
-            {busy ? "Mengirim..." : confirmLabel}
-          </button>
-          <button type="button" onClick={onCancel} disabled={busy}>{cancelLabel}</button>
-        </div>
-      </section>
-    </div>
-  );
-}
 
 function EmployeePostTest() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [result, setResult] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState({});
+  const { answers, setAnswers, clearAnswers } = useSessionAnswers("rsabl-posttest-answers");
   const [started, setStarted] = useState(false);
   const [showStart, setShowStart] = useState(false);
   const [showSubmit, setShowSubmit] = useState(false);
@@ -71,6 +57,7 @@ function EmployeePostTest() {
         answers: questions.map((item) => ({ question_id: item.id, answer: answers[item.id] })),
       }));
       setResult(response);
+      clearAnswers();
       setShowSubmit(false);
     } catch {
       setError("Jawaban Post-Test gagal dikirim. Silakan coba lagi.");
@@ -86,7 +73,7 @@ function EmployeePostTest() {
       const response = unwrap(await examService.retryPostTest(data.training.id));
       setData(response);
       setResult(null);
-      setAnswers({});
+      clearAnswers();
       setCurrentIndex(0);
       setStarted(false);
       setShowStart(true);
@@ -101,12 +88,7 @@ function EmployeePostTest() {
     setBusy(true);
     try {
       const file = await certificateService.downloadCertificate(data.training.id);
-      const url = URL.createObjectURL(file.blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = file.filename;
-      anchor.click();
-      URL.revokeObjectURL(url);
+      downloadFile(file);
     } catch {
       setError("Sertifikat gagal diunduh. Silakan coba lagi.");
     } finally {
@@ -121,22 +103,14 @@ function EmployeePostTest() {
         {error && <p className="pretest-error" role="alert">{error}</p>}
 
         {!loading && result && (
-          <div className={`pretest-result posttest-result ${resultPassed ? "passed" : "failed"}`}>
-            <img src={resultPassed ? passedIcon : failedIcon} alt="" />
-            <h1>{resultPassed ? "LULUS" : "TIDAK LULUS"}</h1>
-            <dl>
-              <div><dt>Score</dt><dd>{result.score}</dd></div>
-              <div><dt>Benar</dt><dd>{result.correct ?? result.correct_answers}</dd></div>
-              <div><dt>Salah</dt><dd>{result.wrong ?? result.wrong_answers}</dd></div>
-              <div><dt>Presentase</dt><dd>{result.percentage}%</dd></div>
-            </dl>
+          <ExamResultCard result={result} className="posttest-result">
             {resultPassed && result.certificate_available && (
               <button type="button" className="posttest-certificate" onClick={downloadCertificate} disabled={busy}>Download Sertifikat</button>
             )}
             {!resultPassed && result.can_retry && (
               <button type="button" className="posttest-retry" onClick={retry} disabled={busy}>Re Attempt →</button>
             )}
-          </div>
+          </ExamResultCard>
         )}
 
         {!loading && !result && question && (
@@ -171,8 +145,8 @@ function EmployeePostTest() {
           </section>
         </div>
       )}
-      {showStart && <PostTestConfirm title="Yakin ingin mengerjakan Post-Test sekarang?" onConfirm={() => { setStarted(true); setShowStart(false); }} onCancel={() => navigate(-1)} busy={busy} />}
-      {showSubmit && <PostTestConfirm title="Yakin ingin mengumpulkan Post-Test?" onConfirm={submit} onCancel={() => setShowSubmit(false)} busy={busy} confirmLabel="Ya" cancelLabel="Tidak" />}
+      {showStart && <ExamConfirmDialog title="Yakin ingin mengerjakan Post-Test sekarang?" onConfirm={() => { setStarted(true); setShowStart(false); }} onCancel={() => navigate(-1)} busy={busy} />}
+      {showSubmit && <ExamConfirmDialog title="Yakin ingin mengumpulkan Post-Test?" onConfirm={submit} onCancel={() => setShowSubmit(false)} busy={busy} />}
     </DashboardLayout>
   );
 }

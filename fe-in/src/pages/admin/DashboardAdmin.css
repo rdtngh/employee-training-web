@@ -59,38 +59,39 @@
   color: #4b5563;
 }
 
+.dashboard-admin-copy { white-space: pre-line; }
+
 .dashboard-admin-section {
   position: relative;
   z-index: 1;
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.dashboard-admin-section-header {
+  display: flex;
+  align-items: center;
   gap: 18px;
-  align-items: flex-start;
 }
 
 .dashboard-admin-section-icon {
-  width: 140px;
-  height: 140px;
+  width: 72px;
+  height: 72px;
   flex-shrink: 0;
-  margin-top: 4px;
-}
-
-.dashboard-admin-section-content {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
 .dashboard-admin-section-title {
   margin: 0;
   font-family: "Instrument Sans", sans-serif;
-  font-size: 1.1rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #1f2937;
 }
 
 .dashboard-admin-list {
-  margin: 0;
-  padding-left: 20px;
+  margin: 26px 0 0;
+  padding-left: 30px;
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -127,15 +128,17 @@
     padding: 24px 18px;
   }
 
-  .dashboard-admin-header,
-  .dashboard-admin-section {
+  .dashboard-admin-header {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .dashboard-admin-icon,
-  .dashboard-admin-section-icon {
+  .dashboard-admin-icon {
     width: 56px;
     height: 56px;
   }
+
+  .dashboard-admin-section-icon { width: 56px; height: 56px; }
+
+  .dashboard-admin-section-title { font-size: 1.3rem; }
 }

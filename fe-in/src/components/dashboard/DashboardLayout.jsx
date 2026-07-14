@@ -6,7 +6,7 @@ import Footer from "../common/Footer";
 
 function DashboardLayout({ children, role = "superadmin" }) {
   return (
-    <div className="dashboard-layout">
+    <div className={`dashboard-layout dashboard-layout-${role}`}>
       <Navbar
         showButton={true}
         buttonText="BERANDA"

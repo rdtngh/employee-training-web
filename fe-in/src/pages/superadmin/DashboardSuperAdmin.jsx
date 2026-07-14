@@ -28,15 +28,16 @@ function DashboardSuperAdmin() {
         </p>
 
         <div className="dashboard-superadmin-section">
-          <img src={taskIcon} alt="" className="dashboard-superadmin-section-icon" />
-          <div className="dashboard-superadmin-section-content">
+          <div className="dashboard-superadmin-section-header">
+            <img src={taskIcon} alt="" className="dashboard-superadmin-section-icon" />
             <h2 className="dashboard-superadmin-section-title">{dashboard.sectionTitle}</h2>
-            <ul className="dashboard-superadmin-list">
-              {dashboard.items.map((item) => (
-                <li key={item.id}>{item.text}</li>
-              ))}
-            </ul>
           </div>
+
+          <ul className="dashboard-superadmin-list">
+            {dashboard.items.map((item) => (
+              <li key={item.id}>{item.text}</li>
+            ))}
+          </ul>
         </div>
 
         <hr className="dashboard-superadmin-divider" />

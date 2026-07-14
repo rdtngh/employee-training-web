@@ -6,6 +6,12 @@ const dummyCertificateResponse = {
   certificates: [],
 };
 
+const getFilename = (disposition, fallback) => {
+  const encoded = disposition?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  const plain = disposition?.match(/filename="?([^";]+)"?/i)?.[1];
+  return decodeURIComponent(encoded || plain || fallback);
+};
+
 export const getCertificates = async () => ({
   ...dummyCertificateResponse,
   certificates: [...dummyCertificateResponse.certificates],
@@ -26,6 +32,9 @@ export const downloadCertificate = async (trainingId) => {
   });
   return {
     blob: response.data,
-    filename: `sertifikat-${trainingId}.pdf`,
+    filename: getFilename(
+      response.headers["content-disposition"],
+      `sertifikat-${trainingId}.pdf`
+    ),
   };
 };

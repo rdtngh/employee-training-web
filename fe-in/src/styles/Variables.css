@@ -47,10 +47,15 @@
   --shadow-sm: 0 2px 6px rgba(0,0,0,.08);
 
   --shadow-md: 0 5px 18px rgba(0,0,0,.12);
+  --shadow-lg: 0 10px 28px rgba(0,0,0,.12);
+
+  --border-primary: 2px solid var(--color-primary);
 
   /* ========= SIDEBAR ========= */
 
   --sidebar-width: 280px;
+  --sidebar-width-tablet: 240px;
+  --sidebar-width-mobile: 76px;
 
   /* ========= TRANSITION ========= */
 

@@ -11,10 +11,14 @@ function LoginCard() {
   const [employeeNumber, setEmployeeNumber] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   async function handleSubmit(event) {
     event.preventDefault();
+    setErrorMessage("");
+    setSubmitting(true);
 
     try {
       const response = await authService.login({
@@ -34,7 +38,9 @@ function LoginCard() {
       }
     } catch (error) {
       const message = error.response?.data?.message || "Terjadi kesalahan, silakan ulangi.";
-      window.alert(message);
+      setErrorMessage(message);
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -56,10 +62,14 @@ function LoginCard() {
         {/* Username */}
 
         <div className="form-group">
-          <label>Username</label>
+          <label htmlFor="employee-number">Username</label>
 
           <input
             type="text"
+            id="employee-number"
+            name="employee_number"
+            autoComplete="username"
+            required
             placeholder="Masukkan username"
             value={employeeNumber}
             onChange={(event) => setEmployeeNumber(event.target.value)}
@@ -69,12 +79,16 @@ function LoginCard() {
         {/* Password */}
 
         <div className="form-group">
-          <label>Password</label>
+          <label htmlFor="login-password">Password</label>
 
           <div className="password-wrapper">
 
             <input
               type={showPassword ? "text" : "password"}
+              id="login-password"
+              name="password"
+              autoComplete="current-password"
+              required
               placeholder="Masukkan password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
@@ -84,23 +98,28 @@ function LoginCard() {
               type="button"
               className="toggle-password"
               onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+              aria-pressed={showPassword}
             >
               <img
                 src={showPassword ? eyeOpen : eyeClose}
-                alt="Toggle Password"
+                alt=""
               />
             </button>
 
           </div>
         </div>
 
+        {errorMessage && <p className="login-error" role="alert">{errorMessage}</p>}
+
         {/* Button */}
 
         <button
           type="submit"
           className="login-button"
+          disabled={submitting}
         >
-          LOG IN
+          {submitting ? "MEMPROSES..." : "LOG IN"}
         </button>
 
       </form>

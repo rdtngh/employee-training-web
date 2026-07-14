@@ -34,21 +34,16 @@ function DashboardAdmin() {
         </p>
 
         <div className="dashboard-admin-section">
-          <img
-            src={taskIcon}
-            alt=""
-            className="dashboard-admin-section-icon"
-          />
-
-          <div className="dashboard-admin-section-content">
+          <div className="dashboard-admin-section-header">
+            <img src={taskIcon} alt="" className="dashboard-admin-section-icon" />
             <h2 className="dashboard-admin-section-title">{dashboard.sectionTitle}</h2>
-
-            <ul className="dashboard-admin-list">
-              {dashboard.items.map((item) => (
-                <li key={item.id}>{item.text}</li>
-              ))}
-            </ul>
           </div>
+
+          <ul className="dashboard-admin-list">
+            {dashboard.items.map((item) => (
+              <li key={item.id}>{item.text}</li>
+            ))}
+          </ul>
         </div>
 
         <hr className="dashboard-admin-divider" />

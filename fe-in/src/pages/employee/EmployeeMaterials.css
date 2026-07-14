@@ -88,24 +88,36 @@
 }
 
 .pretest-required-overlay {
-  position: fixed;
-  inset: 88px 0 0 280px;
-  z-index: 100;
-  display: grid;
-  place-items: center;
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: block;
   padding: 24px;
-  background: rgba(255, 255, 255, 0.52);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  background: transparent;
   cursor: not-allowed;
 }
 
+.pretest-required-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.52);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
 .pretest-required-dialog {
+  position: fixed;
+  z-index: 51;
+  top: 42vh;
+  left: calc(280px + (100vw - 280px) / 2);
+  transform: translate(-50%, -50%);
   width: min(540px, calc(100vw - 48px));
   min-height: 150px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  margin: 0;
   padding: 18px 26px 22px;
   background: #ffffff;
   border: 3px solid #8f0000;
@@ -151,13 +163,10 @@
     font-size: clamp(16px, 4.5vw, 20px);
   }
 
-  .pretest-required-overlay {
-    inset: 88px 0 0;
-  }
+  .pretest-required-dialog { left: calc(76px + (100vw - 76px) / 2); }
+
 }
 
 @media (min-width: 761px) and (max-width: 1100px) {
-  .pretest-required-overlay {
-    left: 240px;
-  }
+  .pretest-required-dialog { left: calc(240px + (100vw - 240px) / 2); }
 }

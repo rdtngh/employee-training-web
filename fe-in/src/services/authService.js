@@ -1,4 +1,7 @@
 import api from "./api";
+import { normalizeRole } from "../utils/role";
+
+export { normalizeRole };
 
 export const login = async ({ employeeNumber, password }) => {
   const response = await api.post("/login", {
@@ -14,6 +17,17 @@ export const storeSession = ({ token, user }) => {
   localStorage.setItem("authUser", JSON.stringify(user));
   api.defaults.headers.common.Authorization = `Bearer ${token}`;
 };
+
+export const getStoredToken = () => localStorage.getItem("authToken");
+
+export const getStoredUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("authUser"));
+  } catch {
+    return null;
+  }
+};
+
 
 export const logout = async () => {
   try {

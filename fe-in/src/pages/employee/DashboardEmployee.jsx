@@ -30,21 +30,23 @@ function DashboardEmployee() {
         </p>
 
         <div className="dashboard-employee-section">
-          <img src={flowIcon} alt="Alur Pelatihan" className="dashboard-employee-section-icon" />
-          <div className="dashboard-employee-section-content">
-            <div className="dashboard-employee-section-header">
-              <h2 className="dashboard-employee-section-title">{dashboard.sectionTitle}</h2>
-            </div>
-
-            <ul className="dashboard-employee-list">
-              {dashboard.items.map((item) => (
-                <li key={item.id}>{item.text}</li>
-              ))}
-            </ul>
+          <div className="dashboard-employee-section-header">
+            <img src={flowIcon} alt="" className="dashboard-employee-section-icon" />
+            <h2 className="dashboard-employee-section-title">{dashboard.sectionTitle}</h2>
           </div>
+
+          <ul className="dashboard-employee-list">
+            {dashboard.items.map((item) => (
+              <li key={item.id}>{item.text}</li>
+            ))}
+          </ul>
         </div>
 
         <hr className="dashboard-employee-divider" />
+
+        <p className="dashboard-employee-closing">
+          {dashboard.closing}
+        </p>
       </section>
       )}
     </DashboardLayout>

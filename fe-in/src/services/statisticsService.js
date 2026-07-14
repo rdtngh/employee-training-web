@@ -15,3 +15,9 @@ export const getStatistics = async (role) => ({
   role,
   training: { ...dummyStatistics.training },
 });
+
+// Kontrak export disiapkan di service; backend yang membentuk isi file statistik.
+export const exportStatistics = async (format = "spss") => ({
+  blob: new Blob(["Dummy export statistik dari backend."], { type: "text/plain" }),
+  filename: `statistik-${format}-dummy.txt`,
+});

@@ -12,11 +12,13 @@ const dashboardByRole = {
     ],
     footer:
       "Platform ini dirancang untuk mendukung proses pembelajaran dan pengembangan kompetensi seluruh karyawan melalui materi pelatihan, pre-test, dan post-test yang terstruktur.",
+    closing:
+      "Ikuti seluruh tahapan pelatihan dengan baik untuk mendukung peningkatan pengetahuan dan kompetensi dalam memberikan pelayanan terbaik.",
   },
   admin: {
     title: "Selamat Datang,\nAdmin!",
     description:
-      "Selamat datang di Sistem Pelatihan Karyawan RS Advent Bandar Lampung. Gunakan dashboard ini untuk mengelola materi pelatihan, soal ujian, dan memantau proses pelatihan sesuai dengan hak akses yang diberikan.",
+      "Selamat datang di Sistem Pelatihan Karyawan RS Advent Bandar Lampung.\n\nGunakan dashboard ini untuk mengelola materi pelatihan, soal ujian, dan memantau proses pelatihan sesuai dengan hak akses yang diberikan.",
     sectionTitle: "Tanggung Jawab Utama:",
     items: [
       { id: 1, text: "Mengelola materi pelatihan." },
@@ -30,7 +32,7 @@ const dashboardByRole = {
   superadmin: {
     title: "Selamat Datang,\nSuper Admin!",
     description:
-      "Selamat datang di Sistem Pelatihan Karyawan RS Advent Bandar Lampung. Dashboard ini menyediakan akses penuh untuk mengelola pengguna, materi pelatihan, soal ujian, serta memantau pelaksanaan pelatihan secara menyeluruh.",
+      "Selamat datang di Sistem Pelatihan Karyawan RS Advent Bandar Lampung.\n\nDashboard ini menyediakan akses penuh untuk mengelola pengguna, materi pelatihan, soal ujian, serta memantau pelaksanaan pelatihan secara menyeluruh.",
     sectionTitle: "Tanggung Jawab Utama:",
     items: [
       { id: 1, text: "Mengelola data pengguna." },

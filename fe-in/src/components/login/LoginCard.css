@@ -114,3 +114,6 @@
 .login-button:hover {
   background: #285f2c;
 }
+
+.login-button:disabled { opacity: .65; cursor: wait; }
+.login-error { margin: -4px 0 0; color: #b91c1c; font-size: 14px; line-height: 1.4; }

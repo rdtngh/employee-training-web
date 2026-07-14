@@ -29,6 +29,11 @@ import CertificatePageSuperAdmin from "../pages/superadmin/CertificatePage";
 
 // Error Page
 import NotFoundPage from "../pages/NotFoundPage";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
+
+const protectedPage = (element, allowedRoles) => (
+  <ProtectedRoute allowedRoles={allowedRoles}>{element}</ProtectedRoute>
+);
 
 function AppRouter() {
   return (
@@ -44,65 +49,65 @@ function AppRouter() {
 
         <Route
           path="/employee"
-          element={<DashboardEmployee />}
+          element={protectedPage(<DashboardEmployee />, ["employee"])}
         />
 
         <Route
           path="/employee/materi"
-          element={<EmployeeMaterials />}
+          element={protectedPage(<EmployeeMaterials />, ["employee"])}
         />
 
-        <Route path="/employee/pretest" element={<EmployeePreTest />} />
-        <Route path="/employee/posttest" element={<EmployeePostTest />} />
+        <Route path="/employee/pretest" element={protectedPage(<EmployeePreTest />, ["employee"])} />
+        <Route path="/employee/posttest" element={protectedPage(<EmployeePostTest />, ["employee"])} />
 
 
         {/* ================= ADMIN ================= */}
 
         <Route
           path="/admin"
-          element={<DashboardAdmin />}
+          element={protectedPage(<DashboardAdmin />, ["admin"])}
         />
 
         <Route
           path="/admin/manage-exam"
-          element={<ManageExamAdmin />}
+          element={protectedPage(<ManageExamAdmin />, ["admin"])}
         />
 
         <Route
           path="/admin/manage-materi"
-          element={<ManageMaterialAdmin />}
+          element={protectedPage(<ManageMaterialAdmin />, ["admin"])}
         />
 
-        <Route path="/admin/exam-results" element={<ExamResultAdmin />} />
-        <Route path="/admin/statistics" element={<StatisticsPageAdmin />} />
-        <Route path="/admin/certificates" element={<CertificatePageAdmin />} />
+        <Route path="/admin/exam-results" element={protectedPage(<ExamResultAdmin />, ["admin"])} />
+        <Route path="/admin/statistics" element={protectedPage(<StatisticsPageAdmin />, ["admin"])} />
+        <Route path="/admin/certificates" element={protectedPage(<CertificatePageAdmin />, ["admin"])} />
 
 
         {/* ================= SUPER ADMIN ================= */}
 
         <Route
           path="/superadmin"
-          element={<DashboardSuperAdmin />}
+          element={protectedPage(<DashboardSuperAdmin />, ["superadmin"])}
         />
 
         <Route
           path="/superadmin/manage-user"
-          element={<UserManagement />}
+          element={protectedPage(<UserManagement />, ["superadmin"])}
         />
 
         <Route
           path="/superadmin/manage-exam"
-          element={<ManageExamSuperAdmin />}
+          element={protectedPage(<ManageExamSuperAdmin />, ["superadmin"])}
         />
 
         <Route
           path="/superadmin/manage-materi"
-          element={<ManageMaterialSuperAdmin />}
+          element={protectedPage(<ManageMaterialSuperAdmin />, ["superadmin"])}
         />
 
-        <Route path="/superadmin/exam-results" element={<ExamResultSuperAdmin />} />
-        <Route path="/superadmin/statistics" element={<StatisticsPageSuperAdmin />} />
-        <Route path="/superadmin/certificates" element={<CertificatePageSuperAdmin />} />
+        <Route path="/superadmin/exam-results" element={protectedPage(<ExamResultSuperAdmin />, ["superadmin"])} />
+        <Route path="/superadmin/statistics" element={protectedPage(<StatisticsPageSuperAdmin />, ["superadmin"])} />
+        <Route path="/superadmin/certificates" element={protectedPage(<CertificatePageSuperAdmin />, ["superadmin"])} />
 
 
         {/* ================= 404 ================= */}

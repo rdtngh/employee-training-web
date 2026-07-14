@@ -59,38 +59,39 @@
   margin: 0;
 }
 
+.dashboard-superadmin-copy { white-space: pre-line; }
+
 .dashboard-superadmin-section {
   position: relative;
   z-index: 1;
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.dashboard-superadmin-section-header {
+  display: flex;
+  align-items: center;
   gap: 18px;
-  align-items: flex-start;
 }
 
 .dashboard-superadmin-section-icon {
-  width: 140px;
-  height: 140px;
+  width: 72px;
+  height: 72px;
   flex-shrink: 0;
-  margin-top: 4px;
-}
-
-.dashboard-superadmin-section-content {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
 .dashboard-superadmin-section-title {
   margin: 0;
   font-family: "Instrument Sans", sans-serif;
-  font-size: 1.1rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #1f2937;
 }
 
 .dashboard-superadmin-list {
-  margin: 0;
-  padding-left: 20px;
+  margin: 26px 0 0;
+  padding-left: 30px;
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -127,15 +128,17 @@
     padding: 24px 18px;
   }
 
-  .dashboard-superadmin-header,
-  .dashboard-superadmin-section {
+  .dashboard-superadmin-header {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .dashboard-superadmin-icon,
-  .dashboard-superadmin-section-icon {
+  .dashboard-superadmin-icon {
     width: 56px;
     height: 56px;
   }
+
+  .dashboard-superadmin-section-icon { width: 56px; height: 56px; }
+
+  .dashboard-superadmin-section-title { font-size: 1.3rem; }
 }

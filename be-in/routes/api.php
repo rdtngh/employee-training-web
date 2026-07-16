@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\MaterialController;
+use App\Http\Controllers\Api\QuestionController;
 use App\Http\Controllers\Api\TestController;
 use App\Http\Controllers\Api\TrainingController;
 use App\Http\Controllers\Api\UserController;
@@ -29,6 +30,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tests/{test}', [TestController::class, 'show']);
     Route::get('/tests/{test}/questions', [TestController::class, 'questions']);
     Route::post('/tests/{test}/submit', [TestController::class, 'submit']);
+
+    Route::get('/questions', [QuestionController::class, 'index']);
+    Route::post('/questions', [QuestionController::class, 'store']);
+    Route::put('/questions/{question}', [QuestionController::class, 'update']);
+    Route::delete('/questions/{question}', [QuestionController::class, 'destroy']);
 
     Route::get('/users', [UserController::class, 'index']);
     Route::post('/users', [UserController::class, 'store']);

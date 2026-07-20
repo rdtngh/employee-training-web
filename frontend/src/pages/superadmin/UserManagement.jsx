@@ -16,9 +16,11 @@ function UserManagement() {
     addUser,
     updateUser,
     deleteUser,
+    importUsers,
   } = useUsers();
   const [editingUser, setEditingUser] = useState(null);
   const [deletingUserId, setDeletingUserId] = useState(null);
+  const [importFile, setImportFile] = useState(null);
   const [toast, setToast] = useState("");
 
   useEffect(() => {
@@ -72,6 +74,28 @@ function UserManagement() {
     setToast(result);
   }
 
+  async function handleImport(event) {
+    event.preventDefault();
+
+    if (!importFile) {
+      setToast("Pilih file Excel terlebih dahulu.");
+      return;
+    }
+
+    const result = await importUsers(importFile);
+
+    if (typeof result === "string") {
+      setToast(result);
+      return;
+    }
+
+    setImportFile(null);
+    event.currentTarget.reset();
+    setToast(
+      `Import berhasil: ${result.created ?? 0} baru, ${result.updated ?? 0} update, ${result.skipped ?? 0} dilewati.`
+    );
+  }
+
   return (
     <DashboardLayout role="superadmin">
       <div className="user-management-page">
@@ -85,6 +109,30 @@ function UserManagement() {
             onEdit={setEditingUser}
             onDelete={openDeleteDialog}
           />
+        </section>
+
+        <section className="user-management-card user-management-import-card">
+          <div className="user-management-header">
+            <h2 className="user-management-title">Import Data Karyawan</h2>
+          </div>
+
+          <form className="user-import-form" onSubmit={handleImport}>
+            <label className="user-import-field">
+              <span>File Excel / CSV</span>
+              <input
+                type="file"
+                accept=".xlsx,.csv"
+                onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
+                disabled={loading}
+              />
+            </label>
+            <p className="user-import-note">
+              Kolom pertama berisi nomor karyawan, kolom kedua berisi nama. Role otomatis Karyawan.
+            </p>
+            <button type="submit" className="user-import-button" disabled={loading}>
+              {loading ? "Memproses..." : "Import Karyawan"}
+            </button>
+          </form>
         </section>
 
         <section className="user-management-card user-management-add-card">

@@ -36,7 +36,10 @@ function UserFormContent({
     const nextErrors = {};
 
     if (!form.user.trim()) nextErrors.user = "User wajib diisi";
+    else if (form.user.trim().length > 255) nextErrors.user = "User maksimal 255 karakter";
     if (!form.userId.trim()) nextErrors.userId = "ID wajib diisi";
+    else if (!/^[0-9]+$/.test(form.userId.trim())) nextErrors.userId = "ID hanya boleh angka";
+    else if (form.userId.trim().length > 20) nextErrors.userId = "ID maksimal 20 digit";
     if (!form.department) nextErrors.department = "Departemen wajib dipilih";
     if (!form.role) nextErrors.role = "Role wajib dipilih";
 

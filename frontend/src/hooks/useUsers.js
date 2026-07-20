@@ -90,6 +90,24 @@ export const useUsers = () => {
     [loadUsers]
   );
 
+  const importUsers = useCallback(
+    async (file) => {
+      setLoading(true);
+      try {
+        const result = await userService.importUsers(file);
+        if (!mountedRef.current) return false;
+        await loadUsers();
+        return result;
+      } catch (error) {
+        console.error("Error importing users:", error);
+        return error.response?.data?.message || "Gagal mengimport pengguna.";
+      } finally {
+        if (mountedRef.current) setLoading(false);
+      }
+    },
+    [loadUsers]
+  );
+
   return {
     users,
     userFormOptions,
@@ -98,5 +116,6 @@ export const useUsers = () => {
     addUser,
     updateUser,
     deleteUser,
+    importUsers,
   };
 };

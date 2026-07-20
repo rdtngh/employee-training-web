@@ -14,7 +14,7 @@ class UserRequest extends FormRequest
 
     public function rules(): array
     {
-        $userIdRule = ['required', 'string', 'max:20'];
+        $userIdRule = ['required', 'string', 'max:20', 'regex:/^[0-9]+$/'];
         $nameRule = ['required', 'string', 'max:255'];
         $departmentRule = ['required', 'string', 'max:255'];
         $roleRule = ['required', 'string', Rule::in(['Super Admin', 'Admin', 'Karyawan'])];
@@ -39,6 +39,8 @@ class UserRequest extends FormRequest
     {
         return [
             'employee_number.required' => 'ID karyawan wajib diisi.',
+            'employee_number.regex' => 'ID karyawan hanya boleh berisi angka.',
+            'employee_number.max' => 'ID karyawan maksimal 20 digit.',
             'employee_number.unique' => 'ID karyawan sudah terdaftar.',
             'name.required' => 'Nama wajib diisi.',
             'department.required' => 'Departemen wajib dipilih.',

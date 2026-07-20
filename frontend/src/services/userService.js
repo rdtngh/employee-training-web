@@ -42,3 +42,13 @@ export const updateUser = async (id, payload) => {
 export const deleteUser = async (id) => {
   await api.delete(`/users/${id}`);
 };
+
+export const importUsers = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await api.post("/users/import", formData, {
+    timeout: 300000,
+  });
+  return response.data?.data ?? {};
+};

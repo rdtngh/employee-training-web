@@ -21,7 +21,7 @@ function MaterialStatus({ completed }) {
   );
 }
 
-function MaterialRow({ material, disabled }) {
+function MaterialRow({ material, disabled, onOpen }) {
   const file = material.files?.[0];
   const content = (
     <>
@@ -47,6 +47,7 @@ function MaterialRow({ material, disabled }) {
       href={file.file_path}
       target="_blank"
       rel="noreferrer"
+      onClick={(event) => onOpen?.(event, material)}
       aria-label={`Buka ${material.title}`}
     >
       {content}
@@ -54,7 +55,7 @@ function MaterialRow({ material, disabled }) {
   );
 }
 
-function MaterialListCard({ materials, disabled = false }) {
+function MaterialListCard({ materials, disabled = false, onOpenMaterial }) {
   return (
     <section className="employee-material-card" aria-labelledby="material-list-title">
       <header className="employee-material-card-header">
@@ -72,6 +73,7 @@ function MaterialListCard({ materials, disabled = false }) {
             key={material.id}
             material={material}
             disabled={disabled}
+            onOpen={onOpenMaterial}
           />
         ))}
       </div>

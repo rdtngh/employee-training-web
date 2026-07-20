@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export const useServiceData = (loader, loaderArgument, initialData) => {
   const [resource, setResource] = useState({
@@ -6,6 +6,7 @@ export const useServiceData = (loader, loaderArgument, initialData) => {
     loading: true,
     error: null,
   });
+  const [refreshIndex, setRefreshIndex] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -23,7 +24,12 @@ export const useServiceData = (loader, loaderArgument, initialData) => {
     return () => {
       active = false;
     };
-  }, [loader, loaderArgument]);
+  }, [loader, loaderArgument, refreshIndex]);
 
-  return resource;
+  const reload = useCallback(() => {
+    setResource((current) => ({ ...current, loading: true }));
+    setRefreshIndex((current) => current + 1);
+  }, []);
+
+  return { ...resource, reload };
 };

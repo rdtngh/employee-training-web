@@ -7,6 +7,7 @@ use App\Http\Requests\MaterialRequest;
 use App\Models\Material;
 use App\Models\MaterialFile;
 use App\Models\TestResult;
+use App\Models\UserMaterial;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
@@ -44,6 +45,61 @@ class MaterialController extends Controller
         return response()->json([
             'success' => true,
             'data' => $material->files()->get(),
+        ]);
+    }
+
+    public function downloadFile(Material $material, MaterialFile $file)
+    {
+        if ($file->material_id !== $material->id) {
+            abort(404);
+        }
+
+        if ($this->requiresPreTest($material)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pre-Test harus dikerjakan sebelum membuka materi.',
+            ], 403);
+        }
+
+        $relative = $this->materialStorageRelativePath($file->file_path);
+
+        if (! $relative || ! Storage::disk('local')->exists($relative)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File materi tidak ditemukan.',
+            ], 404);
+        }
+
+        return Storage::disk('local')->response($relative, $file->file_name);
+    }
+
+    public function markAccessed(Request $request, Material $material): JsonResponse
+    {
+        if ($this->requiresPreTest($material)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pre-Test harus dikerjakan sebelum membuka materi.',
+            ], 403);
+        }
+
+        UserMaterial::updateOrCreate(
+            [
+                'user_id' => $request->user()->id,
+                'material_id' => $material->id,
+            ],
+            [
+                'is_completed' => true,
+                'completed_at' => now(),
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Akses materi berhasil dicatat.',
+            'data' => [
+                'material_id' => $material->id,
+                'completed' => true,
+            ],
         ]);
     }
 
@@ -136,10 +192,12 @@ class MaterialController extends Controller
     {
         // delete files from storage
         foreach ($material->files as $file) {
-            $url = $file->file_path; // e.g. /storage/materials/xxx
-            $relative = preg_replace('#^/storage/#', '', $url);
+            $relative = $this->materialStorageRelativePath($file->file_path);
             try {
-                Storage::disk('public')->delete($relative);
+                if ($relative) {
+                    Storage::disk('local')->delete($relative);
+                    Storage::disk('public')->delete($relative);
+                }
             } catch (\Exception $e) {
                 // ignore
             }
@@ -176,14 +234,25 @@ class MaterialController extends Controller
     private function storeUploadedFile($file, Material $material): void
     {
         $filename = Str::random(12) . '_' . preg_replace('/[^A-Za-z0-9._-]/', '_', $file->getClientOriginalName());
-        $path = $file->storeAs('materials', $filename, 'public');
+        $path = $file->storeAs('materials', $filename, 'local');
 
         MaterialFile::create([
             'material_id' => $material->id,
             'file_name' => $file->getClientOriginalName(),
-            'file_path' => Storage::disk('public')->url($path),
+            'file_path' => $path,
             'file_type' => $file->getClientMimeType(),
         ]);
+    }
+
+    private function materialStorageRelativePath(?string $path): ?string
+    {
+        if (! $path) {
+            return null;
+        }
+
+        $urlPath = parse_url($path, PHP_URL_PATH) ?: $path;
+
+        return preg_replace('#^/storage/#', '', $urlPath);
     }
 
     private function requiresPreTest(Material $material): bool

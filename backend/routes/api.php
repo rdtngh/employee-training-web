@@ -24,6 +24,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/materials/{material}', [MaterialController::class, 'show']);
     Route::get('/materials/{material}/files', [MaterialController::class, 'files']);
+    Route::get('/materials/{material}/files/{file}/download', [MaterialController::class, 'downloadFile']);
 
     Route::middleware('role:Karyawan')->group(function () {
         Route::get('/trainings/{training}/tests/{type}', [TestController::class, 'showByType']);
@@ -31,11 +32,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/tests/{test}/questions', [TestController::class, 'questions']);
         Route::post('/tests/{test}/submit', [TestController::class, 'submit']);
 
-        Route::post('/trainings/{training}/materials/access', [TrainingController::class, 'markMaterialsAccessed']);
+        Route::post('/materials/{material}/access', [MaterialController::class, 'markAccessed']);
     });
 
     Route::middleware('role:Super Admin,Admin')->group(function () {
         Route::get('/statistics', [StatisticsController::class, 'index']);
+        Route::post('/statistics/reset', [StatisticsController::class, 'reset']);
 
         Route::post('/materials', [MaterialController::class, 'store']);
         Route::post('/materials/bulk', [MaterialController::class, 'bulkStore']);

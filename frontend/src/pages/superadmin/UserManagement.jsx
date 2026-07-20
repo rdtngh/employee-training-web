@@ -62,11 +62,14 @@ function UserManagement() {
   }
 
   async function confirmDelete() {
-    const success = await deleteUser(deletingUserId);
-    if (success) {
+    const result = await deleteUser(deletingUserId);
+    if (result === true) {
       setDeletingUserId(null);
       setToast("Pengguna berhasil dihapus.");
+      return;
     }
+
+    setToast(result);
   }
 
   return (

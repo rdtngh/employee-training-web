@@ -59,6 +59,13 @@ class UserController extends Controller
 
     public function update(UserRequest $request, User $user): JsonResponse
     {
+        if ($user->role?->name === 'Super Admin' && $request->role !== 'Super Admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Role Super Admin tidak dapat diubah.',
+            ], 403);
+        }
+
         $role = Role::where('name', $request->role)->first();
 
         $user->update([

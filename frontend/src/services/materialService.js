@@ -18,7 +18,7 @@ const mapMaterialFromApi = (m) => ({
   order_number: m.order_number,
   files: (m.files || []).map((file) => ({
     ...file,
-    file_path: resolveBackendUrl(file.file_path),
+    file_path: resolveBackendUrl(`/api/materials/${m.id}/files/${file.id}/download`),
   })),
   fileName: m.files?.[0]?.file_name || "",
   fileType: m.files?.[0]?.file_type || "",
@@ -46,9 +46,18 @@ export const getMaterial = async (id) => {
   return mapMaterialFromApi(res.data?.data || {});
 };
 
-export const markMaterialsAccessed = async (trainingId = DEFAULT_TRAINING_ID) => {
-  const res = await api.post(`/trainings/${trainingId}/materials/access`);
-  return mapMaterialProgressFromApi(res.data?.data || {});
+export const markMaterialAccessed = async (materialId) => {
+  const res = await api.post(`/materials/${materialId}/access`);
+  return res.data?.data || {};
+};
+
+export const openMaterialFile = async (material, file) => {
+  const response = await api.get(`/materials/${material.id}/files/${file.id}/download`, {
+    responseType: "blob",
+  });
+  const fileUrl = URL.createObjectURL(response.data);
+  window.open(fileUrl, "_blank", "noopener,noreferrer");
+  window.setTimeout(() => URL.revokeObjectURL(fileUrl), 60000);
 };
 
 export const getMaterialProgress = async (trainingId = DEFAULT_TRAINING_ID) => {

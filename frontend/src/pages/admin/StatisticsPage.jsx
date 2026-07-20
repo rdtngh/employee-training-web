@@ -4,7 +4,7 @@ import * as statisticsService from "../../services/statisticsService";
 import { useServiceData } from "../../hooks/useServiceData";
 
 function StatisticsPage() {
-  const { data: statistics, loading, error } = useServiceData(
+  const { data: statistics, loading, error, reload } = useServiceData(
     statisticsService.getStatistics,
     "admin",
     null
@@ -12,7 +12,12 @@ function StatisticsPage() {
 
   return (
     <DashboardLayout role="admin">
-      <StatisticsDashboard statistics={statistics} loading={loading} error={error} />
+      <StatisticsDashboard
+        statistics={statistics}
+        loading={loading}
+        error={error}
+        onReset={reload}
+      />
     </DashboardLayout>
   );
 }

@@ -82,7 +82,7 @@ export const useUsers = () => {
         return true;
       } catch (error) {
         console.error("Error deleting user:", error);
-        return false;
+        return error.response?.data?.message || "Gagal menghapus pengguna.";
       } finally {
         if (mountedRef.current) setLoading(false);
       }

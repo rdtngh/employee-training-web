@@ -71,18 +71,6 @@ export const addItem = createExam;
 export const updateItem = updateExam;
 export const deleteItem = deleteExam;
 
-const getTestWithQuestions = async (testId) => {
-  const [testResponse, questionsResponse] = await Promise.all([
-    api.get(`/tests/${testId}`),
-    api.get(`/tests/${testId}/questions`),
-  ]);
-
-  return {
-    test: mapTest(unwrap(testResponse)),
-    questions: mapQuestions(unwrap(questionsResponse)).map(hideCorrectAnswer),
-  };
-};
-
 const getTrainingTest = async (type, fallbackTestId) => {
   try {
     const response = await api.get(`/trainings/${DEFAULT_TRAINING_ID}/tests/${type}`);
@@ -99,6 +87,15 @@ const getTrainingTest = async (type, fallbackTestId) => {
 
 const getTrainingTestWithQuestions = async (type, fallbackTestId) => {
   const test = mapTest(await getTrainingTest(type, fallbackTestId));
+
+  if (test.result) {
+    return {
+      test,
+      result: test.result,
+      questions: [],
+    };
+  }
+
   const questionsResponse = await api.get(`/tests/${test.id}/questions`);
 
   return {
@@ -209,7 +206,10 @@ export const getPostTestResult = async () => ({
 });
 
 export const submitPostTest = async (payload) => {
-  const result = await submitTest(payload?.test_id ?? DEFAULT_POST_TEST_ID, payload);
+  const result = await submitTest(
+    payload?.test_id ?? payload?.post_test_id ?? DEFAULT_POST_TEST_ID,
+    payload
+  );
 
   return {
     ...result,

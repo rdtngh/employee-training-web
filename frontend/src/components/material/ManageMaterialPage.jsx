@@ -6,6 +6,7 @@ import UploadMaterialDialog from "./UploadMaterialDialog";
 import MaterialConfirmDialog from "./MaterialConfirmDialog";
 import EditMaterialDialog from "./EditMaterialDialog";
 import { useMaterials } from "../../hooks/useMaterials";
+import * as materialService from "../../services/materialService";
 import listIcon from "../../assets/icons/icon-daftar-materi.svg";
 import addIcon from "../../assets/icons/icon-tambahmateri.svg";
 import "./ManageMaterialPage.css";
@@ -95,13 +96,9 @@ function ManageMaterialPage({ role }) {
       return;
     }
 
-    const fileUrl = file.file_path;
-    const newWindow = window.open(fileUrl, "_blank");
-
-    if (!newWindow) {
-      setToast("Popup browser diblokir. Izinkan popup untuk membuka file.");
-      return;
-    }
+    materialService
+      .openMaterialFile(material, file)
+      .catch(() => setToast("File materi gagal dibuka."));
   }
 
   async function confirmAdd() {

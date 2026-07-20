@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import MaterialListCard from "../../components/employee/MaterialListCard";
 import PreTestRequiredDialog from "../../components/employee/PreTestRequiredDialog";
@@ -11,32 +11,42 @@ function EmployeeMaterials() {
     training: null,
     materials: [],
   });
-  const [accessMarked, setAccessMarked] = useState(false);
+  const [accessedMaterialIds, setAccessedMaterialIds] = useState([]);
+  const [error, setError] = useState("");
 
+  const materials = (data.materials ?? []).map((material) =>
+    accessedMaterialIds.includes(material.id)
+      ? { ...material, completed: true }
+      : material
+  );
   const preTestCompleted = Boolean(data.training?.pre_test_completed);
 
-  useEffect(() => {
-    if (loading || !preTestCompleted || accessMarked || !data.training?.id) return;
+  async function openMaterial(event, material) {
+    event.preventDefault();
 
-    let active = true;
+    const file = material.files?.[0];
+    if (!file?.file_path) return;
 
-    materialService
-      .markMaterialsAccessed(data.training.id)
-      .finally(() => {
-        if (active) setAccessMarked(true);
-      });
+    try {
+      await materialService.markMaterialAccessed(material.id);
+      setAccessedMaterialIds((current) =>
+        current.includes(material.id) ? current : [...current, material.id]
+      );
 
-    return () => {
-      active = false;
-    };
-  }, [accessMarked, data.training?.id, loading, preTestCompleted]);
+      await materialService.openMaterialFile(material, file);
+    } catch {
+      setError("Akses materi gagal dicatat. Silakan coba lagi.");
+    }
+  }
 
   return (
     <DashboardLayout role="employee">
       <div className="employee-material-page">
+        {error && <p className="employee-material-error" role="alert">{error}</p>}
         <MaterialListCard
-          materials={data.materials ?? []}
+          materials={materials}
           disabled={!preTestCompleted}
+          onOpenMaterial={openMaterial}
         />
       </div>
 

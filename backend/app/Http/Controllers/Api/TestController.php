@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SubmitTestRequest;
 use App\Models\Certificate;
+use App\Models\Question;
 use App\Models\Test;
 use App\Models\TestResult;
 use App\Models\Training;
@@ -25,9 +26,11 @@ class TestController extends Controller
 
         $test->load('training');
 
+        $passedResult = $this->passedResultForCurrentUser($test);
+
         return response()->json([
             'success' => true,
-            'data' => $test,
+            'data' => $this->testPayload($test, $passedResult),
         ]);
     }
 
@@ -52,9 +55,11 @@ class TestController extends Controller
             return $this->lockedResponse();
         }
 
+        $passedResult = $this->passedResultForCurrentUser($test);
+
         return response()->json([
             'success' => true,
-            'data' => $test,
+            'data' => $this->testPayload($test, $passedResult),
         ]);
     }
 
@@ -64,7 +69,14 @@ class TestController extends Controller
             return $this->lockedResponse();
         }
 
-        $questions = $test->questions()
+        if ($this->passedResultForCurrentUser($test)) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+            ]);
+        }
+
+        $questions = $this->questionsForTest($test)
             ->select('id', 'test_id', 'question', 'option_a', 'option_b', 'option_c', 'option_d', 'order_number')
             ->orderBy('order_number')
             ->get();
@@ -81,9 +93,19 @@ class TestController extends Controller
             return $this->lockedResponse();
         }
 
+        $passedResult = $this->passedResultForCurrentUser($test);
+
+        if ($passedResult) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tes sudah lulus dan tidak dapat dikerjakan ulang.',
+                'data' => $this->resultPayload($passedResult),
+            ]);
+        }
+
         $user = $request->user();
         $answers = collect($request->answers)->keyBy('question_id');
-        $questions = $test->questions()->select('id', 'correct_answer')->get();
+        $questions = $this->questionsForTest($test)->select('id', 'correct_answer')->get();
 
         $correct = 0;
         $wrong = 0;
@@ -149,14 +171,42 @@ class TestController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Hasil tes berhasil disimpan.',
-            'data' => [
-                'score' => $score,
-                'correct_answers' => $correct,
-                'wrong_answers' => $wrong,
-                'status' => $status,
-                'test_result_id' => $testResult->id,
-            ],
+            'data' => $this->resultPayload($testResult),
         ]);
+    }
+
+    private function testPayload(Test $test, ?TestResult $passedResult): array
+    {
+        $payload = $test->toArray();
+
+        if ($passedResult) {
+            $payload['result'] = $this->resultPayload($passedResult);
+        }
+
+        return $payload;
+    }
+
+    private function resultPayload(TestResult $result): array
+    {
+        return [
+            'score' => $result->score,
+            'correct_answers' => $result->correct_answers,
+            'wrong_answers' => $result->wrong_answers,
+            'correct' => $result->correct_answers,
+            'wrong' => $result->wrong_answers,
+            'percentage' => $result->score,
+            'status' => $result->status,
+            'passed' => $result->status === 'Lulus',
+            'test_result_id' => $result->id,
+        ];
+    }
+
+    private function passedResultForCurrentUser(Test $test): ?TestResult
+    {
+        return TestResult::where('user_id', request()->user()->id)
+            ->where('test_id', $test->id)
+            ->where('status', 'Lulus')
+            ->first();
     }
 
     private function canAccessTest(Test $test): bool
@@ -170,6 +220,19 @@ class TestController extends Controller
         }
 
         return $this->hasCompletedPreTest($test) && $this->hasCompletedMaterials($test);
+    }
+
+    private function questionsForTest(Test $test)
+    {
+        if ($test->type !== 'posttest') {
+            return $test->questions();
+        }
+
+        $preTestId = Test::where('training_id', $test->training_id)
+            ->where('type', 'pretest')
+            ->value('id');
+
+        return Question::query()->where('test_id', $preTestId ?? $test->id);
     }
 
     private function hasCompletedPreTest(Test $test): bool

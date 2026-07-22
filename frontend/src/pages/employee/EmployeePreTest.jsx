@@ -8,6 +8,18 @@ import "./EmployeePreTest.css";
 
 const unwrapResponse = (response) => response?.data?.data ?? response?.data ?? response;
 
+const loadErrorMessage = (error) => {
+  if (error.response?.status === 401) {
+    return "Sesi login sudah tidak aktif. Silakan login ulang sebagai karyawan.";
+  }
+
+  if (error.response?.status === 403) {
+    return error.response?.data?.message || "Akses ditolak. Silakan login sebagai karyawan.";
+  }
+
+  return "Pre-Test gagal dimuat. Silakan coba lagi.";
+};
+
 function EmployeePreTest() {
   const [exam, setExam] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -32,7 +44,7 @@ function EmployeePreTest() {
           setShowStartDialog(true);
         }
       })
-      .catch(() => active && setError("Pre-Test gagal dimuat. Silakan coba lagi."))
+      .catch((error) => active && setError(loadErrorMessage(error)))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, []);

@@ -12,6 +12,18 @@ import "./EmployeePostTest.css";
 
 const unwrap = (response) => response?.data?.data ?? response?.data ?? response;
 
+const loadErrorMessage = (error) => {
+  if (error.response?.status === 401) {
+    return "Sesi login sudah tidak aktif. Silakan login ulang sebagai karyawan.";
+  }
+
+  if (error.response?.status === 403) {
+    return error.response?.data?.message || "Akses ditolak. Silakan login sebagai karyawan.";
+  }
+
+  return "Post-Test gagal dimuat. Silakan coba lagi.";
+};
+
 function EmployeePostTest() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
@@ -38,7 +50,7 @@ function EmployeePostTest() {
           setShowStart(true);
         }
       })
-      .catch(() => active && setError("Post-Test gagal dimuat. Silakan coba lagi."))
+      .catch((error) => active && setError(loadErrorMessage(error)))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, []);

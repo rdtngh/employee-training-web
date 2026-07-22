@@ -26,11 +26,11 @@ class TestController extends Controller
 
         $test->load('training');
 
-        $passedResult = $this->passedResultForCurrentUser($test);
+        $visibleResult = $this->visibleResultForCurrentUser($test);
 
         return response()->json([
             'success' => true,
-            'data' => $this->testPayload($test, $passedResult),
+            'data' => $this->testPayload($test, $visibleResult),
         ]);
     }
 
@@ -55,11 +55,11 @@ class TestController extends Controller
             return $this->lockedResponse();
         }
 
-        $passedResult = $this->passedResultForCurrentUser($test);
+        $visibleResult = $this->visibleResultForCurrentUser($test);
 
         return response()->json([
             'success' => true,
-            'data' => $this->testPayload($test, $passedResult),
+            'data' => $this->testPayload($test, $visibleResult),
         ]);
     }
 
@@ -69,7 +69,7 @@ class TestController extends Controller
             return $this->lockedResponse();
         }
 
-        if ($this->passedResultForCurrentUser($test)) {
+        if ($this->visibleResultForCurrentUser($test)) {
             return response()->json([
                 'success' => true,
                 'data' => [],
@@ -207,6 +207,18 @@ class TestController extends Controller
             ->where('test_id', $test->id)
             ->where('status', 'Lulus')
             ->first();
+    }
+
+    private function visibleResultForCurrentUser(Test $test): ?TestResult
+    {
+        if ($test->type === 'pretest') {
+            return TestResult::where('user_id', request()->user()->id)
+                ->where('test_id', $test->id)
+                ->latest('finished_at')
+                ->first();
+        }
+
+        return $this->passedResultForCurrentUser($test);
     }
 
     private function canAccessTest(Test $test): bool

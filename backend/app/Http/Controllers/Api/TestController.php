@@ -151,7 +151,7 @@ class TestController extends Controller
                 ]
             );
 
-            if ($status === 'Lulus') {
+            if ($test->type === 'posttest' && $status === 'Lulus') {
                 Certificate::firstOrCreate(
                     [
                         'user_id' => $user->id,
@@ -197,6 +197,7 @@ class TestController extends Controller
             'percentage' => $result->score,
             'status' => $result->status,
             'passed' => $result->status === 'Lulus',
+            'certificate_available' => $result->test?->type === 'posttest' && $result->status === 'Lulus',
             'test_result_id' => $result->id,
         ];
     }

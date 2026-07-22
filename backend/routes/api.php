@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\MaterialController;
 use App\Http\Controllers\Api\QuestionController;
+use App\Http\Controllers\Api\CertificateController;
 use App\Http\Controllers\Api\StatisticsController;
 use App\Http\Controllers\Api\TestController;
 use App\Http\Controllers\Api\TrainingController;
@@ -33,14 +34,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/tests/{test}/submit', [TestController::class, 'submit']);
 
         Route::post('/materials/{material}/access', [MaterialController::class, 'markAccessed']);
+        Route::get('/certificates/{training}/download', [CertificateController::class, 'download']);
     });
 
     Route::middleware('role:Super Admin,Admin')->group(function () {
         Route::get('/statistics', [StatisticsController::class, 'index']);
         Route::get('/statistics/export', [StatisticsController::class, 'export']);
         Route::post('/statistics/reset', [StatisticsController::class, 'reset']);
+        Route::get('/certificates', [CertificateController::class, 'index']);
+        Route::get('/certificates/{certificate}/file', [CertificateController::class, 'downloadFile']);
 
         Route::post('/materials', [MaterialController::class, 'store']);
+        Route::post('/materials/chunked', [MaterialController::class, 'storeChunked']);
         Route::post('/materials/bulk', [MaterialController::class, 'bulkStore']);
         Route::put('/materials/{material}', [MaterialController::class, 'update']);
         Route::delete('/materials/{material}', [MaterialController::class, 'destroy']);

@@ -104,37 +104,39 @@ function ManageMaterialPage({ role }) {
   async function confirmAdd() {
     if (!pendingAdd) return;
 
-    const success = await addMaterial(pendingAdd);
-    if (success) {
+    const result = await addMaterial(pendingAdd);
+    if (result.success) {
       setPendingAdd(null);
       setAddFileName("");
       setAddFiles([]);
       setAddResetSignal((current) => current + 1);
       setToast(pendingAdd.items?.length > 1 ? "Semua materi berhasil ditambahkan." : "Materi berhasil ditambahkan.");
     } else {
-      setToast("Materi gagal ditambahkan. Coba pilih file yang lebih kecil.");
+      setToast(result.message);
     }
   }
 
   async function confirmEdit() {
     if (!pendingEdit) return;
 
-    const success = await updateMaterial(pendingEdit.id, pendingEdit);
-    if (success) {
+    const result = await updateMaterial(pendingEdit.id, pendingEdit);
+    if (result.success) {
       closeEdit();
       setToast("Materi berhasil diperbarui.");
     } else {
-      setToast("Materi gagal diperbarui. Coba pilih file yang lebih kecil.");
+      setToast(result.message);
     }
   }
 
   async function confirmDelete() {
     if (!deletingMaterialId) return;
 
-    const success = await deleteMaterial(deletingMaterialId);
-    if (success) {
+    const result = await deleteMaterial(deletingMaterialId);
+    if (result.success) {
       setDeletingMaterialId(null);
       setToast("Materi berhasil dihapus.");
+    } else {
+      setToast(result.message);
     }
   }
 

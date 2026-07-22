@@ -12,13 +12,20 @@ const getFilename = (disposition, fallback) => {
   return decodeURIComponent(encoded || plain || fallback);
 };
 
-export const getCertificates = async () => ({
-  ...dummyCertificateResponse,
-  certificates: [...dummyCertificateResponse.certificates],
-});
+export const getCertificates = async () => {
+  if (import.meta.env.VITE_USE_DUMMY_DATA === "true") {
+    return {
+      ...dummyCertificateResponse,
+      certificates: [...dummyCertificateResponse.certificates],
+    };
+  }
+
+  const response = await api.get("/certificates");
+  return response.data?.data ?? response.data;
+};
 
 export const downloadCertificate = async (trainingId) => {
-  if (import.meta.env.VITE_USE_DUMMY_DATA !== "false") {
+  if (import.meta.env.VITE_USE_DUMMY_DATA === "true") {
     return {
       blob: new Blob(["Dummy sertifikat. File PDF akan dibuat oleh backend Laravel."], {
         type: "text/plain",
@@ -35,6 +42,20 @@ export const downloadCertificate = async (trainingId) => {
     filename: getFilename(
       response.headers["content-disposition"],
       `sertifikat-${trainingId}.pdf`
+    ),
+  };
+};
+
+export const downloadCertificateFile = async (certificateId) => {
+  const response = await api.get(`/certificates/${certificateId}/file`, {
+    responseType: "blob",
+  });
+
+  return {
+    blob: response.data,
+    filename: getFilename(
+      response.headers["content-disposition"],
+      `sertifikat-${certificateId}.pdf`
     ),
   };
 };

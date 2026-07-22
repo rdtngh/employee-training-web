@@ -1,21 +1,18 @@
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
-import { ExamResultPlaceholder } from "../../components/exam/ExamResult";
+import CertificateDashboard from "../../components/certificate/CertificateDashboard";
 import * as certificateService from "../../services/certificateService";
 import { useServiceData } from "../../hooks/useServiceData";
 
 function CertificatePage() {
-  const { data: certificateData } = useServiceData(
+  const { data: certificateData, loading, error } = useServiceData(
     certificateService.getCertificates,
     "superadmin",
-    { title: "", message: "" }
+    { title: "Sertifikat", message: "", certificates: [] }
   );
 
   return (
     <DashboardLayout role="superadmin">
-      <ExamResultPlaceholder
-        title={certificateData.title}
-        message={certificateData.message}
-      />
+      <CertificateDashboard certificateData={certificateData} loading={loading} error={error} />
     </DashboardLayout>
   );
 }

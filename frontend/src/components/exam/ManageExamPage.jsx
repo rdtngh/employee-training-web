@@ -96,7 +96,10 @@ function ManageExamPage({ role }) {
 
   const handleConfirmDelete = async () => {
     const success = await deleteQuestion(deletingId);
-    if (success) closeDeleteDialog();
+    if (success) {
+      closeDeleteDialog();
+      setToast("Soal berhasil dihapus.");
+    }
   };
 
   return (

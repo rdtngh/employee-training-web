@@ -98,7 +98,7 @@ cd be-in
 Jalankan Laravel
 
 ```bash
-php artisan serve
+composer run serve
 ```
 
 Jika berhasil akan muncul
@@ -152,7 +152,7 @@ cd be-in
 Jalankan
 
 ```bash
-php artisan serve
+composer run serve
 ```
 
 Backend akan berjalan pada
@@ -160,5 +160,7 @@ Backend akan berjalan pada
 ```text
 http://127.0.0.1:8000
 ```
+
+Catatan upload materi: gunakan `composer run serve`, bukan `php artisan serve` biasa. Script ini menjalankan Laravel dengan `upload_max_filesize=50M` dan `post_max_size=55M`, sehingga file PPT/PPTX dan materi lain sampai 50MB dapat diterima.
 
 ---

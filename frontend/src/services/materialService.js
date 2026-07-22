@@ -1,6 +1,7 @@
 import api from "./api";
 
 const DEFAULT_TRAINING_ID = 1;
+const CHUNK_SIZE = 1024 * 1024;
 
 const resolveBackendUrl = (path) => {
   if (!path || /^https?:\/\//i.test(path)) return path;
@@ -66,6 +67,10 @@ export const getMaterialProgress = async (trainingId = DEFAULT_TRAINING_ID) => {
 };
 
 export const createMaterial = async (materialData) => {
+  if (materialData.file && materialData.file.size > CHUNK_SIZE) {
+    return createMaterialChunked(materialData);
+  }
+
   const fd = new FormData();
   fd.append("title", materialData.title);
   fd.append("training_id", materialData.training_id || DEFAULT_TRAINING_ID);
@@ -79,17 +84,54 @@ export const createMaterial = async (materialData) => {
   return mapMaterialFromApi(res.data.data);
 };
 
+const createMaterialChunked = async (materialData) => {
+  const file = materialData.file;
+  const uploadId =
+    globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+  let material = null;
+
+  for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex += 1) {
+    const start = chunkIndex * CHUNK_SIZE;
+    const chunk = file.slice(start, Math.min(start + CHUNK_SIZE, file.size));
+    const fd = new FormData();
+
+    fd.append("title", materialData.title);
+    fd.append("training_id", materialData.training_id || DEFAULT_TRAINING_ID);
+    fd.append("upload_id", uploadId);
+    fd.append("chunk_index", String(chunkIndex));
+    fd.append("total_chunks", String(totalChunks));
+    fd.append("original_name", materialData.fileName || file.name);
+    fd.append("file_type", materialData.fileType || file.type || "application/octet-stream");
+    fd.append("chunk", chunk, `${chunkIndex}.part`);
+    if (materialData.description) fd.append("description", materialData.description);
+
+    const res = await api.post("/materials/chunked", fd);
+
+    if (res.data?.data?.complete === false) {
+      continue;
+    }
+
+    if (res.data?.data?.id) {
+      material = mapMaterialFromApi(res.data.data);
+    }
+  }
+
+  return material;
+};
+
 export const createMaterialsBulk = async (materialData) => {
-  const fd = new FormData();
-  fd.append("training_id", materialData.training_id || DEFAULT_TRAINING_ID);
+  const materials = [];
 
-  materialData.items.forEach((item) => {
-    fd.append("titles[]", item.title);
-    fd.append("files[]", item.file, item.fileName || item.file.name);
-  });
+  for (const item of materialData.items) {
+    const material = await createMaterial({
+      ...item,
+      training_id: materialData.training_id || DEFAULT_TRAINING_ID,
+    });
+    materials.push(material);
+  }
 
-  const res = await api.post("/materials/bulk", fd);
-  return (res.data?.data || []).map(mapMaterialFromApi);
+  return materials;
 };
 
 export const updateMaterial = async (id, materialData) => {

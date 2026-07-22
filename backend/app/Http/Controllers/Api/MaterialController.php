@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Storage;
 
 class MaterialController extends Controller
 {
+    private const CHUNK_MAX_KB = 1536;
+
     public function show(Material $material): JsonResponse
     {
         if ($this->requiresPreTest($material)) {
@@ -131,7 +133,11 @@ class MaterialController extends Controller
             'titles' => ['required', 'array', 'min:1'],
             'titles.*' => ['required', 'string', 'max:255'],
             'files' => ['required', 'array', 'min:1'],
-            'files.*' => ['file', 'max:51200'],
+            'files.*' => ['file', 'extensions:'.implode(',', MaterialRequest::ALLOWED_FILE_EXTENSIONS), 'max:51200'],
+        ], [
+            'files.*.uploaded' => 'File gagal diupload oleh server. Pastikan backend dijalankan dengan upload_max_filesize minimal 50M dan post_max_size minimal 55M.',
+            'files.*.extensions' => 'File materi harus berformat PDF, PPT, PPTX, DOC, DOCX, XLS, XLSX, TXT, RTF, JPG, PNG, WEBP, MP4, atau WEBM.',
+            'files.*.max' => 'Ukuran setiap file materi maksimal 50MB.',
         ]);
 
         $files = $request->file('files') ?? [];
@@ -169,6 +175,108 @@ class MaterialController extends Controller
             'data' => $materials,
         ], 201);
     }
+
+    public function storeChunked(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'training_id' => ['required', 'integer', 'exists:trainings,id'],
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'upload_id' => ['required', 'string', 'max:100'],
+            'chunk_index' => ['required', 'integer', 'min:0'],
+            'total_chunks' => ['required', 'integer', 'min:1', 'max:200'],
+            'original_name' => ['required', 'string', 'max:255'],
+            'file_type' => ['nullable', 'string', 'max:255'],
+            'chunk' => ['required', 'file', 'max:'.self::CHUNK_MAX_KB],
+        ], [
+            'chunk.uploaded' => 'Potongan file gagal diupload oleh server.',
+            'chunk.max' => 'Potongan file terlalu besar.',
+        ]);
+
+        if (! $this->isAllowedMaterialFileName($validated['original_name'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File materi harus berformat PDF, PPT, PPTX, DOC, DOCX, XLS, XLSX, TXT, RTF, JPG, PNG, WEBP, MP4, atau WEBM.',
+            ], 422);
+        }
+
+        $uploadId = preg_replace('/[^A-Za-z0-9_-]/', '', $validated['upload_id']);
+        $chunkIndex = (int) $validated['chunk_index'];
+        $totalChunks = (int) $validated['total_chunks'];
+
+        if ($chunkIndex >= $totalChunks) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Urutan potongan file tidak valid.',
+            ], 422);
+        }
+
+        $tempDir = "materials_tmp/{$uploadId}";
+        $request->file('chunk')->storeAs($tempDir, "{$chunkIndex}.part", 'local');
+
+        if ($chunkIndex < $totalChunks - 1) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Potongan file berhasil diupload.',
+                'data' => [
+                    'complete' => false,
+                    'chunk_index' => $chunkIndex,
+                ],
+            ]);
+        }
+
+        for ($index = 0; $index < $totalChunks; $index++) {
+            if (! Storage::disk('local')->exists("{$tempDir}/{$index}.part")) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Upload file belum lengkap. Coba upload ulang.',
+                ], 422);
+            }
+        }
+
+        $material = DB::transaction(function () use ($validated, $tempDir, $totalChunks) {
+            $orderNumber = (Material::where('training_id', $validated['training_id'])->max('order_number') ?? 0) + 1;
+            $material = Material::create([
+                'training_id' => $validated['training_id'],
+                'title' => $validated['title'],
+                'description' => $validated['description'] ?? null,
+                'speaker' => '',
+                'order_number' => $orderNumber,
+            ]);
+
+            $filename = Str::random(12) . '_' . $this->sanitizeFileName($validated['original_name']);
+            $path = "materials/{$filename}";
+            Storage::disk('local')->makeDirectory('materials');
+            $target = Storage::disk('local')->path($path);
+            $targetHandle = fopen($target, 'wb');
+
+            for ($index = 0; $index < $totalChunks; $index++) {
+                $chunkPath = Storage::disk('local')->path("{$tempDir}/{$index}.part");
+                $chunkHandle = fopen($chunkPath, 'rb');
+                stream_copy_to_stream($chunkHandle, $targetHandle);
+                fclose($chunkHandle);
+            }
+
+            fclose($targetHandle);
+            Storage::disk('local')->deleteDirectory($tempDir);
+
+            MaterialFile::create([
+                'material_id' => $material->id,
+                'file_name' => $validated['original_name'],
+                'file_path' => $path,
+                'file_type' => $validated['file_type'] ?? 'application/octet-stream',
+            ]);
+
+            return $material->load('files');
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Materi berhasil ditambahkan.',
+            'data' => $material,
+        ], 201);
+    }
+
 
     public function update(MaterialRequest $request, Material $material): JsonResponse
     {
@@ -233,7 +341,7 @@ class MaterialController extends Controller
 
     private function storeUploadedFile($file, Material $material): void
     {
-        $filename = Str::random(12) . '_' . preg_replace('/[^A-Za-z0-9._-]/', '_', $file->getClientOriginalName());
+        $filename = Str::random(12) . '_' . $this->sanitizeFileName($file->getClientOriginalName());
         $path = $file->storeAs('materials', $filename, 'local');
 
         MaterialFile::create([
@@ -242,6 +350,18 @@ class MaterialController extends Controller
             'file_path' => $path,
             'file_type' => $file->getClientMimeType(),
         ]);
+    }
+
+    private function sanitizeFileName(string $fileName): string
+    {
+        return preg_replace('/[^A-Za-z0-9._-]/', '_', $fileName);
+    }
+
+    private function isAllowedMaterialFileName(string $fileName): bool
+    {
+        $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+        return in_array($extension, MaterialRequest::ALLOWED_FILE_EXTENSIONS, true);
     }
 
     private function materialStorageRelativePath(?string $path): ?string

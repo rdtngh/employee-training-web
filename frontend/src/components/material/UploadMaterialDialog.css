@@ -29,6 +29,20 @@
   display: none;
 }
 
+.upload-material-help {
+  margin: 0 0 20px;
+  color: var(--color-text-light);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.upload-material-error {
+  margin: -8px 0 16px;
+  color: var(--color-danger);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .upload-material-actions {
   display: flex;
   justify-content: flex-end;

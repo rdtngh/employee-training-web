@@ -58,6 +58,7 @@ class StatisticsController extends Controller
                 'pass_percentage' => $participantCount > 0
                     ? $this->formatNumber(($passedCount / $participantCount) * 100)
                     : 0,
+                'score_distributions' => $this->scoreDistributions($testIds),
             ],
         ]);
     }
@@ -236,7 +237,78 @@ class StatisticsController extends Controller
             'highest_score' => 0,
             'lowest_score' => 0,
             'pass_percentage' => 0,
+            'score_distributions' => $this->emptyScoreDistributions(),
         ];
+    }
+
+    private function scoreDistributions($testIds): array
+    {
+        $results = TestResult::query()
+            ->with('test:id,type')
+            ->whereIn('test_id', $testIds)
+            ->whereHas('user.role', fn ($query) => $query->where('name', 'Karyawan'))
+            ->orderByDesc('updated_at')
+            ->get()
+            ->groupBy(fn ($result) => $result->test?->type);
+
+        return collect(['pretest' => 'Pre Test', 'posttest' => 'Post Test'])
+            ->mapWithKeys(function ($label, $type) use ($results) {
+                $typeResults = ($results->get($type) ?? collect())
+                    ->unique('user_id')
+                    ->values();
+
+                return [
+                    $type => [
+                        'label' => $label,
+                        'participant_count' => $typeResults->count(),
+                        'ranges' => $this->scoreRangeRows($typeResults),
+                    ],
+                ];
+            })
+            ->all();
+    }
+
+    private function emptyScoreDistributions(): array
+    {
+        return collect(['pretest' => 'Pre Test', 'posttest' => 'Post Test'])
+            ->mapWithKeys(fn ($label, $type) => [
+                $type => [
+                    'label' => $label,
+                    'participant_count' => 0,
+                    'ranges' => $this->scoreRangeRows(collect()),
+                ],
+            ])
+            ->all();
+    }
+
+    private function scoreRangeRows($results): array
+    {
+        $ranges = [
+            ['label' => '1-20', 'min' => 0, 'max' => 20],
+            ['label' => '21-30', 'min' => 21, 'max' => 30],
+            ['label' => '31-40', 'min' => 31, 'max' => 40],
+            ['label' => '41-50', 'min' => 41, 'max' => 50],
+            ['label' => '51-60', 'min' => 51, 'max' => 60],
+            ['label' => '61-70', 'min' => 61, 'max' => 70],
+            ['label' => '71-80', 'min' => 71, 'max' => 80],
+            ['label' => '81-90', 'min' => 81, 'max' => 90],
+            ['label' => '91-100', 'min' => 91, 'max' => 100],
+        ];
+        $total = $results->count();
+
+        return collect($ranges)
+            ->map(function ($range) use ($results, $total) {
+                $count = $results
+                    ->filter(fn ($result) => $result->score >= $range['min'] && $result->score <= $range['max'])
+                    ->count();
+
+                return [
+                    'label' => $range['label'],
+                    'count' => $count,
+                    'percentage' => $total > 0 ? $this->formatNumber(($count / $total) * 100) : 0,
+                ];
+            })
+            ->all();
     }
 
     private function formatNumber(null|int|float|string $value): int|float

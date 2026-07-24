@@ -37,7 +37,7 @@ const protectedPage = (element, allowedRoles) => (
 
 function AppRouter() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
 
         {/* ================= PUBLIC ================= */}

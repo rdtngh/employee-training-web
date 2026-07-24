@@ -63,7 +63,7 @@ function ScoreChart({ distribution }) {
   );
 }
 
-function StatisticsDashboard({ statistics, loading, error, onReset }) {
+function StatisticsDashboard({ statistics, loading, error, onReset, canReset = false }) {
   const navigate = useNavigate();
   const [resetting, setResetting] = useState(false);
   const [message, setMessage] = useState("");
@@ -97,14 +97,16 @@ function StatisticsDashboard({ statistics, loading, error, onReset }) {
             {statistics?.training?.title && <p>{statistics.training.title}</p>}
           </div>
         </div>
-        <button
-          type="button"
-          className="statistics-reset"
-          onClick={() => setResetDialogOpen(true)}
-          disabled={loading || resetting}
-        >
-          {resetting ? "Mereset..." : "Reset Statistik"}
-        </button>
+        {canReset && (
+          <button
+            type="button"
+            className="statistics-reset"
+            onClick={() => setResetDialogOpen(true)}
+            disabled={loading || resetting}
+          >
+            {resetting ? "Mereset..." : "Reset Statistik"}
+          </button>
+        )}
       </div>
 
       {loading && <p className="statistics-state">Memuat statistik...</p>}
@@ -119,7 +121,7 @@ function StatisticsDashboard({ statistics, loading, error, onReset }) {
       )}
 
       <button type="button" className="statistics-back" onClick={() => navigate(-1)}>&larr; Back</button>
-      {resetDialogOpen && (
+      {canReset && resetDialogOpen && (
         <div className="statistics-reset-overlay">
           <div
             className="statistics-reset-dialog"

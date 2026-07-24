@@ -9,22 +9,22 @@ package-lock.json
 # React (Frontend)
 # ==========================
 
-fe-in/node_modules/
-fe-in/dist/
+frontend/node_modules/
+frontend/dist/
 
 # Environment
-fe-in/.env
+frontend/.env
 
 # ==========================
 # Laravel (Backend)
 # ==========================
 
-be-in/vendor/
-be-in/node_modules/
-be-in/public/build/
-be-in/storage/logs/
-be-in/bootstrap/cache/
-be-in/.env
+backend/vendor/
+backend/node_modules/
+backend/public/build/
+backend/storage/logs/
+backend/bootstrap/cache/
+backend/.env
 
 # ==========================
 # IDE & OS

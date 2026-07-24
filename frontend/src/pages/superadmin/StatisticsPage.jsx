@@ -17,6 +17,7 @@ function StatisticsPage() {
         loading={loading}
         error={error}
         onReset={reload}
+        canReset
       />
     </DashboardLayout>
   );

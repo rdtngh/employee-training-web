@@ -48,18 +48,34 @@ class CertificateController extends Controller
         ]);
     }
 
+    public function show(Request $request, Training $training): JsonResponse
+    {
+        $result = $this->passedPostTestResult($request, $training);
+
+        if (! $result) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda belum memenuhi syarat untuk mendapatkan sertifikat.',
+            ], 403);
+        }
+
+        $certificate = $this->firstOrCreateCertificate($request->user()->id, $result);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'employee_name' => $request->user()->name,
+                'training_title' => $training->title,
+                'certificate_number' => $certificate->certificate_number,
+                'issued_at' => optional($certificate->issued_at)->toDateString(),
+                'eligible' => true,
+            ],
+        ]);
+    }
+
     public function download(Request $request, Training $training): Response
     {
-        $result = TestResult::query()
-            ->with(['test.training', 'user'])
-            ->where('user_id', $request->user()->id)
-            ->where('status', 'Lulus')
-            ->whereHas('test', function ($query) use ($training) {
-                $query->where('training_id', $training->id)
-                    ->where('type', 'posttest');
-            })
-            ->latest('finished_at')
-            ->first();
+        $result = $this->passedPostTestResult($request, $training);
 
         if (! $result) {
             return response([
@@ -68,17 +84,7 @@ class CertificateController extends Controller
             ], 404);
         }
 
-        $certificate = Certificate::firstOrCreate(
-            [
-                'user_id' => $request->user()->id,
-                'test_result_id' => $result->id,
-            ],
-            [
-                'certificate_number' => $this->certificateNumber(),
-                'file_path' => '',
-                'issued_at' => now(),
-            ]
-        );
+        $certificate = $this->firstOrCreateCertificate($request->user()->id, $result);
 
         $pdf = $this->buildPdf($certificate, $result, $training);
         $filename = sprintf('sertifikat-%s.pdf', Str::slug($training->title) ?: $training->id);
@@ -114,6 +120,35 @@ class CertificateController extends Controller
             'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             'Content-Length' => strlen($pdf),
         ]);
+    }
+
+    private function passedPostTestResult(Request $request, Training $training): ?TestResult
+    {
+        return TestResult::query()
+            ->with(['test.training', 'user'])
+            ->where('user_id', $request->user()->id)
+            ->where('status', 'Lulus')
+            ->whereHas('test', function ($query) use ($training) {
+                $query->where('training_id', $training->id)
+                    ->where('type', 'posttest');
+            })
+            ->latest('finished_at')
+            ->first();
+    }
+
+    private function firstOrCreateCertificate(int $userId, TestResult $result): Certificate
+    {
+        return Certificate::firstOrCreate(
+            [
+                'user_id' => $userId,
+                'test_result_id' => $result->id,
+            ],
+            [
+                'certificate_number' => $this->certificateNumber(),
+                'file_path' => '',
+                'issued_at' => $result->finished_at ?? now(),
+            ]
+        );
     }
 
     private function ensureCertificatesForPassedPostTests(): void

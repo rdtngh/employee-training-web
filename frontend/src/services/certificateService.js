@@ -68,7 +68,7 @@ export const downloadCertificateFile = async (certificateId) => {
 
 export const getCertificatePreview = async (trainingId) => {
   const useMockCertificate =
-    import.meta.env.VITE_CERTIFICATE_USE_MOCK !== "false" ||
+    import.meta.env.VITE_CERTIFICATE_USE_MOCK === "true" ||
     import.meta.env.VITE_USE_DUMMY_DATA === "true";
 
   if (useMockCertificate) {
@@ -76,6 +76,10 @@ export const getCertificatePreview = async (trainingId) => {
       ...mockCertificatePreview,
       training_id: trainingId,
     };
+  }
+
+  if (!trainingId) {
+    throw new Error("Training sertifikat belum dipilih.");
   }
 
   const response = await api.get(`/certificates/${trainingId}`);

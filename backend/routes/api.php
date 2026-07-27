@@ -34,6 +34,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/tests/{test}/submit', [TestController::class, 'submit']);
 
         Route::post('/materials/{material}/access', [MaterialController::class, 'markAccessed']);
+        Route::get('/certificates/{training}', [CertificateController::class, 'show']);
         Route::get('/certificates/{training}/download', [CertificateController::class, 'download']);
     });
 

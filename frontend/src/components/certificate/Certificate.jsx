@@ -17,7 +17,8 @@ function Certificate({
   const [scale, setScale] = useState(1);
   const safeEmployeeName = employeeName || "Nama Karyawan";
   const safeTrainingTitle = trainingTitle || "Judul Pelatihan";
-  const longName = safeEmployeeName.length > 30;
+  const longName = safeEmployeeName.length > 21;
+  const veryLongName = safeEmployeeName.length > 34;
 
   useEffect(() => {
     const preview = previewRef.current;
@@ -112,7 +113,14 @@ function Certificate({
             <p className="certificate-given-text">
               Sertifikat penghargaan ini diberikan kepada:
             </p>
-            <h2 className={longName ? "is-long-name" : ""}>{safeEmployeeName}</h2>
+            <h2
+              className={[
+                longName ? "is-long-name" : "",
+                veryLongName ? "is-very-long-name" : "",
+              ].filter(Boolean).join(" ")}
+            >
+              {safeEmployeeName}
+            </h2>
             <div className="certificate-name-line" aria-hidden="true" />
           </section>
 

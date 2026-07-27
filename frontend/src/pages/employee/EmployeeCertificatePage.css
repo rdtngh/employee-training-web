@@ -23,7 +23,14 @@
   color: #6b7280;
 }
 
-.employee-certificate-header button {
+.employee-certificate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+.employee-certificate-actions button {
   min-height: 36px;
   padding: 6px 0;
   background: transparent;
@@ -31,8 +38,13 @@
   font-weight: 700;
 }
 
-.employee-certificate-header button:hover {
+.employee-certificate-actions button:hover {
   text-decoration: underline;
+}
+
+.employee-certificate-actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 .employee-certificate-stage {

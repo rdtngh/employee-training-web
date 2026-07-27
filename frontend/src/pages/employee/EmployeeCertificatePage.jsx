@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Certificate from "../../components/certificate/Certificate";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import * as certificateService from "../../services/certificateService";
+import { downloadFile } from "../../utils/downloadFile";
 import "./EmployeeCertificatePage.css";
 
 const defaultCertificateData = {
@@ -15,6 +16,7 @@ function EmployeeCertificatePage() {
   const { trainingId } = useParams();
   const [certificateData, setCertificateData] = useState(defaultCertificateData);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -44,6 +46,24 @@ function EmployeeCertificatePage() {
     };
   }, [trainingId]);
 
+  const downloadCertificate = async () => {
+    setDownloading(true);
+    setError("");
+
+    try {
+      const file = await certificateService.downloadCertificate(trainingId);
+      downloadFile(file);
+    } catch (error) {
+      setError(
+        error.response?.data?.message ||
+          error.message ||
+          "Sertifikat gagal diunduh. Silakan coba lagi."
+      );
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <DashboardLayout role="employee">
       <main className="employee-certificate-page">
@@ -52,9 +72,16 @@ function EmployeeCertificatePage() {
             <h1>Preview Sertifikat</h1>
             <p>Template penghargaan karyawan siap menerima data dari backend.</p>
           </div>
-          <button type="button" onClick={() => navigate(-1)}>
-            Back
-          </button>
+          <div className="employee-certificate-actions">
+            {!loading && !error && (
+              <button type="button" onClick={downloadCertificate} disabled={downloading}>
+                {downloading ? "Mengunduh..." : "Download Sertifikat"}
+              </button>
+            )}
+            <button type="button" onClick={() => navigate(-1)}>
+              Back
+            </button>
+          </div>
         </header>
 
         {loading && <p className="employee-certificate-state">Memuat sertifikat...</p>}

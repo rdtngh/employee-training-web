@@ -6,6 +6,12 @@ const dummyCertificateResponse = {
   certificates: [],
 };
 
+const mockCertificatePreview = {
+  employee_name: "Bening Apni P.",
+  training_title: "Pelatihan Keselamatan Pasien",
+  eligible: true,
+};
+
 const getFilename = (disposition, fallback) => {
   const encoded = disposition?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
   const plain = disposition?.match(/filename="?([^";]+)"?/i)?.[1];
@@ -58,4 +64,26 @@ export const downloadCertificateFile = async (certificateId) => {
       `sertifikat-${certificateId}.pdf`
     ),
   };
+};
+
+export const getCertificatePreview = async (trainingId) => {
+  const useMockCertificate =
+    import.meta.env.VITE_CERTIFICATE_USE_MOCK !== "false" ||
+    import.meta.env.VITE_USE_DUMMY_DATA === "true";
+
+  if (useMockCertificate) {
+    return {
+      ...mockCertificatePreview,
+      training_id: trainingId,
+    };
+  }
+
+  const response = await api.get(`/certificates/${trainingId}`);
+  const payload = response.data?.data ?? response.data;
+
+  if (payload?.eligible === false) {
+    throw new Error(response.data?.message || "Anda belum memenuhi syarat untuk mendapatkan sertifikat.");
+  }
+
+  return payload;
 };

@@ -108,6 +108,10 @@ function EmployeePostTest() {
     }
   };
 
+  const previewCertificate = () => {
+    navigate(`/employee/certificate/${data.training.id}`);
+  };
+
   return (
     <DashboardLayout role="employee">
       <section className="employee-pretest-page">
@@ -117,7 +121,10 @@ function EmployeePostTest() {
         {!loading && result && (
           <ExamResultCard result={result} className="posttest-result">
             {resultPassed && result.certificate_available && (
-              <button type="button" className="posttest-certificate" onClick={downloadCertificate} disabled={busy}>Download Sertifikat</button>
+              <div className="posttest-certificate-actions">
+                <button type="button" className="posttest-certificate" onClick={previewCertificate} disabled={busy}>Lihat Sertifikat</button>
+                <button type="button" className="posttest-certificate" onClick={downloadCertificate} disabled={busy}>Download Sertifikat</button>
+              </div>
             )}
             {!resultPassed && result.can_retry && (
               <button type="button" className="posttest-retry" onClick={retry} disabled={busy}>Re Attempt →</button>

@@ -9,6 +9,7 @@ import DashboardEmployee from "../pages/employee/DashboardEmployee";
 import EmployeeMaterials from "../pages/employee/EmployeeMaterials";
 import EmployeePreTest from "../pages/employee/EmployeePreTest";
 import EmployeePostTest from "../pages/employee/EmployeePostTest";
+import EmployeeCertificatePage from "../pages/employee/EmployeeCertificatePage";
 
 // Admin
 import DashboardAdmin from "../pages/admin/DashboardAdmin";
@@ -59,6 +60,8 @@ function AppRouter() {
 
         <Route path="/employee/pretest" element={protectedPage(<EmployeePreTest />, ["employee"])} />
         <Route path="/employee/posttest" element={protectedPage(<EmployeePostTest />, ["employee"])} />
+        <Route path="/employee/certificate" element={protectedPage(<EmployeeCertificatePage />, ["employee"])} />
+        <Route path="/employee/certificate/:trainingId" element={protectedPage(<EmployeeCertificatePage />, ["employee"])} />
 
 
         {/* ================= ADMIN ================= */}

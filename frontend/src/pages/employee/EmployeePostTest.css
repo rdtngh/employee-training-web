@@ -1,5 +1,6 @@
 .posttest-result { display: flex; flex-direction: column; }
-.posttest-certificate, .posttest-retry { margin-top: auto; align-self: center; padding: 8px 4px; background: transparent; font-size: 1.25rem; }
+.posttest-certificate-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-top: auto; }
+.posttest-certificate, .posttest-retry { align-self: center; padding: 8px 4px; background: transparent; font-size: 1.25rem; }
 .posttest-certificate { color: #216629; border-bottom: 1px solid currentColor; }
 .posttest-retry { align-self: flex-end; color: #ef1d24; }
 .posttest-certificate:disabled, .posttest-retry:disabled { opacity: .5; }

@@ -55,7 +55,13 @@ function MaterialRow({ material, disabled, onOpen }) {
   );
 }
 
-function MaterialListCard({ materials, disabled = false, onOpenMaterial }) {
+function MaterialListCard({
+  materials,
+  disabled = false,
+  onOpenMaterial,
+  title = "Daftar Materi",
+  emptyMessage = "Belum ada materi pada pelatihan ini.",
+}) {
   return (
     <section className="employee-material-card" aria-labelledby="material-list-title">
       <header className="employee-material-card-header">
@@ -64,11 +70,13 @@ function MaterialListCard({ materials, disabled = false, onOpenMaterial }) {
           src={materialListIcon}
           alt=""
         />
-        <h1 id="material-list-title">Daftar Materi</h1>
+        <h1 id="material-list-title">{title}</h1>
       </header>
 
       <div className="employee-material-list">
-        {materials.map((material) => (
+        {materials.length === 0 ? (
+          <p className="employee-training-state">{emptyMessage}</p>
+        ) : materials.map((material) => (
           <MaterialRow
             key={material.id}
             material={material}

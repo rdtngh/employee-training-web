@@ -1,7 +1,9 @@
 import api from "./api";
+import { mockMaterials, mockTrainings } from "./mockTrainingData";
 
 const DEFAULT_TRAINING_ID = 1;
 const CHUNK_SIZE = 1024 * 1024;
+let mockMaterialStore = mockMaterials.map((material) => ({ ...material }));
 
 const resolveBackendUrl = (path) => {
   if (!path || /^https?:\/\//i.test(path)) return path;
@@ -13,6 +15,8 @@ const resolveBackendUrl = (path) => {
 
 const mapMaterialFromApi = (m) => ({
   id: m.id,
+  training_id: m.training_id ?? m.training?.id,
+  training: m.training,
   title: m.title,
   description: m.description,
   speaker: m.speaker,
@@ -26,9 +30,15 @@ const mapMaterialFromApi = (m) => ({
   completed: Boolean(m.completed),
 });
 
-export const getAllMaterials = async () => {
-  // fetch materials for default training
-  const res = await api.get(`/trainings/${DEFAULT_TRAINING_ID}/materials`);
+const getMockMaterialsByTraining = (trainingId = DEFAULT_TRAINING_ID) =>
+  mockMaterialStore.filter((material) => String(material.training_id) === String(trainingId));
+
+export const getAllMaterials = async (trainingId = DEFAULT_TRAINING_ID) => {
+  if (import.meta.env.VITE_USE_DUMMY_DATA === "true") {
+    return getMockMaterialsByTraining(trainingId).map(mapMaterialFromApi);
+  }
+
+  const res = await api.get(`/trainings/${trainingId}/materials`);
   return (res.data?.data || []).map(mapMaterialFromApi);
 };
 
@@ -37,8 +47,20 @@ const mapMaterialProgressFromApi = (data) => ({
   materials: (data.materials || []).map(mapMaterialFromApi),
 });
 
-export const getMaterials = async () => {
-  const res = await api.get(`/trainings/${DEFAULT_TRAINING_ID}/materials/progress`);
+export const getMaterials = async (trainingId = DEFAULT_TRAINING_ID) => {
+  if (import.meta.env.VITE_USE_DUMMY_DATA === "true") {
+    const training = mockTrainings.find((item) => String(item.id) === String(trainingId));
+    return {
+      training: {
+        ...(training ?? { id: trainingId, title: "Pelatihan" }),
+        pre_test_completed: true,
+        post_test_unlocked: true,
+      },
+      materials: getMockMaterialsByTraining(trainingId).map(mapMaterialFromApi),
+    };
+  }
+
+  const res = await api.get(`/trainings/${trainingId}/materials/progress`);
   return mapMaterialProgressFromApi(res.data?.data || {});
 };
 
@@ -62,11 +84,30 @@ export const openMaterialFile = async (material, file) => {
 };
 
 export const getMaterialProgress = async (trainingId = DEFAULT_TRAINING_ID) => {
+  if (import.meta.env.VITE_USE_DUMMY_DATA === "true") {
+    return getMaterials(trainingId);
+  }
+
   const res = await api.get(`/trainings/${trainingId}/materials/progress`);
   return mapMaterialProgressFromApi(res.data?.data || {});
 };
 
 export const createMaterial = async (materialData) => {
+  if (import.meta.env.VITE_USE_DUMMY_DATA === "true") {
+    const material = {
+      id: Date.now(),
+      training_id: Number(materialData.training_id || DEFAULT_TRAINING_ID),
+      title: materialData.title || materialData.fileName || "Materi",
+      description: materialData.description,
+      files: materialData.file
+        ? [{ id: Date.now(), file_name: materialData.fileName || materialData.file.name }]
+        : [],
+      completed: false,
+    };
+    mockMaterialStore = [...mockMaterialStore, material];
+    return mapMaterialFromApi(material);
+  }
+
   if (materialData.file && materialData.file.size > CHUNK_SIZE) {
     return createMaterialChunked(materialData);
   }
@@ -135,7 +176,25 @@ export const createMaterialsBulk = async (materialData) => {
 };
 
 export const updateMaterial = async (id, materialData) => {
+  if (import.meta.env.VITE_USE_DUMMY_DATA === "true") {
+    mockMaterialStore = mockMaterialStore.map((material) =>
+      String(material.id) === String(id)
+        ? {
+            ...material,
+            training_id: Number(materialData.training_id || material.training_id),
+            title: materialData.title || material.title,
+            description: materialData.description ?? material.description,
+          }
+        : material
+    );
+
+    return mapMaterialFromApi(
+      mockMaterialStore.find((material) => String(material.id) === String(id)) ?? {}
+    );
+  }
+
   const fd = new FormData();
+  if (materialData.training_id) fd.append("training_id", materialData.training_id);
   if (materialData.title) fd.append("title", materialData.title);
   if (materialData.description) fd.append("description", materialData.description);
   if (materialData.file) {
@@ -149,6 +208,11 @@ export const updateMaterial = async (id, materialData) => {
 };
 
 export const deleteMaterial = async (id) => {
+  if (import.meta.env.VITE_USE_DUMMY_DATA === "true") {
+    mockMaterialStore = mockMaterialStore.filter((material) => String(material.id) !== String(id));
+    return true;
+  }
+
   await api.delete(`/materials/${id}`);
   return true;
 };

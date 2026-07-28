@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../dashboard/DashboardLayout";
 import MaterialTable from "./MaterialTable";
 import MaterialForm from "./MaterialForm";
@@ -7,6 +8,7 @@ import MaterialConfirmDialog from "./MaterialConfirmDialog";
 import EditMaterialDialog from "./EditMaterialDialog";
 import { useMaterials } from "../../hooks/useMaterials";
 import * as materialService from "../../services/materialService";
+import * as trainingService from "../../services/trainingService";
 import listIcon from "../../assets/icons/icon-daftar-materi.svg";
 import addIcon from "../../assets/icons/icon-tambahmateri.svg";
 import "./ManageMaterialPage.css";
@@ -15,6 +17,16 @@ const createSelectionId = () =>
   globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 
 function ManageMaterialPage({ role }) {
+  const navigate = useNavigate();
+  const { trainingId } = useParams();
+  const rolePath = role === "superadmin" ? "superadmin" : "admin";
+  const [trainings, setTrainings] = useState([]);
+  const [trainingLoading, setTrainingLoading] = useState(true);
+  const [trainingError, setTrainingError] = useState("");
+  const [newTrainingTitle, setNewTrainingTitle] = useState("");
+  const [addingTraining, setAddingTraining] = useState(false);
+  const [trainingFormError, setTrainingFormError] = useState("");
+  const selectedTraining = trainings.find((training) => String(training.id) === String(trainingId));
   const {
     materials,
     loading,
@@ -22,7 +34,7 @@ function ManageMaterialPage({ role }) {
     addMaterial,
     updateMaterial,
     deleteMaterial,
-  } = useMaterials();
+  } = useMaterials(trainingId);
   const [addFileName, setAddFileName] = useState("");
   const [addFiles, setAddFiles] = useState([]);
   const [addResetSignal, setAddResetSignal] = useState(0);
@@ -35,9 +47,34 @@ function ManageMaterialPage({ role }) {
   const [uploadTarget, setUploadTarget] = useState(null);
   const [toast, setToast] = useState("");
 
+  const loadTrainings = useCallback(async () => {
+    setTrainingLoading(true);
+    try {
+      const data = await trainingService.getTrainings();
+      setTrainings(data);
+      setTrainingError("");
+    } catch {
+      setTrainingError("Daftar pelatihan gagal dimuat.");
+    } finally {
+      setTrainingLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    loadMaterials();
-  }, [loadMaterials]);
+    let active = true;
+
+    Promise.resolve().then(() => {
+      if (active) loadTrainings();
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [loadTrainings]);
+
+  useEffect(() => {
+    if (trainingId) loadMaterials();
+  }, [trainingId, loadMaterials]);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -101,6 +138,34 @@ function ManageMaterialPage({ role }) {
       .catch(() => setToast("File materi gagal dibuka."));
   }
 
+  async function handleCreateTraining(event) {
+    event.preventDefault();
+
+    const title = newTrainingTitle.trim();
+    if (!title) {
+      setTrainingFormError("Nama pelatihan wajib diisi.");
+      return;
+    }
+
+    setAddingTraining(true);
+    setTrainingFormError("");
+
+    try {
+      const training = await trainingService.createTraining({ title });
+      setTrainings((current) => [...current, training]);
+      setNewTrainingTitle("");
+      setToast("Pelatihan berhasil ditambahkan.");
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        Object.values(error.response?.data?.errors ?? {}).flat()[0] ||
+        "Pelatihan gagal ditambahkan.";
+      setTrainingFormError(message);
+    } finally {
+      setAddingTraining(false);
+    }
+  }
+
   async function confirmAdd() {
     if (!pendingAdd) return;
 
@@ -143,37 +208,147 @@ function ManageMaterialPage({ role }) {
   return (
     <DashboardLayout role={role}>
       <div className="manage-material-page">
+        {!trainingId && (
+          <>
+            <section className="manage-material-card">
+              <div className="manage-material-header">
+                <img src={listIcon} alt="" className="manage-material-header-icon" />
+                <h1 className="manage-material-title">Daftar Pelatihan</h1>
+              </div>
+
+              {trainingLoading && <p className="manage-material-state">Memuat pelatihan...</p>}
+              {trainingError && (
+                <p className="manage-material-state manage-material-error" role="alert">
+                  {trainingError}
+                </p>
+              )}
+              {!trainingLoading && !trainingError && (
+                <div className="material-table-wrap">
+                  <table className="material-table">
+                    <thead>
+                      <tr>
+                        <th>No</th>
+                        <th>Daftar Pelatihan</th>
+                        <th>Daftar Materi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {trainings.length === 0 ? (
+                        <tr>
+                          <td colSpan="3" className="material-table-empty">
+                            Belum ada pelatihan.
+                          </td>
+                        </tr>
+                      ) : (
+                        trainings.map((training, index) => (
+                          <tr key={training.id}>
+                            <td data-label="No">{index + 1}</td>
+                            <td data-label="Daftar Pelatihan">{training.title}</td>
+                            <td data-label="Daftar Materi">
+                              <button
+                                type="button"
+                                className="material-action material-action-open"
+                                onClick={() => navigate(`/${rolePath}/manage-materi/${training.id}`)}
+                              >
+                                Lihat Materi
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+            <section className="manage-material-card">
+              <div className="manage-material-header">
+                <img src={listIcon} alt="" className="manage-material-header-icon" />
+                <h2 className="manage-material-title">Tambah Pelatihan</h2>
+              </div>
+
+              <form className="manage-training-form" onSubmit={handleCreateTraining}>
+                <div className="manage-training-field">
+                  <label htmlFor="new-training-title">Nama Pelatihan</label>
+                  <input
+                    id="new-training-title"
+                    value={newTrainingTitle}
+                    onChange={(event) => {
+                      setNewTrainingTitle(event.target.value);
+                      setTrainingFormError("");
+                    }}
+                    disabled={addingTraining}
+                  />
+                  {trainingFormError && (
+                    <span className="manage-training-error" role="alert">
+                      {trainingFormError}
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  className="manage-training-submit"
+                  disabled={addingTraining}
+                >
+                  {addingTraining ? "Menambahkan..." : "+ Tambah Pelatihan"}
+                </button>
+              </form>
+            </section>
+
+            <section className="manage-material-card">
+              <div className="manage-material-header">
+                <img src={addIcon} alt="" className="manage-material-header-icon" />
+                <h2 className="manage-material-title">Tambah Materi</h2>
+              </div>
+
+              <MaterialForm
+                mode="add"
+                onSubmit={setPendingAdd}
+                onOpenUpload={() => setUploadTarget("add")}
+                selectedFileName={addFileName}
+                selectedFiles={addFiles}
+                onSelectedFilesChange={handleAddFilesChange}
+                resetSignal={addResetSignal}
+                loading={loading}
+                trainings={trainings}
+              />
+            </section>
+          </>
+        )}
+
+        {trainingId && (
+          <>
         <section className="manage-material-card">
           <div className="manage-material-header">
             <img src={listIcon} alt="" className="manage-material-header-icon" />
-            <h1 className="manage-material-title">Daftar Materi</h1>
+            <div>
+              <h1 className="manage-material-title">Daftar Materi</h1>
+              <p className="manage-material-training-name">
+                Pelatihan: {selectedTraining?.title ?? "Memuat pelatihan..."}
+              </p>
+            </div>
           </div>
 
           <MaterialTable
             materials={materials}
+            emptyMessage="Belum ada materi pada pelatihan ini."
             onOpen={openMaterialFile}
             onEdit={openEdit}
             onDelete={setDeletingMaterialId}
           />
+          <button
+            type="button"
+            className="manage-material-back"
+            onClick={() => navigate(`/${rolePath}/manage-materi`)}
+          >
+            &larr; Back
+          </button>
         </section>
 
-        <section className="manage-material-card">
-          <div className="manage-material-header">
-            <img src={addIcon} alt="" className="manage-material-header-icon" />
-            <h2 className="manage-material-title">Tambah Materi</h2>
-          </div>
-
-          <MaterialForm
-            mode="add"
-            onSubmit={setPendingAdd}
-            onOpenUpload={() => setUploadTarget("add")}
-            selectedFileName={addFileName}
-            selectedFiles={addFiles}
-            onSelectedFilesChange={handleAddFilesChange}
-            resetSignal={addResetSignal}
-            loading={loading}
-          />
-        </section>
+          </>
+        )}
       </div>
 
       <UploadMaterialDialog
@@ -192,6 +367,8 @@ function ManageMaterialPage({ role }) {
         selectedFileName={editFileName}
         selectedFile={editFile}
         loading={loading}
+        trainings={trainings}
+        lockTraining={Boolean(trainingId)}
       />
 
       <MaterialConfirmDialog

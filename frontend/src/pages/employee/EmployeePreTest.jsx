@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import ExamConfirmDialog from "../../components/exam/ExamConfirmDialog";
 import ExamResultCard from "../../components/exam/ExamResultCard";
+import TrainingSelectionCard from "../../components/employee/TrainingSelectionCard";
 import { useSessionAnswers } from "../../hooks/useSessionAnswers";
 import * as examService from "../../services/examService";
+import * as trainingService from "../../services/trainingService";
 import "./EmployeePreTest.css";
 
 const unwrapResponse = (response) => response?.data?.data ?? response?.data ?? response;
@@ -21,33 +24,71 @@ const loadErrorMessage = (error) => {
 };
 
 function EmployeePreTest() {
+  const navigate = useNavigate();
+  const { trainingId } = useParams();
+  const [trainings, setTrainings] = useState([]);
+  const [trainingLoading, setTrainingLoading] = useState(true);
+  const [trainingError, setTrainingError] = useState("");
   const [exam, setExam] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const { answers, setAnswers, clearAnswers } = useSessionAnswers("rsabl-pretest-answers");
+  const { answers, setAnswers, clearAnswers } = useSessionAnswers(`rsabl-pretest-answers-${trainingId || "list"}`);
   const [started, setStarted] = useState(false);
   const [showStartDialog, setShowStartDialog] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(trainingId));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
-    examService.getPreTest()
-      .then((response) => {
-        if (!active) return;
-        const data = unwrapResponse(response);
-        if (data?.result) setResult(data.result);
-        else {
-          setExam(data);
-          setShowStartDialog(true);
-        }
+
+    trainingService
+      .getTrainings()
+      .then((data) => {
+        if (active) setTrainings(data);
       })
-      .catch((error) => active && setError(loadErrorMessage(error)))
-      .finally(() => active && setLoading(false));
+      .catch(() => {
+        if (active) setTrainingError("Daftar pelatihan gagal dimuat.");
+      })
+      .finally(() => {
+        if (active) setTrainingLoading(false);
+      });
+
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (!trainingId) {
+      return undefined;
+    }
+
+    let active = true;
+    Promise.resolve().then(() => {
+      if (!active) return;
+      setLoading(true);
+      setError("");
+      setExam(null);
+      setResult(null);
+      setCurrentIndex(0);
+      setStarted(false);
+      setShowStartDialog(false);
+      setShowSubmitDialog(false);
+      examService.getPreTest(trainingId)
+        .then((response) => {
+          if (!active) return;
+          const data = unwrapResponse(response);
+          if (data?.result) setResult(data.result);
+          else {
+            setExam(data);
+            setShowStartDialog(true);
+          }
+        })
+        .catch((error) => active && setError(loadErrorMessage(error)))
+        .finally(() => active && setLoading(false));
+    });
+    return () => { active = false; };
+  }, [trainingId]);
 
   const questions = exam?.questions ?? [];
   const currentQuestion = questions[currentIndex];
@@ -63,6 +104,7 @@ function EmployeePreTest() {
     try {
       const response = await examService.submitPreTest({
         test_id: exam.test.id,
+        training_id: trainingId,
         answers: questions.map((question) => ({
           question_id: question.id,
           answer: answers[question.id],
@@ -85,11 +127,22 @@ function EmployeePreTest() {
         {loading && <p className="pretest-status">Memuat Pre-Test...</p>}
         {error && <p className="pretest-error" role="alert">{error}</p>}
 
-        {!loading && result && (
+        {!trainingId && (
+          <TrainingSelectionCard
+            title="Pre-Test"
+            trainings={trainings}
+            loading={trainingLoading}
+            error={trainingError}
+            actionLabel="Kerjakan Pre-Test"
+            onSelectTraining={(training) => navigate(`/employee/pretest/${training.id}`)}
+          />
+        )}
+
+        {trainingId && !loading && result && (
           <ExamResultCard result={result} />
         )}
 
-        {!loading && !result && currentQuestion && (
+        {trainingId && !loading && !result && currentQuestion && (
           <div className={`pretest-exam${started ? "" : " is-blocked"}`}>
             <article className="pretest-question-card">
               <p className="pretest-question-number">Q{currentIndex + 1}</p>
@@ -126,8 +179,18 @@ function EmployeePreTest() {
           </div>
         )}
 
-        {!loading && !result && !currentQuestion && !error && (
-          <p className="pretest-status">Belum ada soal Pre-Test.</p>
+        {trainingId && !loading && !result && !currentQuestion && !error && (
+          <p className="pretest-status">Pre-Test belum tersedia untuk pelatihan ini.</p>
+        )}
+
+        {trainingId && (
+          <button
+            type="button"
+            className="employee-training-back"
+            onClick={() => navigate("/employee/pretest")}
+          >
+            &larr; Back
+          </button>
         )}
       </section>
 

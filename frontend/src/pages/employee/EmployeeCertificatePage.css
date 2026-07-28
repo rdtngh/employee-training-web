@@ -10,17 +10,20 @@
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 24px;
+  min-width: 0;
 }
 
 .employee-certificate-header h1 {
   margin: 0;
   color: #1f2937;
   font-size: clamp(1.5rem, 3vw, 2rem);
+  overflow-wrap: anywhere;
 }
 
 .employee-certificate-header p {
   margin: 8px 0 0;
   color: #6b7280;
+  overflow-wrap: anywhere;
 }
 
 .employee-certificate-actions {
@@ -47,10 +50,24 @@
   opacity: 0.65;
 }
 
+.employee-certificate-back {
+  width: fit-content;
+  margin-top: 20px;
+  padding: 6px 0;
+  background: transparent;
+  color: #327537;
+  font-weight: 700;
+}
+
+.employee-certificate-back:hover {
+  text-decoration: underline;
+}
+
 .employee-certificate-stage {
   display: flex;
   justify-content: center;
   width: 100%;
+  min-width: 0;
   padding: 18px;
   overflow-x: auto;
   border: 1px solid #e5e7eb;
@@ -81,8 +98,54 @@
     flex-direction: column;
   }
 
-  .employee-certificate-stage {
+  .employee-certificate-actions {
     justify-content: flex-start;
+  }
+
+  .employee-certificate-stage {
     padding: 12px;
+  }
+}
+
+@media print {
+  @page {
+    margin: 0;
+    size: A4 landscape;
+  }
+
+  body {
+    background: #ffffff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .employee-certificate-stage,
+  .employee-certificate-stage * {
+    visibility: visible !important;
+  }
+
+  .employee-certificate-stage {
+    position: fixed;
+    inset: 0;
+    display: block;
+    width: 841px;
+    height: 595px;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .employee-certificate-stage .certificate-preview-frame {
+    width: 841px !important;
+    height: 595px !important;
+    overflow: visible;
+  }
+
+  .employee-certificate-stage .certificate-template {
+    transform: none !important;
   }
 }

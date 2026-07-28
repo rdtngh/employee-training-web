@@ -20,10 +20,12 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  min-width: 0;
 }
 
 .material-form-input {
   width: 100%;
+  min-width: 0;
   border: none;
   border-bottom: 1px solid #111827;
   background: transparent;
@@ -32,6 +34,15 @@
   font-family: "Instrument Sans", sans-serif;
   font-size: 1rem;
   outline: none;
+}
+
+.material-form select.material-form-input {
+  cursor: pointer;
+}
+
+.material-form select.material-form-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.75;
 }
 
 .material-form-input:focus {
@@ -159,7 +170,13 @@
 
 @media (max-width: 480px) {
   .material-upload-row {
+    align-items: stretch;
+    flex-wrap: wrap;
     gap: 10px;
+  }
+
+  .material-clear-file-btn {
+    flex: 1 1 140px;
   }
 
   .material-bulk-item {

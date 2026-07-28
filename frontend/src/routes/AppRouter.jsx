@@ -57,9 +57,15 @@ function AppRouter() {
           path="/employee/materi"
           element={protectedPage(<EmployeeMaterials />, ["employee"])}
         />
+        <Route
+          path="/employee/materi/:trainingId"
+          element={protectedPage(<EmployeeMaterials />, ["employee"])}
+        />
 
         <Route path="/employee/pretest" element={protectedPage(<EmployeePreTest />, ["employee"])} />
+        <Route path="/employee/pretest/:trainingId" element={protectedPage(<EmployeePreTest />, ["employee"])} />
         <Route path="/employee/posttest" element={protectedPage(<EmployeePostTest />, ["employee"])} />
+        <Route path="/employee/posttest/:trainingId" element={protectedPage(<EmployeePostTest />, ["employee"])} />
         <Route path="/employee/certificate" element={protectedPage(<EmployeeCertificatePage />, ["employee"])} />
         <Route path="/employee/certificate/:trainingId" element={protectedPage(<EmployeeCertificatePage />, ["employee"])} />
 
@@ -78,6 +84,10 @@ function AppRouter() {
 
         <Route
           path="/admin/manage-materi"
+          element={protectedPage(<ManageMaterialAdmin />, ["admin"])}
+        />
+        <Route
+          path="/admin/manage-materi/:trainingId"
           element={protectedPage(<ManageMaterialAdmin />, ["admin"])}
         />
 
@@ -105,6 +115,10 @@ function AppRouter() {
 
         <Route
           path="/superadmin/manage-materi"
+          element={protectedPage(<ManageMaterialSuperAdmin />, ["superadmin"])}
+        />
+        <Route
+          path="/superadmin/manage-materi/:trainingId"
           element={protectedPage(<ManageMaterialSuperAdmin />, ["superadmin"])}
         />
 

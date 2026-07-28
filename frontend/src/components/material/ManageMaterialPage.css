@@ -19,6 +19,7 @@
   display: flex;
   align-items: center;
   gap: 18px;
+  min-width: 0;
 }
 
 .manage-material-header-icon {
@@ -34,6 +35,96 @@
   font-family: "Instrument Sans", sans-serif;
   font-size: 1.1rem;
   font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.manage-material-training-name,
+.manage-material-state {
+  margin: 6px 0 0;
+  color: #4b5563;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+.manage-material-error {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.manage-material-back {
+  width: fit-content;
+  padding: 6px 0;
+  background: transparent;
+  color: #327537;
+  font-family: "Instrument Sans", sans-serif;
+  font-weight: 600;
+}
+
+.manage-material-back:hover {
+  text-decoration: underline;
+}
+
+.manage-training-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.manage-training-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.manage-training-field label {
+  margin-bottom: 8px;
+  color: #111827;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 1rem;
+}
+
+.manage-training-field input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #111827;
+  background: transparent;
+  padding: 10px 0;
+  color: #111827;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 1rem;
+  outline: none;
+}
+
+.manage-training-field input:focus {
+  border-bottom-color: #327537;
+}
+
+.manage-training-field input:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.manage-training-error {
+  margin-top: 4px;
+  color: #ef4444;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 0.82rem;
+}
+
+.manage-training-submit {
+  min-height: 56px;
+  border: 1px solid #111827;
+  border-radius: 3px;
+  background: #327537;
+  color: #ffffff;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+
+.manage-training-submit:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 .manage-material-toast {
@@ -69,5 +160,16 @@
     left: 16px;
     right: 16px;
     bottom: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .manage-material-page {
+    gap: 20px;
+  }
+
+  .manage-material-card {
+    gap: 22px;
+    padding: 20px 14px 24px;
   }
 }

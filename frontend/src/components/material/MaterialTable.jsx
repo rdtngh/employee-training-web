@@ -1,6 +1,6 @@
 import "./MaterialTable.css";
 
-function MaterialTable({ materials, onOpen, onEdit, onDelete }) {
+function MaterialTable({ materials, onOpen, onEdit, onDelete, emptyMessage = "Belum ada materi." }) {
   return (
     <div className="material-table-wrap">
       <table className="material-table">
@@ -14,7 +14,7 @@ function MaterialTable({ materials, onOpen, onEdit, onDelete }) {
           {materials.length === 0 ? (
             <tr>
               <td colSpan="2" className="material-table-empty">
-                Belum ada materi.
+                {emptyMessage}
               </td>
             </tr>
           ) : (

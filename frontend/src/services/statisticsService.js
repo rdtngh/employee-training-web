@@ -1,9 +1,22 @@
 import api from "./api";
+import { getMockStatistics } from "./mockTrainingData";
 
 const unwrap = (response) => response.data?.data ?? response.data;
 
-export const getStatistics = async (role) => {
-  const response = await api.get("/statistics");
+export const getStatistics = async (options = {}) => {
+  const role = typeof options === "string" ? options : options.role;
+  const trainingId = typeof options === "object" ? options.trainingId : undefined;
+
+  if (import.meta.env.VITE_USE_DUMMY_DATA === "true" && trainingId) {
+    return {
+      ...getMockStatistics(trainingId),
+      role,
+    };
+  }
+
+  const response = await api.get("/statistics", {
+    params: trainingId ? { training_id: trainingId } : undefined,
+  });
 
   return {
     ...unwrap(response),

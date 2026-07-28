@@ -8,7 +8,7 @@ const getApiErrorMessage = (error, fallback) => {
   return validationErrors[0] || data?.message || fallback;
 };
 
-export const useMaterials = () => {
+export const useMaterials = (trainingId) => {
   const mountedRef = useRef(false);
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -21,32 +21,37 @@ export const useMaterials = () => {
   }, []);
 
   const loadMaterials = useCallback(async () => {
-    if (!mountedRef.current) return;
+    if (!mountedRef.current || !trainingId) return;
     setLoading(true);
     try {
-      const data = await materialService.getAllMaterials();
+      const data = await materialService.getAllMaterials(trainingId);
       if (mountedRef.current) setMaterials(data);
-    } catch (error) {
-      console.error("Error loading materials:", error);
+    } catch {
+      if (mountedRef.current) setMaterials([]);
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, []);
+  }, [trainingId]);
 
   const addMaterial = useCallback(
     async (formData) => {
       setLoading(true);
       try {
         if (formData.items?.length > 1) {
-          await materialService.createMaterialsBulk(formData);
+          await materialService.createMaterialsBulk({
+            ...formData,
+            training_id: formData.training_id ?? trainingId,
+          });
         } else {
-          await materialService.createMaterial(formData);
+          await materialService.createMaterial({
+            ...formData,
+            training_id: formData.training_id ?? trainingId,
+          });
         }
         if (!mountedRef.current) return { success: false };
         await loadMaterials();
         return { success: true };
       } catch (error) {
-        console.error("Error adding material:", error);
         return {
           success: false,
           message: getApiErrorMessage(error, "Materi gagal ditambahkan."),
@@ -55,19 +60,21 @@ export const useMaterials = () => {
         if (mountedRef.current) setLoading(false);
       }
     },
-    [loadMaterials]
+    [loadMaterials, trainingId]
   );
 
   const updateMaterial = useCallback(
     async (id, formData) => {
       setLoading(true);
       try {
-        await materialService.updateMaterial(id, formData);
+        await materialService.updateMaterial(id, {
+          ...formData,
+          training_id: formData.training_id ?? trainingId,
+        });
         if (!mountedRef.current) return { success: false };
         await loadMaterials();
         return { success: true };
       } catch (error) {
-        console.error("Error updating material:", error);
         return {
           success: false,
           message: getApiErrorMessage(error, "Materi gagal diperbarui."),
@@ -76,7 +83,7 @@ export const useMaterials = () => {
         if (mountedRef.current) setLoading(false);
       }
     },
-    [loadMaterials]
+    [loadMaterials, trainingId]
   );
 
   const deleteMaterial = useCallback(
@@ -88,7 +95,6 @@ export const useMaterials = () => {
         await loadMaterials();
         return { success: true };
       } catch (error) {
-        console.error("Error deleting material:", error);
         return {
           success: false,
           message: getApiErrorMessage(error, "Materi gagal dihapus."),

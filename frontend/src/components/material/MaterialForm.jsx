@@ -5,6 +5,7 @@ import "./MaterialForm.css";
 
 const createEditForm = (material) => ({
   id: material?.id,
+  training_id: material?.training_id ?? material?.training?.id ?? "",
   title: material?.title ?? "",
   fileName: material?.fileName ?? "",
   fileType: material?.fileType ?? "",
@@ -21,8 +22,14 @@ function MaterialFormContent({
   selectedFiles = [],
   onSelectedFilesChange,
   loading = false,
+  trainings = [],
+  selectedTrainingId = "",
+  lockTraining = false,
 }) {
   const [editForm, setEditForm] = useState(() => createEditForm(material));
+  const [trainingId, setTrainingId] = useState(
+    String(selectedTrainingId || material?.training_id || material?.training?.id || "")
+  );
   const [errors, setErrors] = useState({});
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const isAddMode = mode === "add";
@@ -34,6 +41,7 @@ function MaterialFormContent({
   function validate() {
     const nextErrors = {};
 
+    if (!trainingId) nextErrors.training_id = "Pelatihan wajib dipilih";
     if (!fileName) nextErrors.fileName = "Upload File Materi wajib diisi";
 
     if (isAddMode) {
@@ -83,18 +91,19 @@ function MaterialFormContent({
     if (!validate()) return;
 
     if (isAddMode && items.length > 1) {
-      onSubmit({ items });
+      onSubmit({ training_id: trainingId, items });
       return;
     }
 
     if (isAddMode) {
       const [item] = items;
-      onSubmit({ ...item, items: [] });
+      onSubmit({ ...item, training_id: trainingId, items: [] });
       return;
     }
 
     onSubmit({
       ...editForm,
+      training_id: trainingId,
       file: selectedFile?.file ?? editForm.file,
       fileName,
       fileType: selectedFile?.fileType ?? editForm.fileType,
@@ -104,6 +113,32 @@ function MaterialFormContent({
 
   return (
     <form className="material-form" onSubmit={handleSubmit}>
+      <div className="material-form-group">
+        <label htmlFor={`${mode}-material-training`} className="material-form-label">
+          Pelatihan
+        </label>
+        <select
+          id={`${mode}-material-training`}
+          value={trainingId}
+          onChange={(event) => {
+            setTrainingId(event.target.value);
+            setErrors((prev) => ({ ...prev, training_id: undefined }));
+          }}
+          className={`material-form-input ${errors.training_id ? "error" : ""}`}
+          disabled={loading || lockTraining}
+        >
+          <option value="">Pilih Pelatihan</option>
+          {trainings.map((training) => (
+            <option key={training.id} value={training.id}>
+              {training.title}
+            </option>
+          ))}
+        </select>
+        {errors.training_id && (
+          <span className="material-form-error">{errors.training_id}</span>
+        )}
+      </div>
+
       <div className="material-form-group">
         <label htmlFor={`${mode}-material-file`} className="material-form-label">
           Upload File Materi

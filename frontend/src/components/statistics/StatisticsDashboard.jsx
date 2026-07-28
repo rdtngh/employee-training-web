@@ -4,7 +4,7 @@ import * as statisticsService from "../../services/statisticsService";
 import statisticIcon from "../../assets/icons/icon-statistik.svg";
 import "./StatisticsDashboard.css";
 
-const yAxisTicks = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10];
+const yAxisTicks = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0];
 const defaultRanges = ["1-20", "21-30", "31-40", "41-50", "51-60", "61-70", "71-80", "81-90", "91-100"];
 
 function getDistribution(statistics, type) {
@@ -29,14 +29,25 @@ function ScoreChart({ distribution }) {
 
       <div className="statistics-chart" role="img" aria-label={`Grafik distribusi nilai ${distribution.label}`}>
         <div className="statistics-y-axis" aria-hidden="true">
-          {yAxisTicks.map((tick) => (
-            <span key={tick}>{tick}%</span>
-          ))}
+          {yAxisTicks.map((tick) => {
+            const tickOffset = 100 - tick;
+
+            return (
+              <span
+                key={tick}
+                style={{
+                  "--tick-top": `calc(${tickOffset}% - ${(tickOffset / 100) * 31}px)`,
+                }}
+              >
+                {tick}%
+              </span>
+            );
+          })}
         </div>
         <div className="statistics-plot">
           <div className="statistics-gridlines" aria-hidden="true">
             {yAxisTicks.map((tick) => (
-              <span key={tick} />
+              <span key={tick} style={{ "--tick": tick }} />
             ))}
           </div>
           <div className="statistics-bars">
@@ -63,7 +74,17 @@ function ScoreChart({ distribution }) {
   );
 }
 
-function StatisticsDashboard({ statistics, loading, error, onReset, canReset = false }) {
+function StatisticsDashboard({
+  statistics,
+  loading,
+  error,
+  onReset,
+  canReset = false,
+  trainings = [],
+  selectedTrainingId = "",
+  onTrainingChange,
+  trainingLoading = false,
+}) {
   const navigate = useNavigate();
   const [resetting, setResetting] = useState(false);
   const [message, setMessage] = useState("");
@@ -109,11 +130,32 @@ function StatisticsDashboard({ statistics, loading, error, onReset, canReset = f
         )}
       </div>
 
+      <div className="statistics-filter">
+        <label htmlFor="statistics-training">Pelatihan</label>
+        <select
+          id="statistics-training"
+          value={selectedTrainingId}
+          onChange={(event) => onTrainingChange?.(event.target.value)}
+          disabled={trainingLoading || trainings.length === 0}
+        >
+          <option value="">Pilih Pelatihan</option>
+          {trainings.map((training) => (
+            <option key={training.id} value={training.id}>
+              {training.title}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {loading && <p className="statistics-state">Memuat statistik...</p>}
       {error && <p className="statistics-state statistics-error" role="alert">Data statistik gagal dimuat.</p>}
       {message && <p className="statistics-message" role="status">{message}</p>}
 
-      {!loading && !error && (
+      {!selectedTrainingId && !loading && !error && (
+        <p className="statistics-state">Pilih pelatihan untuk melihat statistik.</p>
+      )}
+
+      {selectedTrainingId && !loading && !error && (
         <section className="statistics-chart-grid" aria-label="Grafik statistik pelatihan">
           <ScoreChart distribution={preTestDistribution} />
           <ScoreChart distribution={postTestDistribution} />

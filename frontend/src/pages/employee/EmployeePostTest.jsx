@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import ExamConfirmDialog from "../../components/exam/ExamConfirmDialog";
 import ExamResultCard from "../../components/exam/ExamResultCard";
+import TrainingSelectionCard from "../../components/employee/TrainingSelectionCard";
 import { useSessionAnswers } from "../../hooks/useSessionAnswers";
 import * as examService from "../../services/examService";
-import * as certificateService from "../../services/certificateService";
-import { downloadFile } from "../../utils/downloadFile";
+import * as trainingService from "../../services/trainingService";
 import "./EmployeePreTest.css";
 import "./EmployeePostTest.css";
 
@@ -26,34 +26,71 @@ const loadErrorMessage = (error) => {
 
 function EmployeePostTest() {
   const navigate = useNavigate();
+  const { trainingId } = useParams();
+  const [trainings, setTrainings] = useState([]);
+  const [trainingLoading, setTrainingLoading] = useState(true);
+  const [trainingError, setTrainingError] = useState("");
   const [data, setData] = useState(null);
   const [result, setResult] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const { answers, setAnswers, clearAnswers } = useSessionAnswers("rsabl-posttest-answers");
+  const { answers, setAnswers, clearAnswers } = useSessionAnswers(`rsabl-posttest-answers-${trainingId || "list"}`);
   const [started, setStarted] = useState(false);
   const [showStart, setShowStart] = useState(false);
   const [showSubmit, setShowSubmit] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(trainingId));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
-    examService.getPostTest()
-      .then((rawResponse) => {
-        if (!active) return;
-        const response = unwrap(rawResponse);
-        setData(response);
-        if (["PASSED", "FAILED"].includes(response.post_test?.status)) {
-          setResult(response.post_test);
-        } else if (response.materials_completed) {
-          setShowStart(true);
-        }
+
+    trainingService
+      .getTrainings()
+      .then((data) => {
+        if (active) setTrainings(data);
       })
-      .catch((error) => active && setError(loadErrorMessage(error)))
-      .finally(() => active && setLoading(false));
+      .catch(() => {
+        if (active) setTrainingError("Daftar pelatihan gagal dimuat.");
+      })
+      .finally(() => {
+        if (active) setTrainingLoading(false);
+      });
+
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (!trainingId) {
+      return undefined;
+    }
+
+    let active = true;
+    Promise.resolve().then(() => {
+      if (!active) return;
+      setLoading(true);
+      setError("");
+      setData(null);
+      setResult(null);
+      setCurrentIndex(0);
+      setStarted(false);
+      setShowStart(false);
+      setShowSubmit(false);
+      examService.getPostTest(trainingId)
+        .then((rawResponse) => {
+          if (!active) return;
+          const response = unwrap(rawResponse);
+          setData(response);
+          if (["PASSED", "FAILED"].includes(response.post_test?.status)) {
+            setResult(response.post_test);
+          } else if (response.materials_completed) {
+            setShowStart(true);
+          }
+        })
+        .catch((error) => active && setError(loadErrorMessage(error)))
+        .finally(() => active && setLoading(false));
+    });
+    return () => { active = false; };
+  }, [trainingId]);
 
   const questions = data?.questions ?? [];
   const question = questions[currentIndex];
@@ -96,18 +133,6 @@ function EmployeePostTest() {
     }
   };
 
-  const downloadCertificate = async () => {
-    setBusy(true);
-    try {
-      const file = await certificateService.downloadCertificate(data.training.id);
-      downloadFile(file);
-    } catch {
-      setError("Sertifikat gagal diunduh. Silakan coba lagi.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const previewCertificate = () => {
     navigate(`/employee/certificate/${data.training.id}`);
   };
@@ -118,12 +143,22 @@ function EmployeePostTest() {
         {loading && <p>Memuat Post-Test...</p>}
         {error && <p className="pretest-error" role="alert">{error}</p>}
 
-        {!loading && result && (
+        {!trainingId && (
+          <TrainingSelectionCard
+            title="Post-Test"
+            trainings={trainings}
+            loading={trainingLoading}
+            error={trainingError}
+            actionLabel="Kerjakan Post-Test"
+            onSelectTraining={(training) => navigate(`/employee/posttest/${training.id}`)}
+          />
+        )}
+
+        {trainingId && !loading && result && (
           <ExamResultCard result={result} className="posttest-result">
             {resultPassed && result.certificate_available && (
               <div className="posttest-certificate-actions">
                 <button type="button" className="posttest-certificate" onClick={previewCertificate} disabled={busy}>Lihat Sertifikat</button>
-                <button type="button" className="posttest-certificate" onClick={downloadCertificate} disabled={busy}>Download Sertifikat</button>
               </div>
             )}
             {!resultPassed && result.can_retry && (
@@ -132,7 +167,7 @@ function EmployeePostTest() {
           </ExamResultCard>
         )}
 
-        {!loading && !result && question && (
+        {trainingId && !loading && !result && question && (
           <div className={`pretest-exam${started ? "" : " is-blocked"}`}>
             <article className="pretest-question-card">
               <p className="pretest-question-number">Q{currentIndex + 1} / {questions.length}</p>
@@ -154,9 +189,23 @@ function EmployeePostTest() {
             </div>
           </div>
         )}
+
+        {trainingId && !loading && !result && !question && data?.materials_completed && !error && (
+          <p className="pretest-status">Post-Test belum tersedia untuk pelatihan ini.</p>
+        )}
+
+        {trainingId && (
+          <button
+            type="button"
+            className="employee-training-back"
+            onClick={() => navigate("/employee/posttest")}
+          >
+            &larr; Back
+          </button>
+        )}
       </section>
 
-      {!loading && data && !data.materials_completed && (
+      {trainingId && !loading && data && !data.materials_completed && (
         <div className="posttest-locked-overlay">
           <section className="posttest-locked-dialog" role="alertdialog" aria-modal="true">
             <h2>Anda belum Mengakses Materi.</h2>

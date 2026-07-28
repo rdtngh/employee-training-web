@@ -1,13 +1,17 @@
 .employee-material-page {
   min-height: 100%;
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
+  gap: 20px;
 }
 
 .employee-material-card {
   width: min(100%, 922px);
   min-height: 546px;
+  display: flex;
+  flex-direction: column;
   padding: 30px 44px 38px;
   background: #ffffff;
   border: 3px solid #216629;
@@ -20,6 +24,7 @@
   align-items: center;
   gap: 18px;
   min-height: 42px;
+  min-width: 0;
 }
 
 .employee-material-card-icon {
@@ -34,6 +39,7 @@
   font-size: 20px;
   font-weight: 400;
   line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .employee-material-list {
@@ -51,6 +57,53 @@
   color: #111111;
   text-decoration: none;
   cursor: pointer;
+  min-width: 0;
+}
+
+button.employee-material-row {
+  width: 100%;
+  background: transparent;
+  text-align: left;
+}
+
+.employee-training-row {
+  cursor: pointer;
+}
+
+.employee-training-action {
+  color: #216629;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1rem;
+  text-decoration: underline;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.employee-training-state {
+  margin: 24px 0 0;
+  color: #4b5563;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1rem;
+}
+
+.employee-training-error {
+  color: #bf1515;
+}
+
+.employee-training-back {
+  width: fit-content;
+  align-self: flex-start;
+  margin-top: 20px;
+  padding: 6px 0;
+  background: transparent;
+  color: #111827;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 600;
+}
+
+.employee-training-back:hover {
+  color: #216629;
+  text-decoration: underline;
 }
 
 .employee-material-row:hover .employee-material-title,
@@ -69,10 +122,12 @@
 }
 
 .employee-material-title {
+  min-width: 0;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 20px;
   font-weight: 400;
   line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .employee-material-status-icon,
@@ -146,6 +201,10 @@
 }
 
 @media (max-width: 760px) {
+  .employee-material-page {
+    justify-content: flex-start;
+  }
+
   .employee-material-card {
     min-height: auto;
     padding: 24px 22px 30px;
@@ -166,6 +225,33 @@
 
   .pretest-required-dialog { left: 50%; }
 
+}
+
+@media (max-width: 480px) {
+  .employee-material-card {
+    padding: 22px 16px 26px;
+  }
+
+  .employee-material-card-header {
+    gap: 12px;
+  }
+
+  .employee-material-card-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .employee-material-row {
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 4px;
+  }
+
+  .employee-training-action {
+    text-align: left;
+  }
 }
 
 @media (min-width: 761px) and (max-width: 1100px) {

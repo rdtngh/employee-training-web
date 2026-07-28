@@ -1,5 +1,6 @@
 import api from "./api";
 import { getMaterialProgress } from "./materialService";
+import { getMockTest, submitMockTest } from "./mockTrainingData";
 
 const DEFAULT_PRE_TEST_ID = import.meta.env.VITE_PRE_TEST_ID || "1";
 const DEFAULT_POST_TEST_ID = import.meta.env.VITE_POST_TEST_ID || "2";
@@ -71,9 +72,14 @@ export const addItem = createExam;
 export const updateItem = updateExam;
 export const deleteItem = deleteExam;
 
-const getTrainingTest = async (type, fallbackTestId) => {
+const getTrainingTest = async (type, fallbackTestId, trainingId = DEFAULT_TRAINING_ID) => {
+  if (import.meta.env.VITE_USE_DUMMY_DATA === "true") {
+    const mockTest = getMockTest(type, trainingId);
+    if (mockTest) return mockTest;
+  }
+
   try {
-    const response = await api.get(`/trainings/${DEFAULT_TRAINING_ID}/tests/${type}`);
+    const response = await api.get(`/trainings/${trainingId}/tests/${type}`);
     return unwrap(response);
   } catch (error) {
     if (error.response?.status === 404) {
@@ -85,14 +91,21 @@ const getTrainingTest = async (type, fallbackTestId) => {
   }
 };
 
-const getTrainingTestWithQuestions = async (type, fallbackTestId) => {
-  const test = mapTest(await getTrainingTest(type, fallbackTestId));
+const getTrainingTestWithQuestions = async (type, fallbackTestId, trainingId = DEFAULT_TRAINING_ID) => {
+  const test = mapTest(await getTrainingTest(type, fallbackTestId, trainingId));
 
   if (test.result) {
     return {
       test,
       result: test.result,
       questions: [],
+    };
+  }
+
+  if (import.meta.env.VITE_USE_DUMMY_DATA === "true") {
+    return {
+      test,
+      questions: mapQuestions(test.questions).map(hideCorrectAnswer),
     };
   }
 
@@ -105,6 +118,10 @@ const getTrainingTestWithQuestions = async (type, fallbackTestId) => {
 };
 
 const submitTest = async (testId, payload) => {
+  if (import.meta.env.VITE_USE_DUMMY_DATA === "true") {
+    return submitMockTest(testId, payload?.answers);
+  }
+
   const response = await api.post(`/tests/${testId}/submit`, {
     answers: (payload?.answers ?? []).map((answer) => ({
       question_id: answer.question_id,
@@ -138,16 +155,16 @@ const mapPostTestResult = (result = {}) => ({
   certificate_available: Boolean(result.certificate_available ?? result.passed),
 });
 
-export const getPreTest = async () =>
-  getTrainingTestWithQuestions("pretest", DEFAULT_PRE_TEST_ID);
+export const getPreTest = async (trainingId = DEFAULT_TRAINING_ID) =>
+  getTrainingTestWithQuestions("pretest", DEFAULT_PRE_TEST_ID, trainingId);
 
 export const submitPreTest = async (payload) =>
   submitTest(payload?.test_id ?? DEFAULT_PRE_TEST_ID, payload);
 
-export const getPostTest = async () => {
-  const materialProgress = await getMaterialProgress(DEFAULT_TRAINING_ID);
+export const getPostTest = async (trainingId = DEFAULT_TRAINING_ID) => {
+  const materialProgress = await getMaterialProgress(trainingId);
   const progressTraining = materialProgress.training ?? {
-    id: DEFAULT_TRAINING_ID,
+    id: trainingId,
     title: "Post-Test",
     post_test_unlocked: false,
   };
@@ -174,7 +191,7 @@ export const getPostTest = async () => {
     };
   }
 
-  const data = await getTrainingTestWithQuestions("posttest", DEFAULT_POST_TEST_ID);
+  const data = await getTrainingTestWithQuestions("posttest", DEFAULT_POST_TEST_ID, trainingId);
   const training = progressTraining ?? data.test.training ?? {
     id: data.test.training_id,
     title: data.test.training?.title ?? "Post-Test",
@@ -224,4 +241,4 @@ export const submitPostTest = async (payload) => {
   return mapPostTestResult(result);
 };
 
-export const retryPostTest = async () => getPostTest();
+export const retryPostTest = async (trainingId = DEFAULT_TRAINING_ID) => getPostTest(trainingId);

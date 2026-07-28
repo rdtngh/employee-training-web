@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import Certificate from "../../components/certificate/Certificate";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import * as certificateService from "../../services/certificateService";
-import { downloadFile } from "../../utils/downloadFile";
 import "./EmployeeCertificatePage.css";
 
 const defaultCertificateData = {
@@ -16,7 +15,6 @@ function EmployeeCertificatePage() {
   const { trainingId } = useParams();
   const [certificateData, setCertificateData] = useState(defaultCertificateData);
   const [loading, setLoading] = useState(true);
-  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -46,22 +44,8 @@ function EmployeeCertificatePage() {
     };
   }, [trainingId]);
 
-  const downloadCertificate = async () => {
-    setDownloading(true);
-    setError("");
-
-    try {
-      const file = await certificateService.downloadCertificate(trainingId);
-      downloadFile(file);
-    } catch (error) {
-      setError(
-        error.response?.data?.message ||
-          error.message ||
-          "Sertifikat gagal diunduh. Silakan coba lagi."
-      );
-    } finally {
-      setDownloading(false);
-    }
+  const downloadCertificate = () => {
+    window.print();
   };
 
   return (
@@ -74,13 +58,10 @@ function EmployeeCertificatePage() {
           </div>
           <div className="employee-certificate-actions">
             {!loading && !error && (
-              <button type="button" onClick={downloadCertificate} disabled={downloading}>
-                {downloading ? "Mengunduh..." : "Download Sertifikat"}
+              <button type="button" onClick={downloadCertificate}>
+                Download Sertifikat
               </button>
             )}
-            <button type="button" onClick={() => navigate(-1)}>
-              Back
-            </button>
           </div>
         </header>
 
@@ -99,6 +80,14 @@ function EmployeeCertificatePage() {
             />
           </section>
         )}
+
+        <button
+          type="button"
+          className="employee-certificate-back"
+          onClick={() => navigate(-1)}
+        >
+          Back
+        </button>
       </main>
     </DashboardLayout>
   );

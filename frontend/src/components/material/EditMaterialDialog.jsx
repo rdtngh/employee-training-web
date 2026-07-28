@@ -10,6 +10,8 @@ function EditMaterialDialog({
   selectedFileName,
   selectedFile,
   loading,
+  trainings,
+  lockTraining,
 }) {
   if (!isOpen || !material) return null;
 
@@ -25,6 +27,9 @@ function EditMaterialDialog({
           selectedFileName={selectedFileName}
           selectedFile={selectedFile}
           loading={loading}
+          trainings={trainings}
+          selectedTrainingId={material.training_id ?? material.training?.id}
+          lockTraining={lockTraining}
         />
         <button
           type="button"

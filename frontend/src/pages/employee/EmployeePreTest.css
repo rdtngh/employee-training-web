@@ -1,6 +1,8 @@
 .employee-pretest-page {
   min-height: 100%;
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: clamp(12px, 3vw, 48px);
 }
 
@@ -16,9 +18,9 @@
 }
 
 .pretest-question-number { color: #999; border-bottom: 1px solid #bbb; padding-bottom: 4px; }
-.pretest-question-card h1 { margin: 44px 20px 70px; font-size: clamp(1.4rem, 2.4vw, 2rem); font-weight: 500; }
+.pretest-question-card h1 { margin: 44px 20px 70px; font-size: clamp(1.4rem, 2.4vw, 2rem); font-weight: 500; overflow-wrap: anywhere; }
 .pretest-options { display: grid; gap: 12px; }
-.pretest-options label { display: grid; grid-template-columns: 22px 26px 1fr; align-items: center; min-height: 42px; padding: 7px 16px; border: 1px solid #327537; border-radius: 4px; cursor: pointer; transition: .2s; }
+.pretest-options label { display: grid; grid-template-columns: 22px 26px minmax(0, 1fr); align-items: center; min-height: 42px; padding: 7px 16px; border: 1px solid #327537; border-radius: 4px; cursor: pointer; transition: .2s; overflow-wrap: anywhere; }
 .pretest-options label:hover, .pretest-options label.selected { background: #edf7ee; box-shadow: 0 0 0 1px #327537; }
 .pretest-options input { accent-color: #327537; }
 .pretest-navigation { display: flex; justify-content: space-between; margin-top: 14px; }
@@ -26,11 +28,27 @@
 .pretest-navigation .pretest-next { margin-left: auto; }
 .pretest-navigation button:disabled { opacity: .35; cursor: not-allowed; }
 
-.pretest-result { width: min(100%, 560px); min-height: 560px; padding: 28px 50px; border: 2px solid #327537; border-radius: 6px; background: rgba(255,255,255,.97); }
+.employee-training-back {
+  width: fit-content;
+  align-self: flex-start;
+  margin-top: 20px;
+  padding: 6px 0;
+  background: transparent;
+  color: #111827;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 600;
+}
+
+.employee-training-back:hover {
+  color: #216629;
+  text-decoration: underline;
+}
+
+.pretest-result { width: min(100%, 560px); min-height: 560px; align-self: center; margin-inline: auto; padding: 28px 50px; border: 2px solid #327537; border-radius: 6px; background: rgba(255,255,255,.97); }
 .pretest-result img { width: 72px; height: 72px; margin-left: auto; }
 .pretest-result h1 { margin: 42px 0 56px; color: #327537; font-size: 2rem; letter-spacing: 2px; }
 .pretest-result.failed h1 { color: #bf1515; }
-.pretest-result dl div { display: flex; justify-content: space-between; padding: 17px 6px; border-bottom: 1px solid #bbb; font-size: 1.15rem; }
+.pretest-result dl div { display: flex; justify-content: space-between; gap: 16px; padding: 17px 6px; border-bottom: 1px solid #bbb; font-size: 1.15rem; overflow-wrap: anywhere; }
 .pretest-result dd { margin: 0; }
 
 .pretest-modal-backdrop {
@@ -48,16 +66,43 @@
 .pretest-modal-actions { display: flex; justify-content: flex-end; gap: 28px; margin-top: auto; }
 .pretest-modal-actions button { padding: 8px 4px; background: transparent; font-size: 1.2rem; }
 .pretest-modal-actions .pretest-modal-confirm { color: #2514ff; }
-.pretest-error { position: absolute; top: 12px; color: #bf1515; }
+.pretest-status,
+.pretest-error { width: min(100%, 920px); margin: 0 0 16px; color: #4b5563; }
+.pretest-error { color: #bf1515; }
 
 @media (max-width: 760px) {
   .employee-pretest-page { padding: 8px; }
   .pretest-question-card { min-height: 430px; padding: 20px 18px 28px; }
   .pretest-question-card h1 { margin: 30px 4px 45px; }
-  .pretest-options label { grid-template-columns: 20px 24px 1fr; padding: 8px; }
+  .pretest-options label { grid-template-columns: 20px 24px minmax(0, 1fr); padding: 8px; }
   .pretest-result { min-height: 480px; padding: 24px; }
   .pretest-result h1 { margin: 32px 0 40px; }
   .pretest-modal { left: 50%; }
+}
+
+@media (max-width: 480px) {
+  .pretest-question-card {
+    padding: 18px 14px 24px;
+  }
+
+  .pretest-navigation {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .pretest-navigation button {
+    min-height: 40px;
+  }
+
+  .pretest-result {
+    min-height: auto;
+    padding: 22px 16px 28px;
+  }
+
+  .pretest-result h1 {
+    font-size: clamp(1.45rem, 8vw, 2rem);
+    letter-spacing: 0;
+  }
 }
 
 @media (min-width: 761px) and (max-width: 1100px) {

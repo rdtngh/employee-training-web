@@ -1,11 +1,50 @@
 import api from "./api";
+import { mockTrainings } from "./mockTrainingData";
+
+let mockTrainingStore = mockTrainings.map((training) => ({ ...training }));
+
+const normalizeTraining = (training) => ({
+  id: training.id,
+  title: training.title ?? training.name ?? `Pelatihan ${training.id}`,
+  ...training,
+});
 
 export const getTrainings = async () => {
+  if (import.meta.env.VITE_USE_DUMMY_DATA === "true") {
+    return mockTrainingStore.map(normalizeTraining);
+  }
+
   const response = await api.get("/trainings");
-  return response.data?.data ?? [];
+  return (response.data?.data ?? []).map(normalizeTraining);
 };
 
 export const getTraining = async (id) => {
+  if (import.meta.env.VITE_USE_DUMMY_DATA === "true") {
+    return mockTrainingStore.map(normalizeTraining).find((training) => String(training.id) === String(id)) ?? null;
+  }
+
   const response = await api.get(`/trainings/${id}`);
-  return response.data?.data ?? null;
+  const training = response.data?.data ?? null;
+  return training ? normalizeTraining(training) : null;
+};
+
+export const createTraining = async (trainingData) => {
+  if (import.meta.env.VITE_USE_DUMMY_DATA === "true") {
+    const nextId = Math.max(0, ...mockTrainingStore.map((training) => Number(training.id) || 0)) + 1;
+    const training = normalizeTraining({
+      id: nextId,
+      title: trainingData.title,
+      is_active: true,
+    });
+
+    mockTrainingStore = [...mockTrainingStore, training];
+    return training;
+  }
+
+  const response = await api.post("/trainings", {
+    title: trainingData.title,
+  });
+  const training = response.data?.data ?? response.data;
+
+  return normalizeTraining(training);
 };

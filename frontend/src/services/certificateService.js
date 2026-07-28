@@ -1,4 +1,5 @@
 import api from "./api";
+import { mockTrainings } from "./mockTrainingData";
 
 const dummyCertificateResponse = {
   title: "Sertifikat",
@@ -72,9 +73,12 @@ export const getCertificatePreview = async (trainingId) => {
     import.meta.env.VITE_USE_DUMMY_DATA === "true";
 
   if (useMockCertificate) {
+    const training = mockTrainings.find((item) => String(item.id) === String(trainingId));
+
     return {
       ...mockCertificatePreview,
       training_id: trainingId,
+      training_title: training?.title ?? mockCertificatePreview.training_title,
     };
   }
 

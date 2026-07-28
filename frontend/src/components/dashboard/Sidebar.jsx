@@ -96,7 +96,11 @@ function Sidebar({ role = "superadmin", isOpen = false, onNavigate }) {
 
   const isItemActive = (item) =>
     item.to === "/employee/materi"
-      ? location.pathname === item.to || location.pathname.startsWith("/employee/material/")
+      ? location.pathname === item.to || location.pathname.startsWith("/employee/materi/")
+      : item.to === "/employee/pretest"
+      ? location.pathname === item.to || location.pathname.startsWith("/employee/pretest/")
+      : item.to === "/employee/posttest"
+      ? location.pathname === item.to || location.pathname.startsWith("/employee/posttest/")
       : isBaseMenu(item)
       ? location.pathname === item.to
       : location.pathname === item.to || isChildActive(item);

@@ -141,7 +141,7 @@ function UserManagement() {
               />
             </label>
             <p className="user-import-note">
-              Kolom username atau No Rekening digunakan sebagai username login. Baris tanpa username tidak akan diimport.
+              Kolom username atau No Rekening digunakan sebagai username login. Sertakan kolom Departemen agar data karyawan masuk sesuai file.
             </p>
             <button type="submit" className="user-import-button" disabled={loading}>
               {loading ? "Memproses..." : "Import Karyawan"}

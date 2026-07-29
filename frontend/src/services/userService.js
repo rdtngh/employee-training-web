@@ -1,10 +1,5 @@
 import api from "./api";
 
-const userFormOptions = {
-  departments: ["IT", "HRD", "Keuangan", "Pelayanan", "Manajemen"],
-  roles: ["Super Admin", "Admin", "Karyawan"],
-};
-
 const mapToApiPayload = (payload) => ({
   employee_number: payload.userId,
   name: payload.user,
@@ -28,11 +23,13 @@ export const getAllUsers = async (search = "") => {
   return response.data?.data?.map(mapFromApiResponse) ?? [];
 };
 
-// Ganti dengan endpoint metadata saat daftar departemen/role dikelola backend.
-export const getUserFormOptions = async () => ({
-  departments: [...userFormOptions.departments],
-  roles: [...userFormOptions.roles],
-});
+export const getUserFormOptions = async () => {
+  const response = await api.get("/users/options");
+  return {
+    departments: response.data?.data?.departments ?? [],
+    roles: response.data?.data?.roles ?? [],
+  };
+};
 
 export const createUser = async (payload) => {
   await api.post("/users", mapToApiPayload(payload));

@@ -64,6 +64,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::middleware('role:Super Admin')->group(function () {
+        Route::get('/users/options', [UserController::class, 'options']);
         Route::get('/users', [UserController::class, 'index']);
         Route::post('/users', [UserController::class, 'store']);
         Route::post('/users/import', [UserController::class, 'import']);

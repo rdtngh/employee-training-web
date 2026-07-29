@@ -52,7 +52,7 @@ class UserImportTest extends TestCase
         Sanctum::actingAs($superAdmin);
 
         $path = tempnam(sys_get_temp_dir(), 'employees');
-        file_put_contents($path, "No Rekening,Nama\n1001,Nama Baru\n,Baris Tanpa Nomor\n3003,Karyawan Baru\n");
+        file_put_contents($path, "No Rekening,Nama,Departemen\n1001,Nama Baru,Radiologi\n,Baris Tanpa Nomor,IGD\n3003,Karyawan Baru,Farmasi\n");
 
         $file = new UploadedFile($path, 'employees.csv', 'text/csv', null, true);
 
@@ -69,12 +69,14 @@ class UserImportTest extends TestCase
         $this->assertDatabaseHas('users', [
             'employee_number' => '1001',
             'name' => 'Nama Baru',
+            'department' => 'Radiologi',
             'role_id' => $employeeRole->id,
         ]);
 
         $this->assertDatabaseHas('users', [
             'employee_number' => '3003',
             'name' => 'Karyawan Baru',
+            'department' => 'Farmasi',
             'role_id' => $employeeRole->id,
         ]);
 
@@ -183,5 +185,133 @@ class UserImportTest extends TestCase
 
         $this->assertTrue(Hash::check('password-lama', $user->password));
         $this->assertFalse(Hash::check('ardy.putra', $user->password));
+    }
+
+    public function test_import_skips_rows_without_department_instead_of_assigning_fallback_department(): void
+    {
+        $superAdminRole = Role::create(['name' => 'Super Admin']);
+        Role::create(['name' => 'Karyawan']);
+
+        $superAdmin = User::create([
+            'role_id' => $superAdminRole->id,
+            'employee_number' => '999',
+            'name' => 'Super Admin',
+            'department' => 'IT',
+            'position' => 'Super Admin',
+            'email' => 'superadmin@example.com',
+            'password' => Hash::make('999'),
+        ]);
+
+        Sanctum::actingAs($superAdmin);
+
+        $path = tempnam(sys_get_temp_dir(), 'employees');
+        file_put_contents($path, "username,name,department\nandi,Andi,\nbudi,Budi,Rawat Jalan\n");
+
+        $file = new UploadedFile($path, 'employees.csv', 'text/csv', null, true);
+
+        $response = $this->postJson('/api/users/import', [
+            'file' => $file,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.created', 1)
+            ->assertJsonPath('data.skipped', 1);
+
+        $this->assertDatabaseMissing('users', [
+            'employee_number' => 'andi',
+        ]);
+
+        $this->assertDatabaseHas('users', [
+            'employee_number' => 'budi',
+            'department' => 'Rawat Jalan',
+        ]);
+    }
+
+    public function test_import_does_not_delete_existing_employee_when_matching_file_row_has_missing_department(): void
+    {
+        $superAdminRole = Role::create(['name' => 'Super Admin']);
+        $employeeRole = Role::create(['name' => 'Karyawan']);
+
+        $superAdmin = User::create([
+            'role_id' => $superAdminRole->id,
+            'employee_number' => '999',
+            'name' => 'Super Admin',
+            'department' => 'IT',
+            'position' => 'Super Admin',
+            'email' => 'superadmin@example.com',
+            'password' => Hash::make('999'),
+        ]);
+
+        User::create([
+            'role_id' => $employeeRole->id,
+            'employee_number' => 'andi',
+            'name' => 'Andi Lama',
+            'department' => 'IGD',
+            'position' => 'Karyawan',
+            'email' => null,
+            'password' => Hash::make('andi'),
+        ]);
+
+        Sanctum::actingAs($superAdmin);
+
+        $path = tempnam(sys_get_temp_dir(), 'employees');
+        file_put_contents($path, "username,name,department\nandi,Andi Baru,\nbudi,Budi,Farmasi\n");
+
+        $file = new UploadedFile($path, 'employees.csv', 'text/csv', null, true);
+
+        $response = $this->postJson('/api/users/import', [
+            'file' => $file,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.created', 1)
+            ->assertJsonPath('data.updated', 0)
+            ->assertJsonPath('data.deleted', 0)
+            ->assertJsonPath('data.skipped', 1);
+
+        $this->assertDatabaseHas('users', [
+            'employee_number' => 'andi',
+            'name' => 'Andi Lama',
+            'department' => 'IGD',
+        ]);
+
+        $this->assertDatabaseHas('users', [
+            'employee_number' => 'budi',
+            'department' => 'Farmasi',
+        ]);
+    }
+
+    public function test_user_options_returns_unique_employee_departments_from_imported_data(): void
+    {
+        $superAdminRole = Role::create(['name' => 'Super Admin']);
+        Role::create(['name' => 'Admin']);
+        Role::create(['name' => 'Karyawan']);
+
+        $superAdmin = User::create([
+            'role_id' => $superAdminRole->id,
+            'employee_number' => '999',
+            'name' => 'Super Admin',
+            'department' => 'IT',
+            'position' => 'Super Admin',
+            'email' => 'superadmin@example.com',
+            'password' => Hash::make('999'),
+        ]);
+
+        Sanctum::actingAs($superAdmin);
+
+        $path = tempnam(sys_get_temp_dir(), 'employees');
+        file_put_contents($path, "username,name,department\nana,Ana,Radiologi\nbima,Bima,Farmasi\ncitra,Citra,Radiologi\n");
+
+        $file = new UploadedFile($path, 'employees.csv', 'text/csv', null, true);
+
+        $this->postJson('/api/users/import', [
+            'file' => $file,
+        ])->assertOk();
+
+        $response = $this->getJson('/api/users/options');
+
+        $response->assertOk()
+            ->assertJsonPath('data.departments', ['Farmasi', 'Radiologi'])
+            ->assertJsonPath('data.roles', ['Super Admin', 'Admin', 'Karyawan']);
     }
 }

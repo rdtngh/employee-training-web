@@ -45,6 +45,39 @@ class UserController extends Controller
         ]);
     }
 
+    public function options(): JsonResponse
+    {
+        $employeeRole = Role::where('name', 'Karyawan')->first();
+
+        $departmentQuery = User::query()
+            ->whereNotNull('department')
+            ->where('department', '<>', '');
+
+        if ($employeeRole) {
+            $departmentQuery->where('role_id', $employeeRole->id);
+        }
+
+        $departments = $departmentQuery
+            ->select('department')
+            ->distinct()
+            ->orderBy('department')
+            ->pluck('department')
+            ->values();
+
+        $roles = Role::orderByRaw("CASE name WHEN 'Super Admin' THEN 1 WHEN 'Admin' THEN 2 WHEN 'Karyawan' THEN 3 ELSE 4 END")
+            ->orderBy('name')
+            ->pluck('name')
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'departments' => $departments,
+                'roles' => $roles,
+            ],
+        ]);
+    }
+
     public function store(UserRequest $request): JsonResponse
     {
         $role = Role::where('name', $request->role)->first();
@@ -126,25 +159,37 @@ class UserController extends Controller
         }
 
         $role = Role::where('name', 'Karyawan')->firstOrFail();
-        $departments = ['IT', 'HRD', 'Keuangan', 'Pelayanan', 'Manajemen'];
         $created = 0;
         $updated = 0;
         $skipped = 0;
         $deleted = 0;
         $importRows = [];
         $seenEmployeeNumbers = [];
+        $fileEmployeeNumbers = [];
 
         foreach ($rows as $row) {
             $employeeNumber = trim((string) ($row['employee_number'] ?? ''));
             $name = trim((string) ($row['name'] ?? ''));
             $department = trim((string) ($row['department'] ?? ''));
 
-            if ($employeeNumber === '' || $name === '') {
+            if ($employeeNumber === '') {
                 $skipped++;
                 continue;
             }
 
-            if (! preg_match('/^[A-Za-z0-9._-]{1,20}$/', $employeeNumber) || strlen($name) > 255 || strlen($department) > 255) {
+            if (! preg_match('/^[A-Za-z0-9._-]{1,20}$/', $employeeNumber)) {
+                $skipped++;
+                continue;
+            }
+
+            $fileEmployeeNumbers[$employeeNumber] = true;
+
+            if ($name === '' || $department === '') {
+                $skipped++;
+                continue;
+            }
+
+            if (strlen($name) > 255 || strlen($department) > 255) {
                 $skipped++;
                 continue;
             }
@@ -165,17 +210,17 @@ class UserController extends Controller
         if (count($importRows) === 0) {
             return response()->json([
                 'success' => false,
-                'message' => 'File tidak memiliki baris dengan username yang valid.',
+                'message' => 'File tidak memiliki baris dengan username, nama, dan departemen yang valid.',
             ], 422);
         }
 
-        DB::transaction(function () use ($importRows, $role, $departments, &$created, &$updated, &$skipped, &$deleted) {
-            $incomingEmployeeNumbers = array_column($importRows, 'employee_number');
+        DB::transaction(function () use ($importRows, $role, $fileEmployeeNumbers, &$created, &$updated, &$skipped, &$deleted) {
+            $incomingEmployeeNumbers = array_keys($fileEmployeeNumbers);
 
-            foreach ($importRows as $index => $row) {
+            foreach ($importRows as $row) {
                 $employeeNumber = $row['employee_number'];
                 $name = $row['name'];
-                $department = $row['department'] !== '' ? $row['department'] : $departments[$index % count($departments)];
+                $department = $row['department'];
                 $user = User::where('employee_number', $employeeNumber)->first();
 
                 if ($user) {
@@ -477,7 +522,10 @@ class UserController extends Controller
     {
         return $header === 'department'
             || $header === 'departemen'
+            || $header === 'departement'
+            || $header === 'dept'
             || $header === 'bagian'
+            || $header === 'unit'
             || str_contains($header, 'unit kerja');
     }
 

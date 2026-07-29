@@ -140,6 +140,44 @@ class UserImportTest extends TestCase
             ->assertJsonStructure(['token']);
     }
 
+    public function test_import_accepts_semicolon_csv_with_utf8_bom(): void
+    {
+        $superAdminRole = Role::create(['name' => 'Super Admin']);
+        $employeeRole = Role::create(['name' => 'Karyawan']);
+
+        $superAdmin = User::create([
+            'role_id' => $superAdminRole->id,
+            'employee_number' => '999',
+            'name' => 'Super Admin',
+            'department' => 'IT',
+            'position' => 'Super Admin',
+            'email' => 'superadmin@example.com',
+            'password' => Hash::make('999'),
+        ]);
+
+        Sanctum::actingAs($superAdmin);
+
+        $path = tempnam(sys_get_temp_dir(), 'employees');
+        file_put_contents($path, "\xEF\xBB\xBFNo Rekening;Nama;Departemen\n4004;Dewi Lestari;Laboratorium\n");
+
+        $file = new UploadedFile($path, 'employees.csv', 'text/csv', null, true);
+
+        $response = $this->postJson('/api/users/import', [
+            'file' => $file,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.created', 1)
+            ->assertJsonPath('data.skipped', 0);
+
+        $this->assertDatabaseHas('users', [
+            'employee_number' => '4004',
+            'name' => 'Dewi Lestari',
+            'department' => 'Laboratorium',
+            'role_id' => $employeeRole->id,
+        ]);
+    }
+
     public function test_import_does_not_reset_existing_employee_password(): void
     {
         $superAdminRole = Role::create(['name' => 'Super Admin']);

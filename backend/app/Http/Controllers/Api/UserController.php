@@ -302,14 +302,35 @@ class UserController extends Controller
         }
 
         $rows = [];
+        $delimiter = $this->detectCsvDelimiter($path);
 
-        while (($row = fgetcsv($handle)) !== false) {
+        while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
             $rows[] = $row;
         }
 
         fclose($handle);
 
         return $this->normalizeImportRows($rows);
+    }
+
+    private function detectCsvDelimiter(string $path): string
+    {
+        $sample = file_get_contents($path, false, null, 0, 4096);
+
+        if ($sample === false || $sample === '') {
+            return ',';
+        }
+
+        $firstLine = strtok($sample, "\r\n") ?: $sample;
+        $delimiters = [',' => 0, ';' => 0, "\t" => 0];
+
+        foreach ($delimiters as $delimiter => $count) {
+            $delimiters[$delimiter] = substr_count($firstLine, $delimiter);
+        }
+
+        arsort($delimiters);
+
+        return array_key_first($delimiters) ?: ',';
     }
 
     private function readXlsxRows(string $path): array
@@ -494,7 +515,9 @@ class UserController extends Controller
 
     private function normalizeHeader(string $value): string
     {
-        return preg_replace('/[^a-z0-9]+/', ' ', strtolower(trim($value))) ?? '';
+        $value = preg_replace('/^\xEF\xBB\xBF/', '', trim($value)) ?? '';
+
+        return preg_replace('/[^a-z0-9]+/', ' ', strtolower($value)) ?? '';
     }
 
     private function isEmployeeNumberHeader(string $header): bool

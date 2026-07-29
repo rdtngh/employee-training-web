@@ -11,7 +11,7 @@ function Hero() {
         </h1>
 
         <p>
-          Media pelatihan interaktif bagi karyawan baru rumah sakit
+          Media pelatihan interaktif bagi karyawan rumah sakit
           dengan alur modern, materi terstruktur, dan penilaian digital.
         </p>
       </div>

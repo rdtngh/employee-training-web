@@ -1,5 +1,4 @@
 import api from "./api";
-import axios from "axios";
 import { normalizeRole } from "../utils/role";
 
 export { normalizeRole };
@@ -10,17 +9,8 @@ export const clearSession = () => {
   delete api.defaults.headers.common.Authorization;
 };
 
-const getCsrfCookieUrl = () => {
-  const apiBaseUrl = api.defaults.baseURL || window.location.origin;
-  return new URL("/sanctum/csrf-cookie", apiBaseUrl).toString();
-};
-
 export const login = async ({ employeeNumber, password }) => {
   clearSession();
-
-  await axios.get(getCsrfCookieUrl(), {
-    withCredentials: true,
-  });
 
   const response = await api.post("/login", {
     employee_number: employeeNumber,
@@ -30,9 +20,13 @@ export const login = async ({ employeeNumber, password }) => {
   return response.data;
 };
 
-export const storeSession = ({ user }) => {
+export const storeSession = ({ token, user }) => {
+  localStorage.setItem("authToken", token);
   localStorage.setItem("authUser", JSON.stringify(user));
+  api.defaults.headers.common.Authorization = `Bearer ${token}`;
 };
+
+export const getStoredToken = () => localStorage.getItem("authToken");
 
 export const getStoredUser = () => {
   try {
@@ -53,11 +47,5 @@ export const logout = async () => {
 
 export const getCurrentUser = async () => {
   const response = await api.get("/me");
-  const user = response.data?.user ?? response.data?.data ?? null;
-
-  if (user) {
-    storeSession({ user });
-  }
-
-  return user;
+  return response.data?.user ?? response.data?.data ?? null;
 };

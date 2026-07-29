@@ -4,44 +4,46 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
+use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class LoginController extends Controller
 {
-    private function userPayload($user): array
-    {
-        $user->loadMissing('role');
-
-        return [
-            'id' => $user->id,
-            'employee_number' => $user->employee_number,
-            'name' => $user->name,
-            'department' => $user->department,
-            'position' => $user->position,
-            'role' => $user->role->name,
-        ];
-    }
-
     /**
      * Login
      */
     public function login(LoginRequest $request)
     {
-        if (! Auth::attempt($request->only('employee_number', 'password'))) {
+        $user = User::with('role')
+            ->where('employee_number', $request->employee_number)
+            ->first();
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Nomor karyawan atau password salah.',
             ], 401);
         }
 
-        $request->session()->regenerate();
-        $user = Auth::user();
+        // Hapus token lama
+        $user->tokens()->delete();
+
+        // Buat token baru
+        $token = $user->createToken('training-system')->plainTextToken;
 
         return response()->json([
             'success' => true,
             'message' => 'Login berhasil.',
-            'user' => $this->userPayload($user),
+            'token' => $token,
+            'user' => [
+                'id' => $user->id,
+                'employee_number' => $user->employee_number,
+                'name' => $user->name,
+                'department' => $user->department,
+                'position' => $user->position,
+                'role' => $user->role->name,
+            ],
         ]);
     }
 
@@ -50,10 +52,7 @@ class LoginController extends Controller
      */
     public function logout(Request $request)
     {
-        Auth::guard('web')->logout();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        $request->user()?->currentAccessToken()?->delete();
 
         return response()->json([
             'success' => true,
@@ -68,7 +67,7 @@ class LoginController extends Controller
     {
         return response()->json([
             'success' => true,
-            'user' => $this->userPayload($request->user()),
+            'user' => $request->user()->load('role'),
         ]);
     }
 }

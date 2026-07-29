@@ -26,8 +26,8 @@ function LoginCard() {
         password,
       });
 
-      const { user } = response;
-      authService.storeSession({ user });
+      const { token, user } = response;
+      authService.storeSession({ token, user });
 
       if (user.role?.toLowerCase().includes("super")) {
         navigate("/superadmin");

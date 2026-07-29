@@ -23,6 +23,7 @@ function UserManagement() {
   const [importFile, setImportFile] = useState(null);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [toast, setToast] = useState("");
+  const [importNotice, setImportNotice] = useState(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -35,9 +36,16 @@ function UserManagement() {
   useEffect(() => {
     if (!toast) return undefined;
 
-    const timer = window.setTimeout(() => setToast(""), 2400);
+    const timer = window.setTimeout(() => setToast(""), 3600);
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  useEffect(() => {
+    if (!importNotice) return undefined;
+
+    const timer = window.setTimeout(() => setImportNotice(null), 5200);
+    return () => window.clearTimeout(timer);
+  }, [importNotice]);
 
   async function handleAdd(payload) {
     const result = await addUser(payload);
@@ -96,9 +104,12 @@ function UserManagement() {
 
     setImportFile(null);
     event.currentTarget.reset();
-    setToast(
-      `Import berhasil: ${result.created ?? 0} baru, ${result.updated ?? 0} update, ${result.deleted ?? 0} dihapus, ${result.skipped ?? 0} dilewati.`
-    );
+    setImportNotice({
+      created: result.created ?? 0,
+      updated: result.updated ?? 0,
+      deleted: result.deleted ?? 0,
+      skipped: result.skipped ?? 0,
+    });
   }
 
   return (
@@ -177,6 +188,25 @@ function UserManagement() {
       />
 
       {toast && <div className="user-management-toast">{toast}</div>}
+      {importNotice && (
+        <div className="user-import-success-toast" role="status" aria-live="polite">
+          <div>
+            <strong>Import data karyawan berhasil.</strong>
+            <span>
+              {importNotice.created} baru, {importNotice.updated} update,{" "}
+              {importNotice.deleted} dihapus, {importNotice.skipped} dilewati.
+            </span>
+          </div>
+          <button
+            type="button"
+            className="user-import-success-close"
+            onClick={() => setImportNotice(null)}
+            aria-label="Tutup notifikasi import"
+          >
+            ×
+          </button>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

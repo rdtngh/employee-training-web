@@ -34,12 +34,17 @@ const filenameFromDisposition = (disposition) => {
   return match?.[1];
 };
 
-export const exportStatistics = async (format = "xlsx") => {
+export const exportStatistics = async (options = "xlsx") => {
+  const format = typeof options === "string" ? options : (options.format ?? "xlsx");
+  const trainingId = typeof options === "object" ? options.trainingId : undefined;
   let response;
 
   try {
     response = await api.get("/statistics/export", {
-      params: { format },
+      params: {
+        format,
+        ...(trainingId ? { training_id: trainingId } : {}),
+      },
       responseType: "blob",
     });
   } catch (error) {

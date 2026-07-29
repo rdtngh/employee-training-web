@@ -3,6 +3,9 @@ import * as userService from "../services/userService";
 
 export const useUsers = () => {
   const mountedRef = useRef(false);
+  const currentSearchRef = useRef("");
+  const optionsLoadedRef = useRef(false);
+  const requestIdRef = useRef(0);
   const [users, setUsers] = useState([]);
   const [userFormOptions, setUserFormOptions] = useState({
     departments: [],
@@ -17,22 +20,28 @@ export const useUsers = () => {
     };
   }, []);
 
-  const loadUsers = useCallback(async () => {
+  const loadUsers = useCallback(async (search = currentSearchRef.current) => {
     if (!mountedRef.current) return;
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+    currentSearchRef.current = search;
     setLoading(true);
     try {
       const [data, options] = await Promise.all([
-        userService.getAllUsers(),
-        userService.getUserFormOptions(),
+        userService.getAllUsers(search),
+        optionsLoadedRef.current ? Promise.resolve(null) : userService.getUserFormOptions(),
       ]);
-      if (mountedRef.current) {
+      if (mountedRef.current && requestId === requestIdRef.current) {
         setUsers(data);
-        setUserFormOptions(options);
+        if (options) {
+          setUserFormOptions(options);
+          optionsLoadedRef.current = true;
+        }
       }
     } catch (error) {
       console.error("Error loading users:", error);
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current && requestId === requestIdRef.current) setLoading(false);
     }
   }, []);
 

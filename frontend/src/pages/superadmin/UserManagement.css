@@ -32,6 +32,26 @@
   color: #1f2937;
 }
 
+.user-management-data-header {
+  align-items: center;
+}
+
+.user-search-input {
+  width: min(100%, 280px);
+  min-height: 40px;
+  border: none;
+  border-bottom: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #111827;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.user-search-input:focus {
+  border-bottom-color: #327537;
+}
+
 .user-import-form {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -101,6 +121,14 @@
 
   .user-management-title {
     font-size: 1.25rem;
+  }
+
+  .user-management-data-header {
+    align-items: stretch;
+  }
+
+  .user-search-input {
+    width: 100%;
   }
 
   .user-import-form {

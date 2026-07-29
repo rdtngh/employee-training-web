@@ -8,6 +8,7 @@ use App\Models\Training;
 use App\Models\UserMaterial;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class TrainingController extends Controller
 {
@@ -55,6 +56,64 @@ class TrainingController extends Controller
         return response()->json([
             'success' => true,
             'data' => $this->buildMaterialProgress($request, $training),
+        ]);
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+        ]);
+
+        $training = Training::create([
+            'title' => $validated['title'],
+            'is_active' => true,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pelatihan berhasil ditambahkan.',
+            'data' => $training,
+        ], 201);
+    }
+
+    public function update(Request $request, Training $training): JsonResponse
+    {
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+        ]);
+
+        $training->update([
+            'title' => $validated['title'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pelatihan berhasil diperbarui.',
+            'data' => $training,
+        ]);
+    }
+
+    public function destroy(Training $training): JsonResponse
+    {
+        $training->load('materials.files');
+
+        foreach ($training->materials as $material) {
+            foreach ($material->files as $file) {
+                $relative = $this->materialStorageRelativePath($file->file_path);
+
+                if ($relative) {
+                    Storage::disk('local')->delete($relative);
+                    Storage::disk('public')->delete($relative);
+                }
+            }
+        }
+
+        $training->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pelatihan berhasil dihapus.',
         ]);
     }
 
@@ -137,5 +196,16 @@ class TrainingController extends Controller
         return $preTestId
             ? TestResult::where('user_id', $request->user()->id)->where('test_id', $preTestId)->exists()
             : false;
+    }
+
+    private function materialStorageRelativePath(?string $path): ?string
+    {
+        if (! $path) {
+            return null;
+        }
+
+        $urlPath = parse_url($path, PHP_URL_PATH) ?: $path;
+
+        return preg_replace('#^/storage/#', '', $urlPath);
     }
 }

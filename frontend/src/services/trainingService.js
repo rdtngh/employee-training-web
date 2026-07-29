@@ -48,3 +48,35 @@ export const createTraining = async (trainingData) => {
 
   return normalizeTraining(training);
 };
+
+export const updateTraining = async (id, trainingData) => {
+  if (import.meta.env.VITE_USE_DUMMY_DATA === "true") {
+    const updatedTraining = normalizeTraining({
+      id,
+      title: trainingData.title,
+      is_active: true,
+    });
+
+    mockTrainingStore = mockTrainingStore.map((training) =>
+      String(training.id) === String(id) ? { ...training, ...updatedTraining } : training
+    );
+    return updatedTraining;
+  }
+
+  const response = await api.put(`/trainings/${id}`, {
+    title: trainingData.title,
+  });
+  const training = response.data?.data ?? response.data;
+
+  return normalizeTraining(training);
+};
+
+export const deleteTraining = async (id) => {
+  if (import.meta.env.VITE_USE_DUMMY_DATA === "true") {
+    mockTrainingStore = mockTrainingStore.filter((training) => String(training.id) !== String(id));
+    return true;
+  }
+
+  await api.delete(`/trainings/${id}`);
+  return true;
+};

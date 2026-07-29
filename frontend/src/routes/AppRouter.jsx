@@ -81,6 +81,10 @@ function AppRouter() {
           path="/admin/manage-exam"
           element={protectedPage(<ManageExamAdmin />, ["admin"])}
         />
+        <Route
+          path="/admin/manage-exam/:trainingId"
+          element={protectedPage(<ManageExamAdmin />, ["admin"])}
+        />
 
         <Route
           path="/admin/manage-materi"
@@ -110,6 +114,10 @@ function AppRouter() {
 
         <Route
           path="/superadmin/manage-exam"
+          element={protectedPage(<ManageExamSuperAdmin />, ["superadmin"])}
+        />
+        <Route
+          path="/superadmin/manage-exam/:trainingId"
           element={protectedPage(<ManageExamSuperAdmin />, ["superadmin"])}
         />
 

@@ -44,9 +44,17 @@ function EmployeeCertificatePage() {
     };
   }, [trainingId]);
 
-  const downloadCertificate = () => {
-    window.print();
-  };
+  function downloadCertificate() {
+    document.body.classList.add("is-certificate-printing");
+
+    const finishPrint = () => {
+      document.body.classList.remove("is-certificate-printing");
+      window.removeEventListener("afterprint", finishPrint);
+    };
+
+    window.addEventListener("afterprint", finishPrint);
+    window.setTimeout(() => window.print(), 50);
+  }
 
   return (
     <DashboardLayout role="employee">
@@ -54,7 +62,6 @@ function EmployeeCertificatePage() {
         <header className="employee-certificate-header">
           <div>
             <h1>Preview Sertifikat</h1>
-            <p>Template penghargaan karyawan siap menerima data dari backend.</p>
           </div>
           <div className="employee-certificate-actions">
             {!loading && !error && (
@@ -71,7 +78,6 @@ function EmployeeCertificatePage() {
             {error}
           </p>
         )}
-
         {!loading && !error && (
           <section className="employee-certificate-stage">
             <Certificate

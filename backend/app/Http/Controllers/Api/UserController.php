@@ -14,9 +14,21 @@ use ZipArchive;
 
 class UserController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $search = trim((string) $request->query('search', ''));
+
         $users = User::with('role')
+            ->when($search !== '', function ($query) use ($search) {
+                $keyword = '%'.addcslashes($search, '%_\\').'%';
+
+                $query->where(function ($query) use ($keyword) {
+                    $query->where('name', 'like', $keyword)
+                        ->orWhere('employee_number', 'like', $keyword)
+                        ->orWhere('department', 'like', $keyword)
+                        ->orWhereHas('role', fn ($roleQuery) => $roleQuery->where('name', 'like', $keyword));
+                });
+            })
             ->orderBy('name')
             ->get()
             ->map(fn (User $user) => [
@@ -118,23 +130,52 @@ class UserController extends Controller
         $created = 0;
         $updated = 0;
         $skipped = 0;
+        $deleted = 0;
+        $importRows = [];
+        $seenEmployeeNumbers = [];
 
-        DB::transaction(function () use ($rows, $role, $departments, &$created, &$updated, &$skipped) {
-            foreach ($rows as $index => $row) {
-                $employeeNumber = trim((string) ($row['employee_number'] ?? ''));
-                $name = trim((string) ($row['name'] ?? ''));
+        foreach ($rows as $row) {
+            $employeeNumber = trim((string) ($row['employee_number'] ?? ''));
+            $name = trim((string) ($row['name'] ?? ''));
+            $department = trim((string) ($row['department'] ?? ''));
 
-                if ($employeeNumber === '' || $name === '') {
-                    $skipped++;
-                    continue;
-                }
+            if ($employeeNumber === '' || $name === '') {
+                $skipped++;
+                continue;
+            }
 
-                if (! preg_match('/^[0-9]{1,20}$/', $employeeNumber) || strlen($name) > 255) {
-                    $skipped++;
-                    continue;
-                }
+            if (! preg_match('/^[A-Za-z0-9._-]{1,20}$/', $employeeNumber) || strlen($name) > 255 || strlen($department) > 255) {
+                $skipped++;
+                continue;
+            }
 
-                $department = $departments[$index % count($departments)];
+            if (isset($seenEmployeeNumbers[$employeeNumber])) {
+                $skipped++;
+                continue;
+            }
+
+            $seenEmployeeNumbers[$employeeNumber] = true;
+            $importRows[] = [
+                'employee_number' => $employeeNumber,
+                'name' => $name,
+                'department' => $department,
+            ];
+        }
+
+        if (count($importRows) === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File tidak memiliki baris dengan username yang valid.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($importRows, $role, $departments, &$created, &$updated, &$skipped, &$deleted) {
+            $incomingEmployeeNumbers = array_column($importRows, 'employee_number');
+
+            foreach ($importRows as $index => $row) {
+                $employeeNumber = $row['employee_number'];
+                $name = $row['name'];
+                $department = $row['department'] !== '' ? $row['department'] : $departments[$index % count($departments)];
                 $user = User::where('employee_number', $employeeNumber)->first();
 
                 if ($user) {
@@ -164,14 +205,19 @@ class UserController extends Controller
                 ]);
                 $created++;
             }
+
+            $deleted = User::where('role_id', $role->id)
+                ->whereNotIn('employee_number', $incomingEmployeeNumbers)
+                ->delete();
         });
 
         return response()->json([
             'success' => true,
-            'message' => 'Import data karyawan berhasil.',
+            'message' => 'Import data karyawan berhasil. Data karyawan lama sudah disesuaikan dengan file terbaru.',
             'data' => [
                 'created' => $created,
                 'updated' => $updated,
+                'deleted' => $deleted,
                 'skipped' => $skipped,
                 'total_rows' => count($rows),
             ],
@@ -259,7 +305,7 @@ class UserController extends Controller
 
             if ($cells) {
                 ksort($cells);
-                $rows[] = array_values($cells);
+                $rows[] = $cells;
             }
         }
 
@@ -336,26 +382,29 @@ class UserController extends Controller
     private function normalizeImportRows(array $rows): array
     {
         $normalized = [];
+        $columnMap = null;
 
         foreach ($rows as $rowIndex => $row) {
             $values = array_map(fn ($value) => trim((string) $value), $row);
 
             if ($this->isHeaderRow($values)) {
+                $columnMap = $this->importColumnMap($values);
                 continue;
             }
 
-            $employeeNumber = $values[0] ?? '';
-            $name = $values[1] ?? '';
-
-            if ($rowIndex === 0 && ! preg_match('/\d/', $employeeNumber)) {
-                continue;
-            }
+            $employeeNumberIndex = $columnMap['employee_number'] ?? 0;
+            $nameIndex = $columnMap['name'] ?? 1;
+            $departmentIndex = $columnMap['department'] ?? null;
+            $employeeNumber = $values[$employeeNumberIndex] ?? '';
+            $name = $values[$nameIndex] ?? '';
+            $department = $departmentIndex !== null ? ($values[$departmentIndex] ?? '') : '';
 
             $employeeNumber = $this->normalizeEmployeeNumber($employeeNumber);
 
             $normalized[] = [
                 'employee_number' => $employeeNumber,
                 'name' => $name,
+                'department' => $department,
             ];
         }
 
@@ -364,15 +413,72 @@ class UserController extends Controller
 
     private function isHeaderRow(array $row): bool
     {
-        $first = strtolower($row[0] ?? '');
-        $second = strtolower($row[1] ?? '');
+        foreach ($row as $value) {
+            $header = $this->normalizeHeader($value);
 
-        return str_contains($first, 'no')
-            || str_contains($first, 'id')
-            || str_contains($first, 'nik')
-            || str_contains($first, 'nip')
-            || str_contains($second, 'nama')
-            || str_contains($second, 'name');
+            if ($this->isEmployeeNumberHeader($header) || $this->isNameHeader($header) || $this->isDepartmentHeader($header)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function importColumnMap(array $row): array
+    {
+        $map = [];
+
+        foreach ($row as $index => $value) {
+            $header = $this->normalizeHeader($value);
+
+            if (! isset($map['employee_number']) && $this->isEmployeeNumberHeader($header)) {
+                $map['employee_number'] = $index;
+            }
+
+            if (! isset($map['name']) && $this->isNameHeader($header)) {
+                $map['name'] = $index;
+            }
+
+            if (! isset($map['department']) && $this->isDepartmentHeader($header)) {
+                $map['department'] = $index;
+            }
+        }
+
+        return $map;
+    }
+
+    private function normalizeHeader(string $value): string
+    {
+        return preg_replace('/[^a-z0-9]+/', ' ', strtolower(trim($value))) ?? '';
+    }
+
+    private function isEmployeeNumberHeader(string $header): bool
+    {
+        return str_contains($header, 'no karyawan')
+            || str_contains($header, 'nomor karyawan')
+            || str_contains($header, 'no rekening')
+            || str_contains($header, 'nomor rekening')
+            || $header === 'username'
+            || $header === 'user name'
+            || $header === 'id'
+            || $header === 'nik'
+            || $header === 'nip';
+    }
+
+    private function isNameHeader(string $header): bool
+    {
+        return $header === 'nama'
+            || $header === 'name'
+            || str_contains($header, 'nama karyawan')
+            || str_contains($header, 'nama pegawai');
+    }
+
+    private function isDepartmentHeader(string $header): bool
+    {
+        return $header === 'department'
+            || $header === 'departemen'
+            || $header === 'bagian'
+            || str_contains($header, 'unit kerja');
     }
 
     private function normalizeEmployeeNumber(string $value): string

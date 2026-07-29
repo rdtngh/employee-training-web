@@ -116,6 +116,15 @@
   text-decoration: underline;
 }
 
+.certificate-print-stage {
+  position: fixed;
+  top: 0;
+  left: -9999px;
+  width: 841px;
+  height: 595px;
+  overflow: hidden;
+}
+
 @media (max-width: 760px) {
   .certificate-table,
   .certificate-table tbody,
@@ -152,5 +161,77 @@
 
   .certificate-empty {
     display: block;
+  }
+}
+
+@media print {
+  @page {
+    margin: 0;
+    size: A4 landscape;
+  }
+
+  html,
+  body {
+    width: 297mm !important;
+    height: 210mm !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    background: #ffffff !important;
+  }
+
+  body.is-certificate-printing .navbar,
+  body.is-certificate-printing .sidebar,
+  body.is-certificate-printing .dashboard-sidebar-backdrop,
+  body.is-certificate-printing footer {
+    display: none !important;
+  }
+
+  body.is-certificate-printing .dashboard-layout,
+  body.is-certificate-printing .dashboard-body,
+  body.is-certificate-printing .dashboard-content,
+  body.is-certificate-printing .dashboard-content-inner,
+  body.is-certificate-printing .certificate-page {
+    display: block !important;
+    width: 297mm !important;
+    height: 210mm !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  body.is-certificate-printing .dashboard-content-inner::before {
+    content: none !important;
+  }
+
+  body.is-certificate-printing .certificate-page > :not(.certificate-print-stage) {
+    display: none !important;
+  }
+
+  body.is-certificate-printing .certificate-print-stage {
+    position: fixed;
+    top: 0;
+    left: 0;
+    display: block;
+    width: 297mm !important;
+    height: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible;
+  }
+
+  body.is-certificate-printing .certificate-print-stage .certificate-preview-frame {
+    width: 297mm !important;
+    height: 210mm !important;
+    overflow: hidden !important;
+  }
+
+  body.is-certificate-printing .certificate-print-stage .certificate-template {
+    transform: scale(1.331) !important;
+    transform-origin: top left !important;
   }
 }

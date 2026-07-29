@@ -33,6 +33,11 @@
   color: #6b7280;
 }
 
+.user-table-empty {
+  color: #6b7280;
+  text-align: center;
+}
+
 .user-table-actions {
   display: flex;
   align-items: center;
@@ -103,5 +108,13 @@
     content: attr(data-label);
     color: #1f2937;
     font-weight: 700;
+  }
+
+  .user-table-empty {
+    display: block;
+  }
+
+  .user-table-empty::before {
+    content: none;
   }
 }

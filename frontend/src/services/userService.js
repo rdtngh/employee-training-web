@@ -20,8 +20,11 @@ const mapFromApiResponse = (user) => ({
   role: user.role,
 });
 
-export const getAllUsers = async () => {
-  const response = await api.get("/users");
+export const getAllUsers = async (search = "") => {
+  const keyword = search.trim();
+  const response = await api.get("/users", {
+    params: keyword ? { search: keyword } : undefined,
+  });
   return response.data?.data?.map(mapFromApiResponse) ?? [];
 };
 

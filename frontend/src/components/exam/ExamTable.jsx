@@ -1,11 +1,11 @@
 import "./ExamTable.css";
 import ExamCard from "./ExamCard";
 
-function ExamTable({ questions, onEdit, onDelete }) {
+function ExamTable({ questions, onEdit, onDelete, emptyMessage = "Belum ada soal. Mulai dengan menambahkan soal baru." }) {
   if (questions.length === 0) {
     return (
       <div className="exam-table-empty">
-        <p>Belum ada soal. Mulai dengan menambahkan soal baru.</p>
+        <p>{emptyMessage}</p>
       </div>
     );
   }

@@ -27,19 +27,8 @@ class StatisticsController extends Controller
             ]);
         }
 
-        $testIds = $training->tests()->pluck('id');
-
-        $results = TestResult::query()
-            ->whereIn('test_id', $testIds)
-            ->whereHas('user.role', fn ($query) => $query->where('name', 'Karyawan'))
-            ->orderByDesc('updated_at')
-            ->get()
-            ->unique('user_id')
-            ->values();
-
-        $participantCount = $results->count();
-        $passedCount = $results->where('status', 'Lulus')->count();
-        $failedCount = $results->where('status', 'Tidak Lulus')->count();
+        $statistics = $this->trainingStatistics($training);
+        unset($statistics['participant_rows']);
 
         return response()->json([
             'success' => true,
@@ -49,16 +38,7 @@ class StatisticsController extends Controller
                     'id' => $training->id,
                     'title' => $training->title,
                 ],
-                'average_score' => $this->formatNumber($results->avg('score')),
-                'participant_count' => $participantCount,
-                'passed_count' => $passedCount,
-                'failed_count' => $failedCount,
-                'highest_score' => $results->max('score') ?? 0,
-                'lowest_score' => $results->min('score') ?? 0,
-                'pass_percentage' => $participantCount > 0
-                    ? $this->formatNumber(($passedCount / $participantCount) * 100)
-                    : 0,
-                'score_distributions' => $this->scoreDistributions($testIds),
+                ...$statistics,
             ],
         ]);
     }
@@ -146,20 +126,9 @@ class StatisticsController extends Controller
             ], 404);
         }
 
-        $testIds = $training->tests()->pluck('id');
-
-        $results = TestResult::query()
-            ->with(['user:id,employee_number,name,department,position,email', 'test:id,training_id,type,passing_score'])
-            ->whereIn('test_id', $testIds)
-            ->whereHas('user.role', fn ($query) => $query->where('name', 'Karyawan'))
-            ->orderByDesc('updated_at')
-            ->get()
-            ->unique('user_id')
-            ->values();
-
-        $participantCount = $results->count();
-        $passedCount = $results->where('status', 'Lulus')->count();
-        $failedCount = $results->where('status', 'Tidak Lulus')->count();
+        $statistics = $this->trainingStatistics($training);
+        $participantRows = $statistics['participant_rows'];
+        $participantCount = count($participantRows);
 
         if ($participantCount === 0) {
             return response()->json([
@@ -171,32 +140,44 @@ class StatisticsController extends Controller
         $summaryRows = [
             ['Nama Pelatihan', $training->title],
             ['Jumlah Peserta', $participantCount],
-            ['Rata-rata Nilai', $this->formatNumber($results->avg('score'))],
-            ['Jumlah Lulus', $passedCount],
-            ['Jumlah Tidak Lulus', $failedCount],
-            ['Nilai Tertinggi', $results->max('score') ?? 0],
-            ['Nilai Terendah', $results->min('score') ?? 0],
+            ['Rata-rata Nilai Pre-Test', $statistics['average_pretest_score']],
+            ['Rata-rata Nilai Post-Test', $statistics['average_posttest_score']],
+            ['Jumlah Lulus', $statistics['passed_count']],
+            ['Jumlah Tidak Lulus', $statistics['failed_count']],
+            ['Nilai Post-Test Tertinggi', $statistics['highest_score']],
+            ['Nilai Post-Test Terendah', $statistics['lowest_score']],
             [
                 'Persentase Kelulusan',
-                $participantCount > 0 ? $this->formatNumber(($passedCount / $participantCount) * 100).'%' : '0%',
+                $statistics['posttest_participant_count'] > 0 ? $statistics['pass_percentage'].'%' : '0%',
             ],
         ];
 
-        $detailRows = $results->map(fn ($result, $index) => [
+        foreach ($statistics['top_scores'] as $index => $topScore) {
+            $summaryRows[] = [
+                'Top '.($index + 1).' Post-Test',
+                $topScore['employee_name'].' - '.$topScore['score'],
+            ];
+        }
+
+        $detailRows = collect($participantRows)->map(fn ($row, $index) => [
             $index + 1,
-            $result->user?->employee_number,
-            $result->user?->name,
-            $result->user?->department,
-            $result->user?->position,
-            strtoupper((string) $result->test?->type),
-            $result->score,
-            $result->test?->passing_score,
-            $result->correct_answers,
-            $result->wrong_answers,
-            $result->status,
-            $result->started_at?->format('Y-m-d H:i:s'),
-            $result->finished_at?->format('Y-m-d H:i:s'),
-            $result->user?->email,
+            $row['employee_number'],
+            $row['employee_name'],
+            $row['department'],
+            $row['position'],
+            $row['pretest_score'],
+            $row['posttest_score'],
+            $row['passing_score'],
+            $row['pretest_correct_answers'],
+            $row['pretest_wrong_answers'],
+            $row['posttest_correct_answers'],
+            $row['posttest_wrong_answers'],
+            $row['status'],
+            $row['pretest_started_at'],
+            $row['pretest_finished_at'],
+            $row['posttest_started_at'],
+            $row['posttest_finished_at'],
+            $row['email'],
         ])->all();
 
         $filename = sprintf(
@@ -225,18 +206,155 @@ class StatisticsController extends Controller
             ->first();
     }
 
+    private function trainingStatistics(Training $training): array
+    {
+        $testIds = $training->tests()->pluck('id');
+        $pretestResults = $this->latestResultsByType($training, 'pretest');
+        $posttestResults = $this->latestResultsByType($training, 'posttest');
+        $participantRows = $this->participantScoreRows($pretestResults, $posttestResults);
+        $posttestCount = $posttestResults->count();
+        $passedCount = $posttestResults->where('status', 'Lulus')->count();
+        $failedCount = $posttestResults->where('status', 'Tidak Lulus')->count();
+
+        return [
+            'average_score' => $this->formatNumber($posttestResults->avg('score')),
+            'average_pretest_score' => $this->formatNumber($pretestResults->avg('score')),
+            'average_posttest_score' => $this->formatNumber($posttestResults->avg('score')),
+            'averages' => [
+                'pretest' => $this->formatNumber($pretestResults->avg('score')),
+                'posttest' => $this->formatNumber($posttestResults->avg('score')),
+            ],
+            'participant_count' => count($participantRows),
+            'pretest_participant_count' => $pretestResults->count(),
+            'posttest_participant_count' => $posttestCount,
+            'passed_count' => $passedCount,
+            'failed_count' => $failedCount,
+            'highest_score' => $posttestResults->max('score') ?? 0,
+            'lowest_score' => $posttestResults->min('score') ?? 0,
+            'pass_percentage' => $posttestCount > 0
+                ? $this->formatNumber(($passedCount / $posttestCount) * 100)
+                : 0,
+            'top_scores' => $this->topScores($posttestResults),
+            'score_distributions' => $this->scoreDistributions($testIds),
+            'participant_rows' => $participantRows,
+        ];
+    }
+
+    private function latestResultsByType(Training $training, string $type)
+    {
+        return TestResult::query()
+            ->with(['user:id,employee_number,name,department,position,email', 'test:id,training_id,type,passing_score'])
+            ->whereHas('test', function ($query) use ($training, $type) {
+                $query->where('training_id', $training->id)
+                    ->where('type', $type);
+            })
+            ->whereHas('user.role', fn ($query) => $query->where('name', 'Karyawan'))
+            ->orderByDesc('finished_at')
+            ->orderByDesc('updated_at')
+            ->get()
+            ->unique('user_id')
+            ->values();
+    }
+
+    private function participantScoreRows($pretestResults, $posttestResults): array
+    {
+        $pretestByUser = $pretestResults->keyBy('user_id');
+        $posttestByUser = $posttestResults->keyBy('user_id');
+
+        return $pretestByUser
+            ->keys()
+            ->merge($posttestByUser->keys())
+            ->unique()
+            ->map(function ($userId) use ($pretestByUser, $posttestByUser) {
+                $pretest = $pretestByUser->get($userId);
+                $posttest = $posttestByUser->get($userId);
+                $user = $posttest?->user ?? $pretest?->user;
+
+                return [
+                    'user_id' => $user?->id,
+                    'employee_number' => $user?->employee_number,
+                    'employee_name' => $user?->name,
+                    'department' => $user?->department,
+                    'position' => $user?->position,
+                    'email' => $user?->email,
+                    'pretest_score' => $pretest?->score,
+                    'posttest_score' => $posttest?->score,
+                    'passing_score' => $posttest?->test?->passing_score,
+                    'pretest_correct_answers' => $pretest?->correct_answers,
+                    'pretest_wrong_answers' => $pretest?->wrong_answers,
+                    'posttest_correct_answers' => $posttest?->correct_answers,
+                    'posttest_wrong_answers' => $posttest?->wrong_answers,
+                    'status' => $posttest?->status ?? '-',
+                    'pretest_started_at' => $this->dateTime($pretest?->started_at),
+                    'pretest_finished_at' => $this->dateTime($pretest?->finished_at),
+                    'posttest_started_at' => $this->dateTime($posttest?->started_at),
+                    'posttest_finished_at' => $this->dateTime($posttest?->finished_at),
+                ];
+            })
+            ->sortBy(fn ($row) => strtolower((string) $row['employee_name']).'|'.(string) $row['employee_number'])
+            ->values()
+            ->all();
+    }
+
+    private function topScores($posttestResults): array
+    {
+        return $posttestResults
+            ->sort(function (TestResult $a, TestResult $b) {
+                $scoreCompare = $b->score <=> $a->score;
+
+                if ($scoreCompare !== 0) {
+                    return $scoreCompare;
+                }
+
+                $nameCompare = strcmp(strtolower((string) $a->user?->name), strtolower((string) $b->user?->name));
+
+                if ($nameCompare !== 0) {
+                    return $nameCompare;
+                }
+
+                $numberCompare = strcmp((string) $a->user?->employee_number, (string) $b->user?->employee_number);
+
+                return $numberCompare !== 0 ? $numberCompare : ($a->id <=> $b->id);
+            })
+            ->take(3)
+            ->values()
+            ->map(fn (TestResult $result, int $index) => [
+                'rank' => $index + 1,
+                'employee_id' => $result->user?->id,
+                'employee_number' => $result->user?->employee_number,
+                'employee_name' => $result->user?->name,
+                'score' => $result->score,
+                'status' => $result->status,
+            ])
+            ->all();
+    }
+
+    private function dateTime($dateTime): ?string
+    {
+        return $dateTime?->format('Y-m-d H:i:s');
+    }
+
     private function emptyStatistics(): array
     {
         return [
             'title' => 'Statistik',
             'training' => null,
             'average_score' => 0,
+            'average_pretest_score' => 0,
+            'average_posttest_score' => 0,
+            'averages' => [
+                'pretest' => 0,
+                'posttest' => 0,
+            ],
             'participant_count' => 0,
+            'pretest_participant_count' => 0,
+            'posttest_participant_count' => 0,
             'passed_count' => 0,
             'failed_count' => 0,
             'highest_score' => 0,
             'lowest_score' => 0,
             'pass_percentage' => 0,
+            'top_scores' => [],
             'score_distributions' => $this->emptyScoreDistributions(),
         ];
     }
@@ -375,14 +493,18 @@ class StatisticsController extends Controller
             'Nama Peserta',
             'Departemen',
             'Jabatan',
-            'Jenis Tes',
-            'Nilai',
+            'Nilai Pre-Test',
+            'Nilai Post-Test',
             'Nilai Minimal Lulus',
-            'Jawaban Benar',
-            'Jawaban Salah',
+            'Jawaban Benar Pre-Test',
+            'Jawaban Salah Pre-Test',
+            'Jawaban Benar Post-Test',
+            'Jawaban Salah Post-Test',
             'Status',
-            'Mulai Ujian',
-            'Selesai Ujian',
+            'Mulai Pre-Test',
+            'Selesai Pre-Test',
+            'Mulai Post-Test',
+            'Selesai Post-Test',
             'Email',
         ];
 
@@ -402,15 +524,19 @@ class StatisticsController extends Controller
             'C' => 28,
             'D' => 20,
             'E' => 18,
-            'F' => 14,
+            'F' => 16,
             'G' => 12,
             'H' => 20,
             'I' => 18,
             'J' => 18,
-            'K' => 16,
+            'K' => 22,
             'L' => 22,
-            'M' => 22,
-            'N' => 30,
+            'M' => 16,
+            'N' => 22,
+            'O' => 22,
+            'P' => 22,
+            'Q' => 22,
+            'R' => 30,
         ]);
     }
 

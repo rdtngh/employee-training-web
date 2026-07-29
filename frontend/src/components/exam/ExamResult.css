@@ -171,6 +171,86 @@
   padding: 32px;
 }
 
+.exam-export-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, .5);
+}
+
+.exam-export-dialog {
+  width: min(100%, 410px);
+  padding: 24px;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(2, 6, 23, .2);
+}
+
+.exam-export-title {
+  margin: 0 0 16px;
+  color: #1f2937;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.exam-export-dialog label {
+  display: block;
+  margin-bottom: 8px;
+  color: #111827;
+  font-weight: 600;
+}
+
+.exam-export-dialog select {
+  width: 100%;
+  min-height: 42px;
+  border: none;
+  border-bottom: 1px solid #111827;
+  background: #ffffff;
+  color: #111827;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 1rem;
+  outline: none;
+}
+
+.exam-export-dialog select:focus {
+  border-bottom-color: #327537;
+}
+
+.exam-export-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.exam-export-btn {
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: .95rem;
+  font-weight: 700;
+}
+
+.exam-export-btn:disabled {
+  opacity: .7;
+  cursor: not-allowed;
+}
+
+.exam-export-btn-cancel {
+  border: 1px solid #9ca3af;
+  background: transparent;
+  color: #374151;
+}
+
+.exam-export-btn-confirm {
+  border: 1px solid #327537;
+  background: #327537;
+  color: #ffffff;
+}
+
 @media (max-width: 600px) {
   .exam-result-card-header {
     padding: 16px;

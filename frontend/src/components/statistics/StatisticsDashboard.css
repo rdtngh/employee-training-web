@@ -94,6 +94,95 @@
   gap: 22px;
 }
 
+.statistics-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  margin-bottom: 22px;
+}
+
+.statistics-summary-card {
+  min-width: 0;
+  padding: 18px 22px;
+  border: 2px solid #327537;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.statistics-summary-card h2 {
+  margin: 0 0 14px;
+  color: #111827;
+  font-size: 1.02rem;
+}
+
+.statistics-average-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.statistics-average-list div {
+  min-width: 0;
+}
+
+.statistics-average-list span,
+.statistics-top-list span,
+.statistics-empty-summary {
+  color: #6b7280;
+  font-size: .92rem;
+}
+
+.statistics-average-list strong {
+  display: block;
+  margin-top: 6px;
+  color: #111827;
+  font-size: 1.6rem;
+}
+
+.statistics-top-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.statistics-top-list li {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 38px;
+  padding: 6px 0;
+}
+
+.statistics-top-rank {
+  display: inline-grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid #327537;
+  border-radius: 50%;
+  color: #327537;
+  font-size: .86rem;
+  font-weight: 700;
+}
+
+.statistics-top-name {
+  overflow-wrap: anywhere;
+}
+
+.statistics-top-list strong {
+  color: #111827;
+  font-size: 1.05rem;
+  text-align: right;
+}
+
+.statistics-empty-summary {
+  margin: 0;
+}
+
 .statistics-chart-card {
   min-width: 0;
   padding: 22px 24px 26px;
@@ -310,6 +399,7 @@
 }
 
 @media (max-width: 900px) {
+  .statistics-summary-grid,
   .statistics-chart-grid {
     grid-template-columns: 1fr;
   }
@@ -326,6 +416,14 @@
 
   .statistics-chart-card {
     padding: 18px 14px 20px;
+  }
+
+  .statistics-summary-card {
+    padding: 16px 14px;
+  }
+
+  .statistics-average-list {
+    grid-template-columns: 1fr;
   }
 
   .statistics-chart {

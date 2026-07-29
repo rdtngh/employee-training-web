@@ -86,14 +86,7 @@ class CertificateController extends Controller
 
         $certificate = $this->firstOrCreateCertificate($request->user()->id, $result);
 
-        $pdf = $this->buildPdf($certificate, $result, $training);
-        $filename = sprintf('sertifikat-%s.pdf', Str::slug($training->title) ?: $training->id);
-
-        return response($pdf, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
-            'Content-Length' => strlen($pdf),
-        ]);
+        return $this->certificatePdfResponse($certificate, $result, $training);
     }
 
     public function downloadFile(Certificate $certificate): Response
@@ -106,14 +99,22 @@ class CertificateController extends Controller
 
         abort_unless(
             $certificate->testResult?->test?->type === 'posttest'
+                && $certificate->testResult?->status === 'Lulus'
+                && $certificate->testResult?->user_id === $certificate->user_id
                 && $certificate->user?->role?->name === 'Karyawan',
             404,
             'Sertifikat tidak ditemukan.'
         );
 
         $training = $certificate->testResult->test->training;
-        $pdf = $this->buildPdf($certificate, $certificate->testResult, $training);
-        $filename = sprintf('sertifikat-%s.pdf', Str::slug($certificate->user->name) ?: $certificate->id);
+
+        return $this->certificatePdfResponse($certificate, $certificate->testResult, $training);
+    }
+
+    private function certificatePdfResponse(Certificate $certificate, TestResult $result, Training $training): Response
+    {
+        $pdf = $this->buildPdf($certificate, $result, $training);
+        $filename = sprintf('sertifikat-%s.pdf', Str::slug($training->title) ?: $training->id);
 
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',
@@ -222,9 +223,31 @@ class CertificateController extends Controller
             'participantName' => $result->user->name,
             'trainingTitle' => $training->title,
             'trainingPeriod' => $this->trainingPeriod($training, $issuedAt),
+            'assets' => $this->certificateAssetDataUris(),
         ])
             ->setPaper('a4', 'landscape')
             ->output();
+    }
+
+    private function certificateAssetDataUris(): array
+    {
+        return collect([
+            'bgDaun' => 'bg-daun.svg',
+            'daunKananAtas' => 'daun-kanan-atas.svg',
+            'frameGold' => 'frame-gold.svg',
+            'garisGold' => 'garis-gold.svg',
+            'piagam' => 'piagam.svg',
+            'sudutAtas' => 'sudut-atas.svg',
+            'sudutBawah' => 'sudut-bawah.svg',
+        ])->mapWithKeys(function (string $file, string $key) {
+            $path = base_path("../frontend/src/assets/icons/{$file}");
+
+            if (! file_exists($path)) {
+                return [$key => ''];
+            }
+
+            return [$key => 'data:image/svg+xml;base64,'.base64_encode(file_get_contents($path))];
+        })->all();
     }
 
     private function loadCertificateTemplate(): array

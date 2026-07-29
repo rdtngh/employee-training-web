@@ -152,6 +152,17 @@ export const getMockStatistics = (trainingId) => {
     training_id: training.id,
     training_title: training.title,
     participant_count: 10,
+    average_pretest_score: 65,
+    average_posttest_score: 82,
+    averages: {
+      pretest: 65,
+      posttest: 82,
+    },
+    top_scores: [
+      { rank: 1, employee_id: 1, employee_name: "Bening Apni P.", score: 96 },
+      { rank: 2, employee_id: 2, employee_name: "Andi Saputra", score: 92 },
+      { rank: 3, employee_id: 3, employee_name: "Citra Lestari", score: 89 },
+    ],
     score_distributions: {
       pretest: {
         label: "Pre Test",

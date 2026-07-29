@@ -15,6 +15,8 @@ const toFormAnswer = (answer) => String(answer ?? "").toLowerCase();
 const mapQuestionFromApi = (item) => ({
   id: item.id,
   testId: item.test_id,
+  trainingId: item.test?.training_id,
+  testType: item.test?.type,
   question: item.question,
   options: {
     a: item.option_a,
@@ -33,6 +35,8 @@ const mapQuestionToApi = (question) => ({
   option_c: question.options.c,
   option_d: question.options.d,
   correct_answer: normalizeAnswer(question.correctAnswer),
+  ...(question.trainingId ? { training_id: question.trainingId } : {}),
+  ...(question.testType ? { type: question.testType } : {}),
 });
 
 const mapQuestions = (questions = []) => questions.map(mapQuestionFromApi);
@@ -53,6 +57,16 @@ export const getAllExam = async () => {
   return mapQuestions(unwrap(response));
 };
 
+export const getExamByTraining = async ({ trainingId, type }) => {
+  const response = await api.get("/questions", {
+    params: {
+      training_id: trainingId,
+      type,
+    },
+  });
+  return mapQuestions(unwrap(response));
+};
+
 export const createExam = async (examData) => {
   const response = await api.post("/questions", mapQuestionToApi(examData));
   return mapQuestionFromApi(unwrap(response));
@@ -65,6 +79,29 @@ export const updateExam = async (id, examData) => {
 
 export const deleteExam = async (id) => {
   await api.delete(`/questions/${id}`);
+};
+
+export const previewExamImport = async ({ trainingId, type, file }) => {
+  const formData = new FormData();
+  formData.append("training_id", trainingId);
+  formData.append("type", type);
+  formData.append("file", file);
+
+  const response = await api.post("/questions/import/preview", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+  return response.data?.data ?? response.data;
+};
+
+export const importExamQuestions = async ({ trainingId, type, questions }) => {
+  const response = await api.post("/questions/import", {
+    training_id: trainingId,
+    type,
+    questions,
+  });
+
+  return mapQuestions(unwrap(response));
 };
 
 export const getData = getAllExam;

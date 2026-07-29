@@ -21,11 +21,16 @@ function UserManagement() {
   const [editingUser, setEditingUser] = useState(null);
   const [deletingUserId, setDeletingUserId] = useState(null);
   const [importFile, setImportFile] = useState(null);
+  const [searchKeyword, setSearchKeyword] = useState("");
   const [toast, setToast] = useState("");
 
   useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
+    const timer = window.setTimeout(() => {
+      loadUsers(searchKeyword.trim());
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [loadUsers, searchKeyword]);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -92,7 +97,7 @@ function UserManagement() {
     setImportFile(null);
     event.currentTarget.reset();
     setToast(
-      `Import berhasil: ${result.created ?? 0} baru, ${result.updated ?? 0} update, ${result.skipped ?? 0} dilewati.`
+      `Import berhasil: ${result.created ?? 0} baru, ${result.updated ?? 0} update, ${result.deleted ?? 0} dihapus, ${result.skipped ?? 0} dilewati.`
     );
   }
 
@@ -100,14 +105,23 @@ function UserManagement() {
     <DashboardLayout role="superadmin">
       <div className="user-management-page">
         <section className="user-management-card">
-          <div className="user-management-header">
+          <div className="user-management-header user-management-data-header">
             <h1 className="user-management-title">Data Pengguna</h1>
+            <input
+              type="search"
+              className="user-search-input"
+              value={searchKeyword}
+              onChange={(event) => setSearchKeyword(event.target.value)}
+              placeholder="Cari pengguna..."
+              aria-label="Cari pengguna"
+            />
           </div>
 
           <UserTable
             users={users}
             onEdit={setEditingUser}
             onDelete={openDeleteDialog}
+            emptyMessage={searchKeyword.trim() ? "Pengguna tidak ditemukan." : "Belum ada pengguna."}
           />
         </section>
 
@@ -127,7 +141,7 @@ function UserManagement() {
               />
             </label>
             <p className="user-import-note">
-              Kolom pertama berisi nomor karyawan, kolom kedua berisi nama. Role otomatis Karyawan.
+              Kolom username atau No Rekening digunakan sebagai username login. Baris tanpa username tidak akan diimport.
             </p>
             <button type="submit" className="user-import-button" disabled={loading}>
               {loading ? "Memproses..." : "Import Karyawan"}

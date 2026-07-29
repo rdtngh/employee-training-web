@@ -1,29 +1,41 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import * as certificateService from "../../services/certificateService";
-import { downloadFile } from "../../utils/downloadFile";
+import Certificate from "./Certificate";
 import "./CertificateDashboard.css";
 
 function CertificateDashboard({ certificateData, loading, error }) {
   const navigate = useNavigate();
-  const [downloadingId, setDownloadingId] = useState(null);
+  const [printingCertificate, setPrintingCertificate] = useState(null);
   const [downloadError, setDownloadError] = useState("");
   const certificates = certificateData?.certificates ?? [];
+  const printingId = printingCertificate?.id ?? null;
 
-  async function downloadCertificate(certificate) {
-    setDownloadingId(certificate.id);
+  useEffect(() => {
+    if (!printingCertificate) return undefined;
+
+    document.body.classList.add("is-certificate-printing");
+
+    const finishPrint = () => {
+      document.body.classList.remove("is-certificate-printing");
+      setPrintingCertificate(null);
+    };
+
+    window.addEventListener("afterprint", finishPrint);
+
+    const timer = window.setTimeout(() => {
+      window.print();
+    }, 100);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("afterprint", finishPrint);
+      document.body.classList.remove("is-certificate-printing");
+    };
+  }, [printingCertificate]);
+
+  function downloadCertificate(certificate) {
     setDownloadError("");
-
-    try {
-      const file = await certificateService.downloadCertificateFile(certificate.id);
-      downloadFile(file);
-    } catch (error) {
-      setDownloadError(
-        error.response?.data?.message || "Sertifikat gagal diunduh. Silakan coba lagi."
-      );
-    } finally {
-      setDownloadingId(null);
-    }
+    setPrintingCertificate(certificate);
   }
 
   return (
@@ -83,9 +95,9 @@ function CertificateDashboard({ certificateData, loading, error }) {
                           type="button"
                           className="certificate-download"
                           onClick={() => downloadCertificate(certificate)}
-                          disabled={downloadingId === certificate.id}
+                          disabled={printingId === certificate.id}
                         >
-                          {downloadingId === certificate.id ? "Mengunduh..." : "Download PDF"}
+                          {printingId === certificate.id ? "Menyiapkan..." : "Download PDF"}
                         </button>
                       </td>
                     </tr>
@@ -100,6 +112,15 @@ function CertificateDashboard({ certificateData, loading, error }) {
       <button type="button" className="certificate-back" onClick={() => navigate(-1)}>
         Back
       </button>
+
+      {printingCertificate && (
+        <section className="certificate-print-stage" aria-hidden="true">
+          <Certificate
+            employeeName={printingCertificate.employee?.name}
+            trainingTitle={printingCertificate.training?.title}
+          />
+        </section>
+      )}
     </main>
   );
 }

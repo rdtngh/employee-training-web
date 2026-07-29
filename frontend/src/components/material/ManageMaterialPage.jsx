@@ -26,6 +26,12 @@ function ManageMaterialPage({ role }) {
   const [newTrainingTitle, setNewTrainingTitle] = useState("");
   const [addingTraining, setAddingTraining] = useState(false);
   const [trainingFormError, setTrainingFormError] = useState("");
+  const [editingTraining, setEditingTraining] = useState(null);
+  const [editTrainingTitle, setEditTrainingTitle] = useState("");
+  const [editTrainingError, setEditTrainingError] = useState("");
+  const [editTrainingLoading, setEditTrainingLoading] = useState(false);
+  const [deletingTraining, setDeletingTraining] = useState(null);
+  const [deletingTrainingLoading, setDeletingTrainingLoading] = useState(false);
   const selectedTraining = trainings.find((training) => String(training.id) === String(trainingId));
   const {
     materials,
@@ -87,6 +93,19 @@ function ManageMaterialPage({ role }) {
     setEditingMaterial(material);
     setEditFileName(material.fileName);
     setEditFile(null);
+  }
+
+  function openTrainingEdit(training) {
+    setEditingTraining(training);
+    setEditTrainingTitle(training.title ?? "");
+    setEditTrainingError("");
+  }
+
+  function closeTrainingEdit() {
+    setEditingTraining(null);
+    setEditTrainingTitle("");
+    setEditTrainingError("");
+    setEditTrainingLoading(false);
   }
 
   function closeEdit() {
@@ -166,6 +185,63 @@ function ManageMaterialPage({ role }) {
     }
   }
 
+  async function confirmDeleteTraining() {
+    if (!deletingTraining) return;
+
+    setDeletingTrainingLoading(true);
+
+    try {
+      await trainingService.deleteTraining(deletingTraining.id);
+      setTrainings((current) =>
+        current.filter((training) => String(training.id) !== String(deletingTraining.id))
+      );
+      setDeletingTraining(null);
+      setToast("Pelatihan berhasil dihapus.");
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        Object.values(error.response?.data?.errors ?? {}).flat()[0] ||
+        "Pelatihan gagal dihapus.";
+      setToast(message);
+    } finally {
+      setDeletingTrainingLoading(false);
+    }
+  }
+
+  async function handleUpdateTraining(event) {
+    event.preventDefault();
+
+    if (!editingTraining) return;
+
+    const title = editTrainingTitle.trim();
+    if (!title) {
+      setEditTrainingError("Nama pelatihan wajib diisi.");
+      return;
+    }
+
+    setEditTrainingLoading(true);
+    setEditTrainingError("");
+
+    try {
+      const updatedTraining = await trainingService.updateTraining(editingTraining.id, { title });
+      setTrainings((current) =>
+        current.map((training) =>
+          String(training.id) === String(updatedTraining.id) ? updatedTraining : training
+        )
+      );
+      closeTrainingEdit();
+      setToast("Pelatihan berhasil diperbarui.");
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        Object.values(error.response?.data?.errors ?? {}).flat()[0] ||
+        "Pelatihan gagal diperbarui.";
+      setEditTrainingError(message);
+    } finally {
+      setEditTrainingLoading(false);
+    }
+  }
+
   async function confirmAdd() {
     if (!pendingAdd) return;
 
@@ -229,7 +305,7 @@ function ManageMaterialPage({ role }) {
                       <tr>
                         <th>No</th>
                         <th>Daftar Pelatihan</th>
-                        <th>Daftar Materi</th>
+                        <th>Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -244,14 +320,30 @@ function ManageMaterialPage({ role }) {
                           <tr key={training.id}>
                             <td data-label="No">{index + 1}</td>
                             <td data-label="Daftar Pelatihan">{training.title}</td>
-                            <td data-label="Daftar Materi">
-                              <button
-                                type="button"
-                                className="material-action material-action-open"
-                                onClick={() => navigate(`/${rolePath}/manage-materi/${training.id}`)}
-                              >
-                                Lihat Materi
-                              </button>
+                            <td data-label="Aksi">
+                              <div className="material-table-actions">
+                                <button
+                                  type="button"
+                                  className="material-action material-action-open"
+                                  onClick={() => navigate(`/${rolePath}/manage-materi/${training.id}`)}
+                                >
+                                  Lihat Materi
+                                </button>
+                                <button
+                                  type="button"
+                                  className="material-action material-action-edit"
+                                  onClick={() => openTrainingEdit(training)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  className="material-action material-action-delete"
+                                  onClick={() => setDeletingTraining(training)}
+                                >
+                                  Hapus
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -369,6 +461,69 @@ function ManageMaterialPage({ role }) {
         loading={loading}
         trainings={trainings}
         lockTraining={Boolean(trainingId)}
+      />
+
+      {editingTraining && (
+        <div className="manage-training-edit-overlay">
+          <form
+            className="manage-training-edit-dialog"
+            onSubmit={handleUpdateTraining}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="manage-training-edit-title"
+          >
+            <h3 id="manage-training-edit-title" className="manage-training-edit-title">
+              Edit Pelatihan
+            </h3>
+            <label className="manage-training-edit-field" htmlFor="edit-training-title">
+              Nama Pelatihan
+            </label>
+            <input
+              id="edit-training-title"
+              value={editTrainingTitle}
+              onChange={(event) => {
+                setEditTrainingTitle(event.target.value);
+                setEditTrainingError("");
+              }}
+              disabled={editTrainingLoading}
+              autoFocus
+            />
+            {editTrainingError && (
+              <p className="manage-training-edit-error" role="alert">
+                {editTrainingError}
+              </p>
+            )}
+            <div className="manage-training-edit-actions">
+              <button
+                type="button"
+                className="manage-training-edit-btn manage-training-edit-cancel"
+                onClick={closeTrainingEdit}
+                disabled={editTrainingLoading}
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="manage-training-edit-btn manage-training-edit-save"
+                disabled={editTrainingLoading}
+              >
+                {editTrainingLoading ? "Menyimpan..." : "Simpan"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <MaterialConfirmDialog
+        isOpen={Boolean(deletingTraining)}
+        title="Hapus Pelatihan"
+        message={`Apakah Anda yakin ingin menghapus pelatihan "${deletingTraining?.title ?? ""}"?`}
+        note="Materi, ujian, hasil, dan data terkait pelatihan ini akan ikut dihapus."
+        confirmLabel={deletingTrainingLoading ? "Menghapus..." : "Hapus"}
+        variant="danger"
+        onConfirm={confirmDeleteTraining}
+        onCancel={() => setDeletingTraining(null)}
+        loading={deletingTrainingLoading}
       />
 
       <MaterialConfirmDialog

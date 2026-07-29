@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as examService from "../services/examService";
 
-export const useExam = () => {
+export const useExam = ({ trainingId = null, testType = null } = {}) => {
   const mountedRef = useRef(false);
   const [questions, setQuestions] = useState([]);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
@@ -52,19 +52,22 @@ export const useExam = () => {
     setErrors({});
   }, []);
 
-  // Load semua questions
+  // Load questions sesuai konteks halaman.
   const loadQuestions = useCallback(async () => {
     if (!mountedRef.current) return;
     setLoading(true);
     try {
-      const data = await examService.getAllExam();
+      const data =
+        trainingId && testType
+          ? await examService.getExamByTraining({ trainingId, type: testType })
+          : await examService.getAllExam();
       if (mountedRef.current) setQuestions(data);
     } catch (error) {
       console.error("Error loading questions:", error);
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, []);
+  }, [testType, trainingId]);
 
   // Add question baru
   const addQuestion = useCallback(
@@ -75,7 +78,11 @@ export const useExam = () => {
 
       setLoading(true);
       try {
-        await examService.createExam(formData);
+        await examService.createExam({
+          ...formData,
+          trainingId,
+          testType,
+        });
         if (!mountedRef.current) return false;
         await loadQuestions();
         return true;
@@ -86,7 +93,7 @@ export const useExam = () => {
         if (mountedRef.current) setLoading(false);
       }
     },
-    [loadQuestions, validateQuestion]
+    [loadQuestions, testType, trainingId, validateQuestion]
   );
 
   // Update question

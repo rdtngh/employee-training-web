@@ -14,302 +14,255 @@
 
         body {
             margin: 0;
-            color: #2c313c;
+            color: #000000;
             font-family: DejaVu Sans, Arial, sans-serif;
         }
 
         .certificate {
             position: relative;
-            width: 297mm;
-            height: 210mm;
+            width: 841px;
+            height: 595px;
             overflow: hidden;
-            background: #fff;
+            background: #ffffff;
         }
 
-        .outer-border {
+        .asset {
             position: absolute;
-            inset: 9mm;
-            border: 1.8mm solid #c69b36;
+            display: block;
         }
 
-        .inner-border {
-            position: absolute;
-            inset: 13mm 16mm 13mm 16mm;
-            border: .45mm solid #ead477;
+        .bg-daun {
+            z-index: 2;
+            top: 49px;
+            left: 160px;
+            width: 521px;
+            height: 421px;
+            opacity: .5;
         }
 
-        .top-rule {
-            position: absolute;
-            top: 18mm;
-            left: 62mm;
-            width: 169mm;
-            height: 1.8mm;
-            background: linear-gradient(90deg, #a97916, #faef9a, #a97916);
+        .frame-gold {
+            z-index: 1;
+            top: 0;
+            left: 0;
+            width: 841px;
+            height: 595px;
         }
 
-        .corner-left-green {
-            position: absolute;
-            top: -30mm;
-            left: -26mm;
-            width: 108mm;
-            height: 108mm;
-            background: linear-gradient(135deg, #00843f, #004b25);
-            transform: rotate(45deg);
+        .sudut-atas {
+            z-index: 3;
+            top: -6px;
+            left: -2px;
+            width: 206px;
+            height: 335px;
         }
 
-        .corner-left-gold {
-            position: absolute;
-            top: 32mm;
-            left: -14mm;
-            width: 82mm;
-            height: 82mm;
-            border: 8mm solid #d0a13b;
-            transform: rotate(45deg);
+        .sudut-bawah {
+            z-index: 3;
+            right: -2px;
+            bottom: -6px;
+            width: 206px;
+            height: 335px;
         }
 
-        .corner-right-green {
-            position: absolute;
-            right: -34mm;
-            bottom: -35mm;
-            width: 112mm;
-            height: 112mm;
-            background: linear-gradient(135deg, #004a25, #008847);
-            transform: rotate(45deg);
+        .daun-kanan-atas {
+            z-index: 3;
+            top: -2px;
+            left: 656px;
+            width: 198px;
+            height: 196px;
         }
 
-        .corner-right-gold {
-            position: absolute;
-            right: -12mm;
-            bottom: 18mm;
-            width: 77mm;
-            height: 77mm;
-            border: 8mm solid #d3a23b;
-            transform: rotate(45deg);
-        }
-
-        .laurel {
-            position: absolute;
-            top: 28mm;
-            left: 63mm;
-            width: 171mm;
-            height: 132mm;
-            opacity: .105;
-        }
-
-        .gold-flourish {
-            position: absolute;
-            top: -5mm;
-            right: 8mm;
-            width: 72mm;
-            height: 63mm;
-        }
-
-        .seal {
-            position: absolute;
-            left: 34mm;
-            bottom: 27mm;
-            width: 44mm;
-            height: 44mm;
-            border-radius: 50%;
-            background: radial-gradient(circle, #fff3a7 0 8%, #c28b2e 9% 12%, #f6d56d 13% 28%, #b97824 29% 31%, #f7dd78 32% 48%, #b16b22 49% 53%, #f2cc61 54% 100%);
-            box-shadow: 0 2mm 3mm rgba(104, 72, 18, .25);
-        }
-
-        .seal:before,
-        .seal:after {
-            content: "";
-            position: absolute;
-            bottom: -31mm;
-            width: 13mm;
-            height: 37mm;
-            background: #f0cf6a;
-            z-index: -1;
-        }
-
-        .seal:before {
-            left: 9mm;
-            transform: skew(-14deg);
-        }
-
-        .seal:after {
-            right: 9mm;
-            transform: skew(14deg);
+        .piagam {
+            z-index: 3;
+            left: 50px;
+            bottom: 45px;
+            width: 195px;
+            height: 230px;
         }
 
         .content {
             position: absolute;
-            top: 28mm;
-            left: 56mm;
-            width: 185mm;
+            inset: 0;
+            z-index: 4;
+        }
+
+        .title-block {
+            position: absolute;
+            top: 54px;
+            left: 0;
+            width: 100%;
             text-align: center;
         }
 
         .title {
             margin: 0;
             font-family: Georgia, "Times New Roman", serif;
-            font-size: 30mm;
+            font-size: 64px;
             font-weight: 700;
-            line-height: .9;
-            letter-spacing: .9mm;
+            line-height: 1;
+            letter-spacing: 0;
         }
 
         .subtitle {
-            margin: 8mm 0 10mm;
+            margin: 4px 0 0;
             font-family: Georgia, "Times New Roman", serif;
-            font-size: 13mm;
-            font-weight: 700;
-            letter-spacing: 3.4mm;
+            font-size: 29px;
+            font-weight: 500;
+            line-height: 1;
+            letter-spacing: .15em;
         }
 
-        .ornament {
-            position: relative;
-            width: 127mm;
-            height: 8mm;
-            margin: 0 auto 11mm;
-            border-top: .7mm solid #dfa53a;
-            border-bottom: .7mm solid #dfa53a;
-        }
-
-        .ornament:before {
-            content: "✶";
+        .garis-gold {
             position: absolute;
-            top: -5.6mm;
-            left: 50%;
-            width: 12mm;
-            height: 12mm;
-            margin-left: -6mm;
-            border: .6mm solid #e0a33b;
-            border-radius: 50%;
-            background: #fff;
-            color: #e0a33b;
-            font-size: 7mm;
-            line-height: 11mm;
+            top: 111px;
+            left: 132px;
+            width: 577px;
+            height: 51px;
         }
 
-        .label {
-            margin: 0 0 16mm;
-            font-size: 5.2mm;
-            font-weight: 700;
+        .recipient {
+            position: absolute;
+            z-index: 5;
+            top: 220px;
+            left: 140px;
+            width: 561px;
+            text-align: center;
+        }
+
+        .given-text {
+            margin: 0 0 13px;
+            font-size: 15px;
+            font-weight: 400;
+            line-height: 1.4;
         }
 
         .participant {
-            min-height: 19mm;
-            margin: 0 auto 12mm;
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: 12mm;
-            font-weight: 700;
-            line-height: 1.1;
-            color: #202733;
+            max-width: 620px;
+            margin: -10px auto -8px;
+            padding: 10px 18px 8px;
+            color: #b99645;
+            font-family: "Brush Script MT", "Segoe Script", cursive;
+            font-size: {{ mb_strlen($participantName) > 34 ? 44 : (mb_strlen($participantName) > 21 ? 52 : 64) }}px;
+            font-weight: 400;
+            line-height: 1.2;
+            white-space: nowrap;
         }
 
-        .divider {
-            width: 180mm;
-            height: .6mm;
-            margin: 0 auto 12mm;
-            background: #e0b64f;
+        .name-line {
+            width: 300px;
+            height: 2px;
+            margin: 8px auto 0;
+            background: #b99645;
         }
 
-        .description {
+        .training-block {
+            position: absolute;
+            z-index: 5;
+            top: 370px;
+            left: 175px;
+            width: 491px;
+            text-align: center;
+        }
+
+        .training-label {
             margin: 0;
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: 5.3mm;
-            line-height: 1.35;
+            font-size: 15px;
+            font-weight: 400;
+            line-height: 1.5;
         }
 
-        .training {
-            display: block;
+        .training-title {
+            max-height: 50px;
+            margin: 6px auto 0;
+            overflow: hidden;
+            color: #000000;
+            font-size: 18px;
             font-weight: 700;
+            line-height: 1.35;
         }
 
         .signature {
             position: absolute;
-            left: 0;
-            right: 0;
-            bottom: -69mm;
+            z-index: 6;
+            top: 438px;
+            left: 290px;
+            width: 260px;
             text-align: center;
-            font-family: DejaVu Sans, Arial, sans-serif;
+        }
+
+        .signature-space {
+            height: 56px;
         }
 
         .signature-line {
-            width: 47mm;
-            height: .7mm;
-            margin: 0 auto 5mm;
-            background: #2c313c;
+            width: 122px;
+            height: 0;
+            margin: 0 auto 7px;
+            border-top: 2px solid #000000;
         }
 
-        .signature-name {
-            margin: 0 0 2mm;
-            font-size: 4.6mm;
-            font-weight: 700;
-        }
-
-        .signature-role {
+        .director-name {
             margin: 0;
-            font-size: 6.2mm;
-            font-weight: 800;
+            font-size: 12px;
+            font-weight: 400;
+            line-height: 1.35;
+        }
+
+        .director-title {
+            margin: 2px 0 0;
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 1.25;
         }
     </style>
 </head>
 <body>
     <main class="certificate">
-        <div class="outer-border"></div>
-        <div class="inner-border"></div>
-        <div class="top-rule"></div>
-        <div class="corner-left-green"></div>
-        <div class="corner-left-gold"></div>
-        <div class="corner-right-green"></div>
-        <div class="corner-right-gold"></div>
-
-        <svg class="laurel" viewBox="0 0 640 500" aria-hidden="true">
-            <g fill="none" stroke="#c9b17b" stroke-width="10">
-                <path d="M217 425 C78 330 85 135 270 46" />
-                <path d="M423 425 C562 330 555 135 370 46" />
-            </g>
-            <g fill="#c9b17b">
-                @for ($i = 0; $i < 13; $i++)
-                    <ellipse cx="{{ 172 - ($i * 8) }}" cy="{{ 382 - ($i * 25) }}" rx="18" ry="42" transform="rotate({{ -45 + ($i * 7) }} {{ 172 - ($i * 8) }} {{ 382 - ($i * 25) }})" />
-                    <ellipse cx="{{ 468 + ($i * 8) }}" cy="{{ 382 - ($i * 25) }}" rx="18" ry="42" transform="rotate({{ 45 - ($i * 7) }} {{ 468 + ($i * 8) }} {{ 382 - ($i * 25) }})" />
-                @endfor
-            </g>
-        </svg>
-
-        <svg class="gold-flourish" viewBox="0 0 300 260" aria-hidden="true">
-            <g fill="none" stroke="#d4a43b" stroke-width="8" stroke-linecap="round">
-                <path d="M285 6 C215 14 230 95 154 88 C104 84 91 44 125 22" />
-                <path d="M285 26 C245 55 251 111 190 125 C142 136 120 112 118 90" />
-                <path d="M283 55 C251 95 260 164 196 190" />
-                <path d="M232 2 C221 58 178 74 162 120" />
-            </g>
-            <g fill="#f4d56f" stroke="#b7862b" stroke-width="2">
-                <path d="M190 90 C160 56 162 22 205 1 C215 43 217 68 190 90Z" />
-                <path d="M168 129 C124 120 104 89 123 53 C151 82 173 101 168 129Z" />
-                <path d="M214 174 C185 149 188 112 228 96 C236 132 238 157 214 174Z" />
-                <circle cx="164" cy="158" r="8" />
-                <circle cx="183" cy="181" r="6" />
-                <circle cx="205" cy="199" r="5" />
-            </g>
-        </svg>
-
-        <div class="seal"></div>
+        @if ($assets['bgDaun'])
+            <img src="{{ $assets['bgDaun'] }}" class="asset bg-daun" alt="">
+        @endif
+        @if ($assets['frameGold'])
+            <img src="{{ $assets['frameGold'] }}" class="asset frame-gold" alt="">
+        @endif
+        @if ($assets['sudutAtas'])
+            <img src="{{ $assets['sudutAtas'] }}" class="asset sudut-atas" alt="">
+        @endif
+        @if ($assets['sudutBawah'])
+            <img src="{{ $assets['sudutBawah'] }}" class="asset sudut-bawah" alt="">
+        @endif
+        @if ($assets['daunKananAtas'])
+            <img src="{{ $assets['daunKananAtas'] }}" class="asset daun-kanan-atas" alt="">
+        @endif
+        @if ($assets['piagam'])
+            <img src="{{ $assets['piagam'] }}" class="asset piagam" alt="">
+        @endif
 
         <section class="content">
-            <h1 class="title">SERTIFIKAT</h1>
-            <p class="subtitle">PENGHARGAAN</p>
-            <div class="ornament"></div>
-            <p class="label">Sertifikat penghargaan ini diberikan kepada:</p>
-            <p class="participant">{{ $participantName }}</p>
-            <div class="divider"></div>
-            <p class="description">
-                telah mengikuti dan menyelesaikan
-                <span class="training">{{ $trainingTitle }}</span>
-                yang diselenggarakan pada {{ $trainingPeriod }}
-            </p>
+            <header class="title-block">
+                <h1 class="title">SERTIFIKAT</h1>
+                <p class="subtitle">PENGHARGAAN</p>
+                @if ($assets['garisGold'])
+                    <img src="{{ $assets['garisGold'] }}" class="garis-gold" alt="">
+                @endif
+            </header>
 
-            <div class="signature">
+            <section class="recipient">
+                <p class="given-text">Sertifikat penghargaan ini diberikan kepada:</p>
+                <div class="participant">{{ $participantName }}</div>
+                <div class="name-line"></div>
+            </section>
+
+            <section class="training-block">
+                <p class="training-label">telah berhasil mengikuti dan menyelesaikan</p>
+                <p class="training-title">{{ $trainingTitle }}</p>
+            </section>
+
+            <section class="signature">
+                <div class="signature-space"></div>
                 <div class="signature-line"></div>
-                <p class="signature-name">Dr. Charles Z. Suoth, MARS</p>
-                <p class="signature-role">Direktur RSABL</p>
-            </div>
+                <p class="director-name">Dr. Charles Z. Suoth, MARS</p>
+                <p class="director-title">Direktur RSABL</p>
+            </section>
         </section>
     </main>
 </body>

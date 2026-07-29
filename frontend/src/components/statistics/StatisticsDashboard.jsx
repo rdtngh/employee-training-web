@@ -74,6 +74,10 @@ function ScoreChart({ distribution }) {
   );
 }
 
+function formatScore(value) {
+  return value === null || value === undefined || value === "" ? "-" : value;
+}
+
 function StatisticsDashboard({
   statistics,
   loading,
@@ -91,6 +95,9 @@ function StatisticsDashboard({
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const preTestDistribution = getDistribution(statistics, "pretest");
   const postTestDistribution = getDistribution(statistics, "posttest");
+  const topScores = statistics?.top_scores ?? [];
+  const averagePreTest = statistics?.averages?.pretest ?? statistics?.average_pretest_score;
+  const averagePostTest = statistics?.averages?.posttest ?? statistics?.average_posttest_score;
 
   async function resetStatistics() {
     setResetting(true);
@@ -156,10 +163,45 @@ function StatisticsDashboard({
       )}
 
       {selectedTrainingId && !loading && !error && (
-        <section className="statistics-chart-grid" aria-label="Grafik statistik pelatihan">
-          <ScoreChart distribution={preTestDistribution} />
-          <ScoreChart distribution={postTestDistribution} />
-        </section>
+        <>
+          <section className="statistics-summary-grid" aria-label="Ringkasan statistik pelatihan">
+            <article className="statistics-summary-card">
+              <h2>Rata-rata Nilai</h2>
+              <div className="statistics-average-list">
+                <div>
+                  <span>Pre-Test</span>
+                  <strong>{formatScore(averagePreTest)}</strong>
+                </div>
+                <div>
+                  <span>Post-Test</span>
+                  <strong>{formatScore(averagePostTest)}</strong>
+                </div>
+              </div>
+            </article>
+
+            <article className="statistics-summary-card">
+              <h2>Top 3 Nilai Post-Test</h2>
+              {topScores.length > 0 ? (
+                <ol className="statistics-top-list">
+                  {topScores.map((score) => (
+                    <li key={`${score.employee_id}-${score.rank}`}>
+                      <span className="statistics-top-rank">{score.rank}</span>
+                      <span className="statistics-top-name">{score.employee_name || "-"}</span>
+                      <strong>{formatScore(score.score)}</strong>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="statistics-empty-summary">Belum ada nilai Post-Test.</p>
+              )}
+            </article>
+          </section>
+
+          <section className="statistics-chart-grid" aria-label="Grafik statistik pelatihan">
+            <ScoreChart distribution={preTestDistribution} />
+            <ScoreChart distribution={postTestDistribution} />
+          </section>
+        </>
       )}
 
       <button type="button" className="statistics-back" onClick={() => navigate(-1)}>&larr; Back</button>

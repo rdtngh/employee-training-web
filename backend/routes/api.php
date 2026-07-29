@@ -45,6 +45,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/certificates', [CertificateController::class, 'index']);
         Route::get('/certificates/{certificate}/file', [CertificateController::class, 'downloadFile']);
 
+        Route::post('/trainings', [TrainingController::class, 'store']);
+        Route::put('/trainings/{training}', [TrainingController::class, 'update']);
+        Route::delete('/trainings/{training}', [TrainingController::class, 'destroy']);
+
         Route::post('/materials', [MaterialController::class, 'store']);
         Route::post('/materials/chunked', [MaterialController::class, 'storeChunked']);
         Route::post('/materials/bulk', [MaterialController::class, 'bulkStore']);
@@ -53,6 +57,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/questions', [QuestionController::class, 'index']);
         Route::post('/questions', [QuestionController::class, 'store']);
+        Route::post('/questions/import/preview', [QuestionController::class, 'previewImport']);
+        Route::post('/questions/import', [QuestionController::class, 'import']);
         Route::put('/questions/{question}', [QuestionController::class, 'update']);
         Route::delete('/questions/{question}', [QuestionController::class, 'destroy']);
     });

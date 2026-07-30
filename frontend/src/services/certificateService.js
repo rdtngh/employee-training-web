@@ -10,6 +10,10 @@ const dummyCertificateResponse = {
 const mockCertificatePreview = {
   employee_name: "Bening Apni P.",
   training_title: "Pelatihan Keselamatan Pasien",
+  sequence_number: 1213,
+  roman_month: "IV",
+  year: 2026,
+  completion_date: "2026-07-30",
   eligible: true,
 };
 

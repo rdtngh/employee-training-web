@@ -203,6 +203,7 @@ class TestController extends Controller
             'percentage' => $result->score,
             'status' => $result->status,
             'passed' => $result->status === 'Lulus',
+            'can_retry' => $result->test?->type === 'posttest' && $result->status !== 'Lulus',
             'certificate_available' => $result->test?->type === 'posttest' && $result->status === 'Lulus',
             'test_result_id' => $result->id,
         ];

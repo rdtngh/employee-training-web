@@ -115,15 +115,22 @@ class UserController extends Controller
         }
 
         $role = Role::where('name', $request->role)->first();
+        $employeeNumberChanged = $user->employee_number !== $request->employee_number;
 
-        $user->update([
+        $payload = [
             'role_id' => $role?->id,
             'employee_number' => $request->employee_number,
             'name' => $request->name,
             'department' => $request->department,
             'position' => $request->role,
             'email' => $request->email ?? $user->email,
-        ]);
+        ];
+
+        if ($employeeNumberChanged) {
+            $payload['password'] = Hash::make($request->employee_number);
+        }
+
+        $user->update($payload);
 
         return response()->json([
             'success' => true,

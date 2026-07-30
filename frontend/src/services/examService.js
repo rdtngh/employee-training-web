@@ -184,14 +184,22 @@ const submitTest = async (testId, payload) => {
   };
 };
 
-const mapPostTestResult = (result = {}) => ({
-  ...result,
-  status: result.passed ? "PASSED" : "FAILED",
-  correct: result.correct ?? result.correct_answers ?? 0,
-  wrong: result.wrong ?? result.wrong_answers ?? 0,
-  can_retry: Boolean(result.can_retry),
-  certificate_available: Boolean(result.certificate_available ?? result.passed),
-});
+const mapPostTestResult = (result = {}) => {
+  const passed =
+    typeof result.passed === "boolean"
+      ? result.passed
+      : String(result.status ?? "").toLowerCase() === "lulus";
+
+  return {
+    ...result,
+    status: passed ? "PASSED" : "FAILED",
+    passed,
+    correct: result.correct ?? result.correct_answers ?? 0,
+    wrong: result.wrong ?? result.wrong_answers ?? 0,
+    can_retry: Boolean(result.can_retry ?? !passed),
+    certificate_available: Boolean(result.certificate_available ?? passed),
+  };
+};
 
 export const getPreTest = async (trainingId = DEFAULT_TRAINING_ID) =>
   getTrainingTestWithQuestions("pretest", DEFAULT_PRE_TEST_ID, trainingId);

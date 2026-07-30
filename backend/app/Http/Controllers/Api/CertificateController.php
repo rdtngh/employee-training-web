@@ -66,7 +66,11 @@ class CertificateController extends Controller
             'data' => [
                 'employee_name' => $request->user()->name,
                 'training_title' => $training->title,
-                'certificate_number' => $certificate->certificate_number,
+                'certificate_number' => $this->certificateDisplayNumber($certificate, $result->finished_at),
+                'sequence_number' => $this->certificateSequence($certificate),
+                'roman_month' => $this->romanMonth($result->finished_at),
+                'year' => optional($result->finished_at)->format('Y'),
+                'completion_date' => optional($result->finished_at)->toDateString(),
                 'issued_at' => optional($certificate->issued_at)->toDateString(),
                 'eligible' => true,
             ],
@@ -180,10 +184,15 @@ class CertificateController extends Controller
         $test = $result?->test;
         $training = $test?->training;
         $user = $certificate->user;
+        $completionDate = $result?->finished_at ?? $certificate->issued_at;
 
         return [
             'id' => $certificate->id,
-            'certificate_number' => $certificate->certificate_number,
+            'certificate_number' => $this->certificateDisplayNumber($certificate, $completionDate),
+            'sequence_number' => $this->certificateSequence($certificate),
+            'roman_month' => $this->romanMonth($completionDate),
+            'year' => optional($completionDate)->format('Y'),
+            'completion_date' => optional($completionDate)->toDateString(),
             'issued_at' => optional($certificate->issued_at)->toDateString(),
             'employee' => [
                 'id' => $user?->id,
@@ -206,6 +215,92 @@ class CertificateController extends Controller
         ];
     }
 
+    private function certificateDisplayNumber(Certificate $certificate, $date): string
+    {
+        $rawNumber = trim((string) $certificate->certificate_number);
+
+        if (Str::startsWith(Str::upper($rawNumber), 'NO:')) {
+            return $rawNumber;
+        }
+
+        if (Str::contains($rawNumber, '/DIKLATLIT-RSABL/')) {
+            return 'NO: '.$rawNumber;
+        }
+
+        $sequence = ctype_digit($rawNumber) ? $rawNumber : (string) $this->certificateSequence($certificate);
+        $romanMonth = $this->romanMonth($date);
+        $year = optional($date)->format('Y');
+
+        if ($sequence !== '' && $romanMonth !== '' && $year) {
+            return "NO: {$sequence}/DIKLATLIT-RSABL/{$romanMonth}/{$year}";
+        }
+
+        return $rawNumber ? 'NO: '.$rawNumber : '';
+    }
+
+    private function certificateSequence(Certificate $certificate): int
+    {
+        if (! $certificate->id) {
+            return 0;
+        }
+
+        return Certificate::query()
+            ->whereHas('testResult.test', function ($query) {
+                $query->where('type', 'posttest');
+            })
+            ->whereHas('user.role', function ($query) {
+                $query->where('name', 'Karyawan');
+            })
+            ->where('id', '<=', $certificate->id)
+            ->count();
+    }
+
+    private function romanMonth($date): string
+    {
+        $month = (int) optional($date)->format('n');
+        $months = [
+            1 => 'I',
+            2 => 'II',
+            3 => 'III',
+            4 => 'IV',
+            5 => 'V',
+            6 => 'VI',
+            7 => 'VII',
+            8 => 'VIII',
+            9 => 'IX',
+            10 => 'X',
+            11 => 'XI',
+            12 => 'XII',
+        ];
+
+        return $months[$month] ?? '';
+    }
+
+    private function indonesianDate($date): string
+    {
+        if (! $date) {
+            return '';
+        }
+
+        $months = [
+            1 => 'Januari',
+            2 => 'Februari',
+            3 => 'Maret',
+            4 => 'April',
+            5 => 'Mei',
+            6 => 'Juni',
+            7 => 'Juli',
+            8 => 'Agustus',
+            9 => 'September',
+            10 => 'Oktober',
+            11 => 'November',
+            12 => 'Desember',
+        ];
+        $month = (int) $date->format('n');
+
+        return $date->format('j').' '.($months[$month] ?? '').' '.$date->format('Y');
+    }
+
     private function certificateNumber(): string
     {
         do {
@@ -217,12 +312,14 @@ class CertificateController extends Controller
 
     private function buildPdf(Certificate $certificate, TestResult $result, Training $training): string
     {
-        $issuedAt = $certificate->issued_at ?? $result->finished_at ?? now();
+        $completionDate = $result->finished_at ?? $certificate->issued_at ?? now();
 
         return Pdf::loadView('certificates.template', [
             'participantName' => Str::title($result->user->name),
             'trainingTitle' => $training->title,
-            'trainingPeriod' => $this->trainingPeriod($training, $issuedAt),
+            'certificateNumber' => $this->certificateDisplayNumber($certificate, $completionDate),
+            'completionDate' => $this->indonesianDate($completionDate),
+            'trainingPeriod' => $this->trainingPeriod($training, $completionDate),
             'assets' => $this->certificateAssetDataUris(),
         ])
             ->setPaper('a4', 'landscape')
@@ -236,32 +333,35 @@ class CertificateController extends Controller
             'daunKananAtas' => 'daun-kanan-atas.svg',
             'frameGold' => 'frame-gold.svg',
             'garisGold' => 'garis-gold.svg',
-            'piagam' => 'piagam.svg',
+            'piagam' => 'piagam-advent-pdf.jpg',
             'sudutAtas' => 'sudut-atas.svg',
             'sudutBawah' => 'sudut-bawah.svg',
         ])->mapWithKeys(function (string $file, string $key) {
             $path = base_path("../frontend/src/assets/icons/{$file}");
 
-            if (! file_exists($path)) {
-                return [$key => ''];
-            }
-
-            return [$key => 'data:image/svg+xml;base64,'.base64_encode(file_get_contents($path))];
+            return [$key => $this->assetDataUri($path)];
         })->all();
 
-        $assets['ttdDirektur'] = $this->imageDataUri(base_path('../frontend/src/assets/images/ttd-direktur.png'));
+        $assets['logoRsabl'] = $this->assetDataUri(base_path('../frontend/src/assets/logo/logo-rsabl-pdf.jpg'));
+        $assets['ttdDirektur'] = $this->assetDataUri(base_path('../frontend/src/assets/images/ttd-direktur.png'));
 
         return $assets;
     }
 
-    private function imageDataUri(string $path): string
+    private function assetDataUri(string $path): string
     {
         if (! file_exists($path)) {
             return '';
         }
 
         $contents = file_get_contents($path);
-        $mime = str_starts_with($contents, "\xFF\xD8\xFF") ? 'image/jpeg' : 'image/png';
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $mime = match (true) {
+            str_starts_with($contents, "\xFF\xD8\xFF") => 'image/jpeg',
+            $extension === 'svg' => 'image/svg+xml',
+            in_array($extension, ['jpg', 'jpeg'], true) => 'image/jpeg',
+            default => 'image/png',
+        };
 
         return 'data:'.$mime.';base64,'.base64_encode($contents);
     }

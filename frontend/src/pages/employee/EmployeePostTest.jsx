@@ -24,6 +24,9 @@ const loadErrorMessage = (error) => {
   return "Post-Test gagal dimuat. Silakan coba lagi.";
 };
 
+const isPassedResult = (testResult) =>
+  Boolean(testResult?.passed ?? testResult?.status === "PASSED");
+
 function EmployeePostTest() {
   const navigate = useNavigate();
   const { trainingId } = useParams();
@@ -38,6 +41,7 @@ function EmployeePostTest() {
   const [startedAt, setStartedAt] = useState(null);
   const [showStart, setShowStart] = useState(false);
   const [showSubmit, setShowSubmit] = useState(false);
+  const [showFailureNotice, setShowFailureNotice] = useState(false);
   const [loading, setLoading] = useState(Boolean(trainingId));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -77,6 +81,7 @@ function EmployeePostTest() {
       setStartedAt(null);
       setShowStart(false);
       setShowSubmit(false);
+      setShowFailureNotice(false);
       examService.getPostTest(trainingId)
         .then((rawResponse) => {
           if (!active) return;
@@ -84,6 +89,7 @@ function EmployeePostTest() {
           setData(response);
           if (["PASSED", "FAILED"].includes(response.post_test?.status)) {
             setResult(response.post_test);
+            setShowFailureNotice(!isPassedResult(response.post_test));
           } else if (response.materials_completed) {
             setShowStart(true);
           }
@@ -97,7 +103,8 @@ function EmployeePostTest() {
   const questions = data?.questions ?? [];
   const question = questions[currentIndex];
   const options = question ? Object.entries(question.options ?? {}) : [];
-  const resultPassed = result?.passed ?? result?.status === "PASSED";
+  const resultPassed = isPassedResult(result);
+  const canRetry = !resultPassed;
 
   const submit = async () => {
     setBusy(true);
@@ -109,6 +116,7 @@ function EmployeePostTest() {
         started_at: startedAt,
       }));
       setResult(response);
+      setShowFailureNotice(!isPassedResult(response));
       clearAnswers();
       setShowSubmit(false);
     } catch {
@@ -122,9 +130,11 @@ function EmployeePostTest() {
   const retry = async () => {
     setBusy(true);
     try {
+      setError("");
       const response = unwrap(await examService.retryPostTest(data.training.id));
       setData(response);
       setResult(null);
+      setShowFailureNotice(false);
       clearAnswers();
       setCurrentIndex(0);
       setStarted(false);
@@ -165,8 +175,8 @@ function EmployeePostTest() {
                 <button type="button" className="posttest-certificate" onClick={previewCertificate} disabled={busy}>Lihat Sertifikat</button>
               </div>
             )}
-            {!resultPassed && result.can_retry && (
-              <button type="button" className="posttest-retry" onClick={retry} disabled={busy}>Re Attempt →</button>
+            {canRetry && (
+              <button type="button" className="posttest-retry" onClick={retry} disabled={busy}>Ulangi Lagi</button>
             )}
           </ExamResultCard>
         )}
@@ -219,6 +229,30 @@ function EmployeePostTest() {
       )}
       {showStart && <ExamConfirmDialog title="Yakin ingin mengerjakan Post-Test sekarang?" onConfirm={() => { setStarted(true); setStartedAt(new Date().toISOString()); setShowStart(false); }} onCancel={() => navigate(-1)} busy={busy} />}
       {showSubmit && <ExamConfirmDialog title="Yakin ingin mengumpulkan Post-Test?" onConfirm={submit} onCancel={() => setShowSubmit(false)} busy={busy} />}
+      {showFailureNotice && result && !resultPassed && (
+        <div className="posttest-failure-overlay" role="presentation">
+          <section
+            className="posttest-failure-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="posttest-failure-title"
+            aria-describedby="posttest-failure-description"
+          >
+            <h2 id="posttest-failure-title">Post-Test Belum Lulus</h2>
+            <p id="posttest-failure-description">
+              Anda harus lulus Post-Test untuk mendapatkan sertifikat.
+            </p>
+            <div className="posttest-failure-actions">
+              <button type="button" onClick={() => setShowFailureNotice(false)} disabled={busy}>
+                Mengerti
+              </button>
+              <button type="button" className="posttest-failure-retry" onClick={retry} disabled={busy}>
+                Ulangi Lagi
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

@@ -70,6 +70,7 @@
             left: 656px;
             width: 198px;
             height: 196px;
+            opacity: .45;
         }
 
         .piagam {
@@ -120,6 +121,46 @@
             height: 51px;
         }
 
+        .brand {
+            position: absolute;
+            z-index: 6;
+            top: 34px;
+            right: 24px;
+            width: 178px;
+            text-align: center;
+        }
+
+        .brand img {
+            width: 74px;
+            height: 74px;
+            margin: 0 auto;
+        }
+
+        .brand p {
+            margin: 5px 0 0;
+            color: #327537;
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 1.18;
+        }
+
+        .brand span {
+            display: block;
+        }
+
+        .certificate-number {
+            position: absolute;
+            z-index: 5;
+            top: 164px;
+            left: 140px;
+            width: 561px;
+            margin: 0;
+            font-size: 11px;
+            font-weight: 400;
+            line-height: 1.4;
+            text-align: center;
+        }
+
         .recipient {
             position: absolute;
             z-index: 5;
@@ -158,7 +199,7 @@
         .training-block {
             position: absolute;
             z-index: 5;
-            top: 370px;
+            top: 360px;
             left: 175px;
             width: 491px;
             text-align: center;
@@ -166,25 +207,32 @@
 
         .training-label {
             margin: 0;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 400;
-            line-height: 1.5;
+            line-height: 1.35;
         }
 
         .training-title {
-            max-height: 50px;
-            margin: 6px auto 0;
+            max-height: 43px;
+            margin: 4px auto 0;
             overflow: hidden;
             color: #000000;
-            font-size: 18px;
+            font-size: 15px;
             font-weight: 700;
+            line-height: 1.32;
+        }
+
+        .training-date {
+            margin: 3px 0 0;
+            font-size: 14px;
+            font-weight: 400;
             line-height: 1.35;
         }
 
         .signature {
             position: absolute;
             z-index: 6;
-            top: 438px;
+            top: 456px;
             left: 290px;
             width: 260px;
             text-align: center;
@@ -192,12 +240,12 @@
 
         .signature-space {
             text-align: center;
-            height: 60px;
+            height: 58px;
         }
 
         .signature-image {
             max-width: 175px;
-            max-height: 58px;
+            max-height: 56px;
             object-fit: contain;
         }
 
@@ -253,6 +301,20 @@
                 @endif
             </header>
 
+            <section class="brand">
+                @if ($assets['logoRsabl'])
+                    <img src="{{ $assets['logoRsabl'] }}" alt="">
+                @endif
+                <p>
+                    <span>Rumah Sakit Advent</span>
+                    <span>Bandar Lampung</span>
+                </p>
+            </section>
+
+            @if ($certificateNumber)
+                <p class="certificate-number">{{ $certificateNumber }}</p>
+            @endif
+
             <section class="recipient">
                 <p class="given-text">Sertifikat penghargaan ini diberikan kepada:</p>
                 <div class="participant">{{ $participantName }}</div>
@@ -260,8 +322,11 @@
             </section>
 
             <section class="training-block">
-                <p class="training-label">telah berhasil mengikuti dan menyelesaikan</p>
+                <p class="training-label">Telah mengikuti dan dinyatakan lulus pada</p>
                 <p class="training-title">{{ $trainingTitle }}</p>
+                @if ($completionDate)
+                    <p class="training-date">pada tanggal {{ $completionDate }}.</p>
+                @endif
             </section>
 
             <section class="signature">

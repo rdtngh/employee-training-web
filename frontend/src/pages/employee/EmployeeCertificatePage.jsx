@@ -9,6 +9,11 @@ import "./EmployeeCertificatePage.css";
 const defaultCertificateData = {
   employee_name: "",
   training_title: "",
+  certificate_number: "",
+  sequence_number: "",
+  roman_month: "",
+  year: "",
+  completion_date: "",
 };
 
 const waitForCertificateAssets = async () => {
@@ -100,6 +105,11 @@ function EmployeeCertificatePage() {
           <Certificate
             employeeName={certificateData.employee_name}
             trainingTitle={certificateData.training_title}
+            certificateNumber={certificateData.certificate_number}
+            sequenceNumber={certificateData.sequence_number}
+            romanMonth={certificateData.roman_month}
+            year={certificateData.year}
+            completionDate={certificateData.completion_date || certificateData.issued_at}
           />
         </section>
       </main>
@@ -137,6 +147,11 @@ function EmployeeCertificatePage() {
             <Certificate
               employeeName={certificateData.employee_name}
               trainingTitle={certificateData.training_title}
+              certificateNumber={certificateData.certificate_number}
+              sequenceNumber={certificateData.sequence_number}
+              romanMonth={certificateData.roman_month}
+              year={certificateData.year}
+              completionDate={certificateData.completion_date || certificateData.issued_at}
             />
           </section>
         )}

@@ -13,22 +13,26 @@ const resolveBackendUrl = (path) => {
   return new URL(path, apiUrl.origin).toString();
 };
 
-const mapMaterialFromApi = (m) => ({
-  id: m.id,
-  training_id: m.training_id ?? m.training?.id,
-  training: m.training,
-  title: m.title,
-  description: m.description,
-  speaker: m.speaker,
-  order_number: m.order_number,
-  files: (m.files || []).map((file) => ({
-    ...file,
-    file_path: resolveBackendUrl(`/api/materials/${m.id}/files/${file.id}/download`),
-  })),
-  fileName: m.files?.[0]?.file_name || "",
-  fileType: m.files?.[0]?.file_type || "",
-  completed: Boolean(m.completed),
-});
+const mapMaterialFromApi = (m) => {
+  const files = [...(m.files || [])].sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
+
+  return {
+    id: m.id,
+    training_id: m.training_id ?? m.training?.id,
+    training: m.training,
+    title: m.title,
+    description: m.description,
+    speaker: m.speaker,
+    order_number: m.order_number,
+    files: files.map((file) => ({
+      ...file,
+      file_path: resolveBackendUrl(`/api/materials/${m.id}/files/${file.id}/download`),
+    })),
+    fileName: files[0]?.file_name || "",
+    fileType: files[0]?.file_type || "",
+    completed: Boolean(m.completed),
+  };
+};
 
 const getMockMaterialsByTraining = (trainingId = DEFAULT_TRAINING_ID) =>
   mockMaterialStore.filter((material) => String(material.training_id) === String(trainingId));

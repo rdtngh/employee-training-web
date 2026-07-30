@@ -5,6 +5,16 @@
 .posttest-retry { align-self: flex-end; color: #ef1d24; }
 .posttest-certificate:disabled, .posttest-retry:disabled { opacity: .5; }
 
+.posttest-failure-overlay { position: absolute; inset: 0; z-index: 60; display: grid; place-items: center; padding: 24px; background: transparent; }
+.posttest-failure-overlay::before { content: ""; position: absolute; inset: 0; background: rgba(255,255,255,.58); backdrop-filter: blur(1px); }
+.posttest-failure-dialog { position: fixed; z-index: 61; top: 42vh; left: calc(280px + (100vw - 280px) / 2); transform: translate(-50%, -50%); width: min(460px, calc(100vw - 48px)); min-height: 220px; display: flex; flex-direction: column; margin: 0; padding: 28px 32px 24px; border: 2px solid #bf1515; border-radius: 12px; background: white; box-shadow: 8px 11px 10px rgba(191,21,21,.22); }
+.posttest-failure-dialog h2 { margin: 0 0 18px; color: #bf1515; font-size: 1.55rem; font-weight: 700; line-height: 1.25; }
+.posttest-failure-dialog p { margin: 0; font-size: 1.15rem; line-height: 1.45; color: #111827; }
+.posttest-failure-actions { display: flex; justify-content: flex-end; gap: 20px; margin-top: auto; }
+.posttest-failure-actions button { min-height: 40px; padding: 8px 4px; background: transparent; font-size: 1.1rem; color: #111827; }
+.posttest-failure-actions .posttest-failure-retry { color: #ef1d24; }
+.posttest-failure-actions button:disabled { opacity: .5; cursor: not-allowed; }
+
 .posttest-locked-overlay { position: absolute; inset: 0; z-index: 50; display: block; padding: 24px; background: transparent; }
 .posttest-locked-overlay::before { content: ""; position: absolute; inset: 0; background: rgba(255,255,255,.58); backdrop-filter: blur(1px); }
 .posttest-locked-dialog { position: fixed; z-index: 51; top: 42vh; left: calc(280px + (100vw - 280px) / 2); transform: translate(-50%, -50%); width: min(540px, calc(100vw - 48px)); min-height: 150px; display: flex; flex-direction: column; justify-content: space-between; margin: 0; padding: 18px 26px 22px; border: 3px solid #980000; border-radius: 14px; background: white; box-shadow: 12px 14px 8px rgba(207,0,0,.38); }
@@ -13,10 +23,16 @@
 .posttest-locked-dialog p { font-size: 20px; line-height: 1.2; }
 
 @media (max-width: 760px) {
+  .posttest-failure-dialog { left: 50%; padding: 24px 22px 22px; }
+  .posttest-failure-dialog h2 { font-size: clamp(22px, 6vw, 26px); }
+  .posttest-failure-dialog p { font-size: clamp(16px, 4.5vw, 18px); }
   .posttest-locked-dialog { left: 50%; }
   .posttest-locked-dialog { padding: 18px 20px 22px; }
   .posttest-locked-dialog h2 { font-size: clamp(22px, 6vw, 28px); }
   .posttest-locked-dialog p { font-size: clamp(16px, 4.5vw, 20px); }
 }
 
-@media (min-width: 761px) and (max-width: 1100px) { .posttest-locked-dialog { left: calc(240px + (100vw - 240px) / 2); } }
+@media (min-width: 761px) and (max-width: 1100px) {
+  .posttest-failure-dialog,
+  .posttest-locked-dialog { left: calc(240px + (100vw - 240px) / 2); }
+}

@@ -48,4 +48,49 @@ class UserManagementTest extends TestCase
             'department' => 'Farmasi',
         ]);
     }
+
+    public function test_updating_username_resets_password_to_new_username(): void
+    {
+        $superAdminRole = Role::create(['name' => 'Super Admin']);
+        $employeeRole = Role::create(['name' => 'Karyawan']);
+        Role::create(['name' => 'Admin']);
+
+        $superAdmin = User::create([
+            'role_id' => $superAdminRole->id,
+            'employee_number' => 'superadmin',
+            'name' => 'Super Admin',
+            'department' => 'IT',
+            'position' => 'Super Admin',
+            'email' => 'superadmin@example.com',
+            'password' => Hash::make('superadmin'),
+        ]);
+
+        $employee = User::create([
+            'role_id' => $employeeRole->id,
+            'employee_number' => 'andi123',
+            'name' => 'Andi Saputra',
+            'department' => 'Farmasi',
+            'position' => 'Karyawan',
+            'email' => null,
+            'password' => Hash::make('password-lama'),
+        ]);
+
+        Sanctum::actingAs($superAdmin);
+
+        $response = $this->putJson("/api/users/{$employee->id}", [
+            'employee_number' => 'andi456',
+            'name' => 'Andi Saputra',
+            'department' => 'Farmasi',
+            'role' => 'Karyawan',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.userId', 'andi456');
+
+        $employee->refresh();
+
+        $this->assertSame('andi456', $employee->employee_number);
+        $this->assertTrue(Hash::check('andi456', $employee->password));
+        $this->assertFalse(Hash::check('password-lama', $employee->password));
+    }
 }

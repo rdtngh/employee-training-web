@@ -281,11 +281,16 @@ class MaterialController extends Controller
     public function update(MaterialRequest $request, Material $material): JsonResponse
     {
         $material->update([
+            'training_id' => $request->training_id ?? $material->training_id,
             'title' => $request->title,
             'description' => $request->description ?? $material->description,
             'speaker' => $request->speaker ?? $material->speaker,
             'order_number' => $request->order_number ?? $material->order_number,
         ]);
+
+        if ($this->hasUploadedFiles($request)) {
+            $this->deleteMaterialFiles($material);
+        }
 
         $this->storeFiles($request, $material);
 
@@ -298,19 +303,7 @@ class MaterialController extends Controller
 
     public function destroy(Material $material): JsonResponse
     {
-        // delete files from storage
-        foreach ($material->files as $file) {
-            $relative = $this->materialStorageRelativePath($file->file_path);
-            try {
-                if ($relative) {
-                    Storage::disk('local')->delete($relative);
-                    Storage::disk('public')->delete($relative);
-                }
-            } catch (\Exception $e) {
-                // ignore
-            }
-            $file->delete();
-        }
+        $this->deleteMaterialFiles($material);
 
         $material->delete();
 
@@ -318,6 +311,25 @@ class MaterialController extends Controller
             'success' => true,
             'message' => 'Materi berhasil dihapus.',
         ]);
+    }
+
+    private function hasUploadedFiles(Request $request): bool
+    {
+        $files = $request->file('files') ?? $request->file('files[]');
+
+        if (empty($files)) {
+            return false;
+        }
+
+        $files = is_array($files) ? $files : [$files];
+
+        foreach ($files as $file) {
+            if ($file && $file->isValid()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function storeFiles(Request $request, Material $material): void
@@ -336,6 +348,22 @@ class MaterialController extends Controller
             }
 
             $this->storeUploadedFile($file, $material);
+        }
+    }
+
+    private function deleteMaterialFiles(Material $material): void
+    {
+        foreach ($material->files()->get() as $file) {
+            $relative = $this->materialStorageRelativePath($file->file_path);
+            try {
+                if ($relative) {
+                    Storage::disk('local')->delete($relative);
+                    Storage::disk('public')->delete($relative);
+                }
+            } catch (\Exception $e) {
+                // Ignore storage cleanup failures so database cleanup can continue.
+            }
+            $file->delete();
         }
     }
 

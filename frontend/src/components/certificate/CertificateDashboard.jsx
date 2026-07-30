@@ -3,6 +3,27 @@ import { useNavigate } from "react-router-dom";
 import Certificate from "./Certificate";
 import "./CertificateDashboard.css";
 
+const waitForCertificateAssets = async () => {
+  await document.fonts?.ready;
+
+  const images = [...document.querySelectorAll(".certificate-print-stage img")];
+  await Promise.all(
+    images.map((image) => {
+      if (image.complete) return Promise.resolve();
+
+      return new Promise((resolve) => {
+        image.addEventListener("load", resolve, { once: true });
+        image.addEventListener("error", resolve, { once: true });
+      });
+    })
+  );
+};
+
+const waitForNextPaint = () =>
+  new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+
 function CertificateDashboard({ certificateData, loading, error }) {
   const navigate = useNavigate();
   const [printingCertificate, setPrintingCertificate] = useState(null);
@@ -22,12 +43,21 @@ function CertificateDashboard({ certificateData, loading, error }) {
 
     window.addEventListener("afterprint", finishPrint);
 
-    const timer = window.setTimeout(() => {
+    let active = true;
+
+    const printCertificate = async () => {
+      await waitForNextPaint();
+      await waitForCertificateAssets();
+      await waitForNextPaint();
+      if (!active) return;
+
       window.print();
-    }, 100);
+    };
+
+    printCertificate();
 
     return () => {
-      window.clearTimeout(timer);
+      active = false;
       window.removeEventListener("afterprint", finishPrint);
       document.body.classList.remove("is-certificate-printing");
     };
@@ -118,6 +148,15 @@ function CertificateDashboard({ certificateData, loading, error }) {
           <Certificate
             employeeName={printingCertificate.employee?.name}
             trainingTitle={printingCertificate.training?.title}
+            certificateNumber={printingCertificate.certificate_number}
+            sequenceNumber={printingCertificate.sequence_number}
+            romanMonth={printingCertificate.roman_month}
+            year={printingCertificate.year}
+            completionDate={
+              printingCertificate.completion_date ||
+              printingCertificate.result?.finished_at ||
+              printingCertificate.issued_at
+            }
           />
         </section>
       )}

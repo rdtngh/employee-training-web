@@ -7,8 +7,8 @@ function UserTable({ users, onEdit, onDelete, emptyMessage = "Belum ada pengguna
         <thead>
           <tr>
             <th>No</th>
-            <th>User</th>
             <th>Username</th>
+            <th>Nama</th>
             <th>Departemen</th>
             <th>Role</th>
             <th>Aksi</th>
@@ -25,8 +25,8 @@ function UserTable({ users, onEdit, onDelete, emptyMessage = "Belum ada pengguna
             users.map((user, idx) => (
               <tr key={user.id} className={user.role === "Super Admin" ? "row-super" : ""}>
                 <td data-label="No">{idx + 1}</td>
-                <td data-label="User">{user.user}</td>
                 <td data-label="Username">{user.userId}</td>
+                <td data-label="Nama">{user.user}</td>
                 <td data-label="Departemen">{user.department}</td>
                 <td data-label="Role">{user.role}</td>
                 <td data-label="Aksi">

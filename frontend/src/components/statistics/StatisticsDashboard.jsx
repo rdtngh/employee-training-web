@@ -78,6 +78,10 @@ function formatScore(value) {
   return value === null || value === undefined || value === "" ? "-" : value;
 }
 
+function formatDuration(value) {
+  return value === null || value === undefined || value === "" ? "-" : value;
+}
+
 function StatisticsDashboard({
   statistics,
   loading,
@@ -180,13 +184,14 @@ function StatisticsDashboard({
             </article>
 
             <article className="statistics-summary-card">
-              <h2>Top 3 Nilai Post-Test</h2>
+              <h2>Top 3 Nilai & Kecepatan Post-Test</h2>
               {topScores.length > 0 ? (
                 <ol className="statistics-top-list">
                   {topScores.map((score) => (
                     <li key={`${score.employee_id}-${score.rank}`}>
                       <span className="statistics-top-rank">{score.rank}</span>
                       <span className="statistics-top-name">{score.employee_name || "-"}</span>
+                      <span className="statistics-top-speed">{formatDuration(score.duration_label)}</span>
                       <strong>{formatScore(score.score)}</strong>
                     </li>
                   ))}

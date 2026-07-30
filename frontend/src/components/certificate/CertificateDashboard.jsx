@@ -67,7 +67,7 @@ function CertificateDashboard({ certificateData, loading, error }) {
                 <tr>
                   <th>No</th>
                   <th>Nama Peserta</th>
-                  <th>ID Karyawan</th>
+                  <th>Username</th>
                   <th>Pelatihan</th>
                   <th>Skor</th>
                   <th>No Sertifikat</th>
@@ -86,7 +86,7 @@ function CertificateDashboard({ certificateData, loading, error }) {
                     <tr key={certificate.id}>
                       <td data-label="No">{index + 1}</td>
                       <td data-label="Nama Peserta">{certificate.employee?.name || "-"}</td>
-                      <td data-label="ID Karyawan">{certificate.employee?.employee_number || "-"}</td>
+                      <td data-label="Username">{certificate.employee?.employee_number || "-"}</td>
                       <td data-label="Pelatihan">{certificate.training?.title || "-"}</td>
                       <td data-label="Skor">{certificate.result?.score ?? "-"}</td>
                       <td data-label="No Sertifikat">{certificate.certificate_number}</td>

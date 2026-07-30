@@ -134,8 +134,14 @@ class TestController extends Controller
 
         $score = $questions->count() > 0 ? round(($correct / $questions->count()) * 100) : 0;
         $status = $score >= $test->passing_score ? 'Lulus' : 'Tidak Lulus';
+        $finishedAt = now();
+        $startedAt = $request->date('started_at') ?? $finishedAt;
 
-        $testResult = DB::transaction(function () use ($user, $test, $score, $correct, $wrong, $status) {
+        if ($startedAt->greaterThan($finishedAt)) {
+            $startedAt = $finishedAt;
+        }
+
+        $testResult = DB::transaction(function () use ($user, $test, $score, $correct, $wrong, $status, $startedAt, $finishedAt) {
             $result = TestResult::updateOrCreate(
                 [
                     'user_id' => $user->id,
@@ -146,8 +152,8 @@ class TestController extends Controller
                     'correct_answers' => $correct,
                     'wrong_answers' => $wrong,
                     'status' => $status,
-                    'started_at' => now(),
-                    'finished_at' => now(),
+                    'started_at' => $startedAt,
+                    'finished_at' => $finishedAt,
                 ]
             );
 

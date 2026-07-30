@@ -150,7 +150,7 @@
 
 .statistics-top-list li {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr) auto;
+  grid-template-columns: 30px minmax(0, 1fr) minmax(82px, auto) auto;
   align-items: center;
   gap: 12px;
   min-height: 38px;
@@ -171,6 +171,13 @@
 
 .statistics-top-name {
   overflow-wrap: anywhere;
+}
+
+.statistics-top-speed {
+  color: #4b5563;
+  font-size: .86rem;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .statistics-top-list strong {
@@ -424,6 +431,20 @@
 
   .statistics-average-list {
     grid-template-columns: 1fr;
+  }
+
+  .statistics-top-list li {
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+  }
+
+  .statistics-top-speed {
+    grid-column: 2 / 3;
+    text-align: left;
+  }
+
+  .statistics-top-list strong {
+    grid-column: 3 / 4;
+    grid-row: 1 / 3;
   }
 
   .statistics-chart {

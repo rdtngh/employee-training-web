@@ -17,6 +17,7 @@ class SubmitTestRequest extends FormRequest
             'answers' => ['required', 'array', 'min:1'],
             'answers.*.question_id' => ['required', 'integer', 'exists:questions,id'],
             'answers.*.selected_answer' => ['required', 'string', 'in:A,B,C,D'],
+            'started_at' => ['nullable', 'date'],
         ];
     }
 
@@ -29,6 +30,7 @@ class SubmitTestRequest extends FormRequest
             'answers.*.question_id.exists' => 'Soal tidak ditemukan.',
             'answers.*.selected_answer.required' => 'Pilih jawaban untuk setiap soal.',
             'answers.*.selected_answer.in' => 'Jawaban harus A, B, C, atau D.',
+            'started_at.date' => 'Waktu mulai tes tidak valid.',
         ];
     }
 }

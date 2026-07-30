@@ -155,7 +155,7 @@ class StatisticsController extends Controller
         foreach ($statistics['top_scores'] as $index => $topScore) {
             $summaryRows[] = [
                 'Top '.($index + 1).' Post-Test',
-                $topScore['employee_name'].' - '.$topScore['score'],
+                $topScore['employee_name'].' - '.$topScore['score'].' - '.$topScore['duration_label'],
             ];
         }
 
@@ -177,6 +177,7 @@ class StatisticsController extends Controller
             $row['pretest_finished_at'],
             $row['posttest_started_at'],
             $row['posttest_finished_at'],
+            $row['posttest_duration_label'],
             $row['email'],
         ])->all();
 
@@ -289,6 +290,8 @@ class StatisticsController extends Controller
                     'pretest_finished_at' => $this->dateTime($pretest?->finished_at),
                     'posttest_started_at' => $this->dateTime($posttest?->started_at),
                     'posttest_finished_at' => $this->dateTime($posttest?->finished_at),
+                    'posttest_duration_seconds' => $this->durationSeconds($posttest),
+                    'posttest_duration_label' => $this->formatDuration($this->durationSeconds($posttest)),
                 ];
             })
             ->sortBy(fn ($row) => strtolower((string) $row['employee_name']).'|'.(string) $row['employee_number'])
@@ -304,6 +307,12 @@ class StatisticsController extends Controller
 
                 if ($scoreCompare !== 0) {
                     return $scoreCompare;
+                }
+
+                $durationCompare = ($this->durationSeconds($a) ?? PHP_INT_MAX) <=> ($this->durationSeconds($b) ?? PHP_INT_MAX);
+
+                if ($durationCompare !== 0) {
+                    return $durationCompare;
                 }
 
                 $nameCompare = strcmp(strtolower((string) $a->user?->name), strtolower((string) $b->user?->name));
@@ -324,9 +333,36 @@ class StatisticsController extends Controller
                 'employee_number' => $result->user?->employee_number,
                 'employee_name' => $result->user?->name,
                 'score' => $result->score,
+                'duration_seconds' => $this->durationSeconds($result),
+                'duration_label' => $this->formatDuration($this->durationSeconds($result)),
                 'status' => $result->status,
             ])
             ->all();
+    }
+
+    private function durationSeconds(?TestResult $result): ?int
+    {
+        if (! $result?->started_at || ! $result->finished_at) {
+            return null;
+        }
+
+        return max(0, $result->finished_at->getTimestamp() - $result->started_at->getTimestamp());
+    }
+
+    private function formatDuration(?int $seconds): string
+    {
+        if ($seconds === null) {
+            return '-';
+        }
+
+        $minutes = intdiv($seconds, 60);
+        $remainingSeconds = $seconds % 60;
+
+        if ($minutes <= 0) {
+            return $remainingSeconds.' detik';
+        }
+
+        return $minutes.' menit '.$remainingSeconds.' detik';
     }
 
     private function dateTime($dateTime): ?string
@@ -489,7 +525,7 @@ class StatisticsController extends Controller
     {
         $headers = [
             'No',
-            'No. Karyawan',
+            'Username',
             'Nama Peserta',
             'Departemen',
             'Jabatan',
@@ -505,6 +541,7 @@ class StatisticsController extends Controller
             'Selesai Pre-Test',
             'Mulai Post-Test',
             'Selesai Post-Test',
+            'Durasi Post-Test',
             'Email',
         ];
 
@@ -536,7 +573,8 @@ class StatisticsController extends Controller
             'O' => 22,
             'P' => 22,
             'Q' => 22,
-            'R' => 30,
+            'R' => 18,
+            'S' => 30,
         ]);
     }
 

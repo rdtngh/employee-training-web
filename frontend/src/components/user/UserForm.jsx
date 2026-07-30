@@ -35,11 +35,12 @@ function UserFormContent({
   function validate() {
     const nextErrors = {};
 
-    if (!form.user.trim()) nextErrors.user = "User wajib diisi";
-    else if (form.user.trim().length > 255) nextErrors.user = "User maksimal 255 karakter";
-    if (!form.userId.trim()) nextErrors.userId = "ID wajib diisi";
-    else if (!/^[0-9]+$/.test(form.userId.trim())) nextErrors.userId = "ID hanya boleh angka";
-    else if (form.userId.trim().length > 20) nextErrors.userId = "ID maksimal 20 digit";
+    if (!form.user.trim()) nextErrors.user = "Nama wajib diisi";
+    else if (form.user.trim().length > 255) nextErrors.user = "Nama maksimal 255 karakter";
+    if (!form.userId.trim()) nextErrors.userId = "Username wajib diisi";
+    else if (!/^[A-Za-z0-9._-]+$/.test(form.userId.trim())) {
+      nextErrors.userId = "Username hanya boleh huruf, angka, titik, garis bawah, atau tanda hubung";
+    } else if (form.userId.trim().length > 20) nextErrors.userId = "Username maksimal 20 karakter";
     if (!form.department) nextErrors.department = "Departemen wajib dipilih";
     if (!form.role) nextErrors.role = "Role wajib dipilih";
 
@@ -76,24 +77,24 @@ function UserFormContent({
 
       <div className="user-form-grid">
         <label className="user-form-group">
-          <span>User</span>
+          <span>Nama</span>
           <input
             value={form.user}
             onChange={(e) => handleChange("user", e.target.value)}
             className={errors.user ? "error" : ""}
-            placeholder="Masukkan user"
+            placeholder="Masukkan nama"
             disabled={disabled}
           />
           {errors.user && <span className="user-form-error">{errors.user}</span>}
         </label>
 
         <label className="user-form-group">
-          <span>ID</span>
+          <span>Username</span>
           <input
             value={form.userId}
             onChange={(e) => handleChange("userId", e.target.value)}
             className={errors.userId ? "error" : ""}
-            placeholder="Masukkan ID"
+            placeholder="Masukkan username"
             disabled={disabled}
           />
           {errors.userId && <span className="user-form-error">{errors.userId}</span>}

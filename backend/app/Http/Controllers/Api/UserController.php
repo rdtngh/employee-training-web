@@ -94,7 +94,7 @@ class UserController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Pengguna berhasil ditambahkan. Password awal sama dengan nomor karyawan.',
+            'message' => 'Pengguna berhasil ditambahkan. Password awal sama dengan username.',
             'data' => [
                 'id' => $user->id,
                 'user' => $user->name,

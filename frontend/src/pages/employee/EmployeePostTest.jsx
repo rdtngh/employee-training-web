@@ -35,6 +35,7 @@ function EmployeePostTest() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { answers, setAnswers, clearAnswers } = useSessionAnswers(`rsabl-posttest-answers-${trainingId || "list"}`);
   const [started, setStarted] = useState(false);
+  const [startedAt, setStartedAt] = useState(null);
   const [showStart, setShowStart] = useState(false);
   const [showSubmit, setShowSubmit] = useState(false);
   const [loading, setLoading] = useState(Boolean(trainingId));
@@ -73,6 +74,7 @@ function EmployeePostTest() {
       setResult(null);
       setCurrentIndex(0);
       setStarted(false);
+      setStartedAt(null);
       setShowStart(false);
       setShowSubmit(false);
       examService.getPostTest(trainingId)
@@ -104,6 +106,7 @@ function EmployeePostTest() {
         post_test_id: data.post_test.id,
         training_id: data.training.id,
         answers: questions.map((item) => ({ question_id: item.id, answer: answers[item.id] })),
+        started_at: startedAt,
       }));
       setResult(response);
       clearAnswers();
@@ -125,6 +128,7 @@ function EmployeePostTest() {
       clearAnswers();
       setCurrentIndex(0);
       setStarted(false);
+      setStartedAt(null);
       setShowStart(true);
     } catch {
       setError("Post-Test tidak dapat diulang saat ini.");
@@ -213,7 +217,7 @@ function EmployeePostTest() {
           </section>
         </div>
       )}
-      {showStart && <ExamConfirmDialog title="Yakin ingin mengerjakan Post-Test sekarang?" onConfirm={() => { setStarted(true); setShowStart(false); }} onCancel={() => navigate(-1)} busy={busy} />}
+      {showStart && <ExamConfirmDialog title="Yakin ingin mengerjakan Post-Test sekarang?" onConfirm={() => { setStarted(true); setStartedAt(new Date().toISOString()); setShowStart(false); }} onCancel={() => navigate(-1)} busy={busy} />}
       {showSubmit && <ExamConfirmDialog title="Yakin ingin mengumpulkan Post-Test?" onConfirm={submit} onCancel={() => setShowSubmit(false)} busy={busy} />}
     </DashboardLayout>
   );

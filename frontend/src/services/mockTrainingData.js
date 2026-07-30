@@ -159,9 +159,9 @@ export const getMockStatistics = (trainingId) => {
       posttest: 82,
     },
     top_scores: [
-      { rank: 1, employee_id: 1, employee_name: "Bening Apni P.", score: 96 },
-      { rank: 2, employee_id: 2, employee_name: "Andi Saputra", score: 92 },
-      { rank: 3, employee_id: 3, employee_name: "Citra Lestari", score: 89 },
+      { rank: 1, employee_id: 1, employee_name: "Bening Apni P.", score: 96, duration_seconds: 245, duration_label: "4 menit 5 detik" },
+      { rank: 2, employee_id: 2, employee_name: "Andi Saputra", score: 92, duration_seconds: 318, duration_label: "5 menit 18 detik" },
+      { rank: 3, employee_id: 3, employee_name: "Citra Lestari", score: 89, duration_seconds: 402, duration_label: "6 menit 42 detik" },
     ],
     score_distributions: {
       pretest: {

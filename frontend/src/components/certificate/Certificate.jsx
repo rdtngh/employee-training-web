@@ -236,9 +236,12 @@ function Certificate({
             <p>Telah mengikuti dan dinyatakan lulus pada</p>
             <h3>{safeTrainingTitle}</h3>
             {completionDateText && (
-              <p className="certificate-training-date">
-                pada tanggal {completionDateText}
-              </p>
+              <>
+                <p className="certificate-training-date">
+                  pada tanggal {completionDateText}
+                </p>
+                <p className="certificate-location">BANDAR LAMPUNG</p>
+              </>
             )}
           </section>
 

@@ -98,7 +98,7 @@
         .title {
             margin: 0;
             font-family: Georgia, "Times New Roman", serif;
-            font-size: 64px;
+            font-size: 58px;
             font-weight: 700;
             line-height: 1;
             letter-spacing: 0;
@@ -107,7 +107,7 @@
         .subtitle {
             margin: 4px 0 0;
             font-family: Georgia, "Times New Roman", serif;
-            font-size: 29px;
+            font-size: 26px;
             font-weight: 500;
             line-height: 1;
             letter-spacing: .15em;
@@ -172,7 +172,7 @@
 
         .given-text {
             margin: 0 0 13px;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 400;
             line-height: 1.4;
         }
@@ -183,7 +183,7 @@
             padding: 10px 18px 8px;
             color: #b99645;
             font-family: "Brush Script MT", "Segoe Script", cursive;
-            font-size: {{ mb_strlen($participantName) > 34 ? 44 : (mb_strlen($participantName) > 21 ? 52 : 64) }}px;
+            font-size: {{ mb_strlen($participantName) > 34 ? 40 : (mb_strlen($participantName) > 21 ? 48 : 60) }}px;
             font-weight: 400;
             line-height: 1.2;
             white-space: nowrap;
@@ -227,6 +227,13 @@
             font-size: 14px;
             font-weight: 400;
             line-height: 1.35;
+        }
+
+        .training-location {
+            margin: 1px 0 0;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1.15;
         }
 
         .signature {
@@ -326,6 +333,7 @@
                 <p class="training-title">{{ $trainingTitle }}</p>
                 @if ($completionDate)
                     <p class="training-date">pada tanggal {{ $completionDate }}.</p>
+                    <p class="training-location">BANDAR LAMPUNG</p>
                 @endif
             </section>
 

@@ -5,6 +5,7 @@ import garisGold from "../../assets/icons/garis-gold.svg";
 import piagam from "../../assets/icons/piagam.svg";
 import sudutAtas from "../../assets/icons/sudut-atas.svg";
 import sudutBawah from "../../assets/icons/sudut-bawah.svg";
+import ttdDirektur from "../../assets/images/ttd-direktur.png";
 
 export const certificateAssets = {
   bgDaun,
@@ -14,4 +15,5 @@ export const certificateAssets = {
   piagam,
   sudutAtas,
   sudutBawah,
+  ttdDirektur,
 };

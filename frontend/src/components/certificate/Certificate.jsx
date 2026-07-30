@@ -11,7 +11,7 @@ function Certificate({
   employeeName = "",
   trainingTitle = "",
   director = DEFAULT_DIRECTOR,
-  signatureSrc = "",
+  signatureSrc = certificateAssets.ttdDirektur,
 }) {
   const previewRef = useRef(null);
   const [scale, setScale] = useState(1);
@@ -132,7 +132,12 @@ function Certificate({
           <section className="certificate-signature">
             <div className="certificate-signature-space">
               {signatureSrc && (
-                <img src={signatureSrc} alt="" className="certificate-signature-image" />
+                <img
+                  src={signatureSrc}
+                  alt=""
+                  className="certificate-signature-image"
+                  aria-hidden="true"
+                />
               )}
             </div>
             <div className="certificate-director-line" aria-hidden="true" />

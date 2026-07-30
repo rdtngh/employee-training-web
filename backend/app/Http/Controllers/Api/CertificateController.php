@@ -231,7 +231,7 @@ class CertificateController extends Controller
 
     private function certificateAssetDataUris(): array
     {
-        return collect([
+        $assets = collect([
             'bgDaun' => 'bg-daun.svg',
             'daunKananAtas' => 'daun-kanan-atas.svg',
             'frameGold' => 'frame-gold.svg',
@@ -248,6 +248,22 @@ class CertificateController extends Controller
 
             return [$key => 'data:image/svg+xml;base64,'.base64_encode(file_get_contents($path))];
         })->all();
+
+        $assets['ttdDirektur'] = $this->imageDataUri(base_path('../frontend/src/assets/images/ttd-direktur.png'));
+
+        return $assets;
+    }
+
+    private function imageDataUri(string $path): string
+    {
+        if (! file_exists($path)) {
+            return '';
+        }
+
+        $contents = file_get_contents($path);
+        $mime = str_starts_with($contents, "\xFF\xD8\xFF") ? 'image/jpeg' : 'image/png';
+
+        return 'data:'.$mime.';base64,'.base64_encode($contents);
     }
 
     private function loadCertificateTemplate(): array

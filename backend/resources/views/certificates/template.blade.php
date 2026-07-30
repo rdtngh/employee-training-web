@@ -191,7 +191,14 @@
         }
 
         .signature-space {
+            text-align: center;
             height: 56px;
+        }
+
+        .signature-image {
+            max-width: 150px;
+            max-height: 54px;
+            object-fit: contain;
         }
 
         .signature-line {
@@ -258,7 +265,11 @@
             </section>
 
             <section class="signature">
-                <div class="signature-space"></div>
+                <div class="signature-space">
+                    @if ($assets['ttdDirektur'])
+                        <img src="{{ $assets['ttdDirektur'] }}" class="signature-image" alt="">
+                    @endif
+                </div>
                 <div class="signature-line"></div>
                 <p class="director-name">Dr. Charles Z. Suoth, MARS</p>
                 <p class="director-title">Direktur RSABL</p>

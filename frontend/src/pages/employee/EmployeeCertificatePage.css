@@ -148,18 +148,18 @@
     background: #ffffff !important;
   }
 
-  body.is-certificate-printing .navbar,
-  body.is-certificate-printing .sidebar,
-  body.is-certificate-printing .dashboard-sidebar-backdrop,
-  body.is-certificate-printing footer {
+  .navbar,
+  .sidebar,
+  .dashboard-sidebar-backdrop,
+  footer {
     display: none !important;
   }
 
-  body.is-certificate-printing .dashboard-layout,
-  body.is-certificate-printing .dashboard-body,
-  body.is-certificate-printing .dashboard-content,
-  body.is-certificate-printing .dashboard-content-inner,
-  body.is-certificate-printing .employee-certificate-page {
+  .dashboard-layout,
+  .dashboard-body,
+  .dashboard-content,
+  .dashboard-content-inner,
+  .employee-certificate-page {
     display: block !important;
     width: 297mm !important;
     height: 210mm !important;
@@ -173,15 +173,15 @@
     box-shadow: none !important;
   }
 
-  body.is-certificate-printing .dashboard-content-inner::before {
+  .dashboard-content-inner::before {
     content: none !important;
   }
 
-  body.is-certificate-printing .employee-certificate-page > :not(.employee-certificate-stage) {
+  .employee-certificate-page > :not(.employee-certificate-stage) {
     display: none !important;
   }
 
-  body.is-certificate-printing .employee-certificate-stage {
+  .employee-certificate-stage {
     position: fixed;
     top: 0;
     left: 0;
@@ -196,13 +196,14 @@
     box-shadow: none !important;
   }
 
-  body.is-certificate-printing .employee-certificate-stage .certificate-preview-frame {
+  .employee-certificate-stage .certificate-preview-frame {
     width: 297mm !important;
     height: 210mm !important;
+    max-width: none !important;
     overflow: hidden !important;
   }
 
-  body.is-certificate-printing .employee-certificate-stage .certificate-template {
+  .employee-certificate-stage .certificate-template {
     transform: scale(1.331) !important;
     transform-origin: top left !important;
   }

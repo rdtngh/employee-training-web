@@ -10,6 +10,22 @@ const defaultCertificateData = {
   training_title: "",
 };
 
+const waitForCertificateAssets = async () => {
+  await document.fonts?.ready;
+
+  const images = [...document.querySelectorAll(".employee-certificate-stage img")];
+  await Promise.all(
+    images.map((image) => {
+      if (image.complete) return Promise.resolve();
+
+      return new Promise((resolve) => {
+        image.addEventListener("load", resolve, { once: true });
+        image.addEventListener("error", resolve, { once: true });
+      });
+    })
+  );
+};
+
 function EmployeeCertificatePage() {
   const navigate = useNavigate();
   const { trainingId } = useParams();
@@ -44,16 +60,22 @@ function EmployeeCertificatePage() {
     };
   }, [trainingId]);
 
-  function downloadCertificate() {
+  async function downloadCertificate() {
+    await waitForCertificateAssets();
+
+    document.documentElement.classList.add("is-certificate-printing");
     document.body.classList.add("is-certificate-printing");
 
     const finishPrint = () => {
-      document.body.classList.remove("is-certificate-printing");
-      window.removeEventListener("afterprint", finishPrint);
+      window.setTimeout(() => {
+        document.documentElement.classList.remove("is-certificate-printing");
+        document.body.classList.remove("is-certificate-printing");
+        window.removeEventListener("afterprint", finishPrint);
+      }, 1000);
     };
 
     window.addEventListener("afterprint", finishPrint);
-    window.setTimeout(() => window.print(), 50);
+    window.setTimeout(() => window.print(), 250);
   }
 
   return (

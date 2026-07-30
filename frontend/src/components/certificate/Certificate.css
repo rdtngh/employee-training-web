@@ -207,12 +207,12 @@
   display: flex;
   align-items: end;
   justify-content: center;
-  height: 60px;
+  height: 65px;
 }
 
 .certificate-signature-image {
-  max-width: 175px;
-  max-height: 58px;
+  max-width: 190px;
+  max-height: 75px;
   object-fit: contain;
 }
 

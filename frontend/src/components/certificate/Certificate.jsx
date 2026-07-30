@@ -2,6 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { certificateAssets } from "./certificateAssets";
 import "./Certificate.css";
 
+const formatCertificateName = (value) =>
+  String(value || "")
+    .trim()
+    .toLocaleLowerCase("id-ID")
+    .replace(/(^|[\s-])(\S)/g, (match) => match.toLocaleUpperCase("id-ID"));
+
 const DEFAULT_DIRECTOR = {
   name: "Dr. Charles Z. Suoth, MARS",
   title: "Direktur RSABL",
@@ -15,7 +21,7 @@ function Certificate({
 }) {
   const previewRef = useRef(null);
   const [scale, setScale] = useState(1);
-  const safeEmployeeName = employeeName || "Nama Karyawan";
+  const safeEmployeeName = formatCertificateName(employeeName) || "Nama Karyawan";
   const safeTrainingTitle = trainingTitle || "Judul Pelatihan";
   const longName = safeEmployeeName.length > 21;
   const veryLongName = safeEmployeeName.length > 34;

@@ -220,7 +220,7 @@ class CertificateController extends Controller
         $issuedAt = $certificate->issued_at ?? $result->finished_at ?? now();
 
         return Pdf::loadView('certificates.template', [
-            'participantName' => $result->user->name,
+            'participantName' => Str::title($result->user->name),
             'trainingTitle' => $training->title,
             'trainingPeriod' => $this->trainingPeriod($training, $issuedAt),
             'assets' => $this->certificateAssetDataUris(),

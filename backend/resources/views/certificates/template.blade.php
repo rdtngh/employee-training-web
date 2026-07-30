@@ -192,12 +192,12 @@
 
         .signature-space {
             text-align: center;
-            height: 56px;
+            height: 60px;
         }
 
         .signature-image {
-            max-width: 150px;
-            max-height: 54px;
+            max-width: 175px;
+            max-height: 58px;
             object-fit: contain;
         }
 
@@ -218,7 +218,7 @@
         .director-title {
             margin: 2px 0 0;
             font-size: 15px;
-            font-weight: 700;
+            font-weight: 400;
             line-height: 1.25;
         }
     </style>

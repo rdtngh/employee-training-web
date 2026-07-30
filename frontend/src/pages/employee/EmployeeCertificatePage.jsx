@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import Certificate from "../../components/certificate/Certificate";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
@@ -13,7 +14,11 @@ const defaultCertificateData = {
 const waitForCertificateAssets = async () => {
   await document.fonts?.ready;
 
-  const images = [...document.querySelectorAll(".employee-certificate-stage img")];
+  const images = [
+    ...document.querySelectorAll(
+      ".employee-certificate-stage img, .employee-certificate-print-stage img"
+    ),
+  ];
   await Promise.all(
     images.map((image) => {
       if (image.complete) return Promise.resolve();
@@ -26,11 +31,17 @@ const waitForCertificateAssets = async () => {
   );
 };
 
+const waitForNextPaint = () =>
+  new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+
 function EmployeeCertificatePage() {
   const navigate = useNavigate();
   const { trainingId } = useParams();
   const [certificateData, setCertificateData] = useState(defaultCertificateData);
   const [loading, setLoading] = useState(true);
+  const [printMode, setPrintMode] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -61,8 +72,7 @@ function EmployeeCertificatePage() {
   }, [trainingId]);
 
   async function downloadCertificate() {
-    await waitForCertificateAssets();
-
+    flushSync(() => setPrintMode(true));
     document.documentElement.classList.add("is-certificate-printing");
     document.body.classList.add("is-certificate-printing");
 
@@ -70,12 +80,30 @@ function EmployeeCertificatePage() {
       window.setTimeout(() => {
         document.documentElement.classList.remove("is-certificate-printing");
         document.body.classList.remove("is-certificate-printing");
+        setPrintMode(false);
         window.removeEventListener("afterprint", finishPrint);
       }, 1000);
     };
 
+    await waitForNextPaint();
+    await waitForCertificateAssets();
+    await waitForNextPaint();
+
     window.addEventListener("afterprint", finishPrint);
-    window.setTimeout(() => window.print(), 250);
+    window.print();
+  }
+
+  if (printMode) {
+    return (
+      <main className="employee-certificate-print-page" aria-label="Sertifikat siap dicetak">
+        <section className="employee-certificate-print-stage">
+          <Certificate
+            employeeName={certificateData.employee_name}
+            trainingTitle={certificateData.training_title}
+          />
+        </section>
+      </main>
+    );
   }
 
   return (

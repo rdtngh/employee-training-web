@@ -108,6 +108,33 @@
   font-weight: 600;
 }
 
+.employee-certificate-print-page {
+  width: 297mm;
+  height: 210mm;
+  margin: 0;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.employee-certificate-print-stage {
+  width: 297mm;
+  height: 210mm;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.employee-certificate-print-stage .certificate-preview-frame {
+  width: 297mm;
+  height: 210mm !important;
+  max-width: none;
+  overflow: hidden;
+}
+
+.employee-certificate-print-stage .certificate-template {
+  transform: scale(1.331) !important;
+  transform-origin: top left !important;
+}
+
 @media (max-width: 760px) {
   .employee-certificate-header {
     flex-direction: column;
@@ -146,6 +173,29 @@
     margin: 0 !important;
     overflow: hidden !important;
     background: #ffffff !important;
+  }
+
+  .employee-certificate-print-page,
+  .employee-certificate-print-stage {
+    display: block !important;
+    width: 297mm !important;
+    height: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: #ffffff !important;
+  }
+
+  .employee-certificate-print-stage .certificate-preview-frame {
+    width: 297mm !important;
+    height: 210mm !important;
+    max-width: none !important;
+    overflow: hidden !important;
+  }
+
+  .employee-certificate-print-stage .certificate-template {
+    transform: scale(1.331) !important;
+    transform-origin: top left !important;
   }
 
   .navbar,

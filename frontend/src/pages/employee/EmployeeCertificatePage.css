@@ -108,16 +108,6 @@
   font-weight: 600;
 }
 
-.employee-certificate-download-error {
-  margin: 0 0 14px;
-  padding: 12px 14px;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  background: #fef2f2;
-  color: #b91c1c;
-  font-weight: 600;
-}
-
 @media (max-width: 760px) {
   .employee-certificate-header {
     flex-direction: column;

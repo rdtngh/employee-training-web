@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Certificate from "../../components/certificate/Certificate";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import * as certificateService from "../../services/certificateService";
+import { downloadFile } from "../../utils/downloadFile";
 import "./EmployeeCertificatePage.css";
 
 const defaultCertificateData = {
@@ -15,7 +16,9 @@ function EmployeeCertificatePage() {
   const { trainingId } = useParams();
   const [certificateData, setCertificateData] = useState(defaultCertificateData);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
+  const [downloadError, setDownloadError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -44,7 +47,25 @@ function EmployeeCertificatePage() {
     };
   }, [trainingId]);
 
-  function downloadCertificate() {
+  async function downloadCertificate() {
+    setDownloading(true);
+    setDownloadError("");
+
+    try {
+      const file = await certificateService.downloadCertificate(trainingId);
+      downloadFile(file);
+    } catch (error) {
+      setDownloadError(
+        error.response?.data?.message ||
+          error.message ||
+          "Sertifikat gagal diunduh. Silakan coba lagi."
+      );
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  function printCertificate() {
     document.body.classList.add("is-certificate-printing");
 
     const finishPrint = () => {
@@ -65,9 +86,19 @@ function EmployeeCertificatePage() {
           </div>
           <div className="employee-certificate-actions">
             {!loading && !error && (
-              <button type="button" onClick={downloadCertificate}>
-                Download Sertifikat
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="employee-certificate-download"
+                  onClick={downloadCertificate}
+                  disabled={downloading}
+                >
+                  {downloading ? "Mengunduh..." : "Download PDF"}
+                </button>
+                <button type="button" onClick={printCertificate}>
+                  Cetak
+                </button>
+              </>
             )}
           </div>
         </header>
@@ -79,12 +110,19 @@ function EmployeeCertificatePage() {
           </p>
         )}
         {!loading && !error && (
-          <section className="employee-certificate-stage">
-            <Certificate
-              employeeName={certificateData.employee_name}
-              trainingTitle={certificateData.training_title}
-            />
-          </section>
+          <>
+            {downloadError && (
+              <p className="employee-certificate-download-error" role="alert">
+                {downloadError}
+              </p>
+            )}
+            <section className="employee-certificate-stage">
+              <Certificate
+                employeeName={certificateData.employee_name}
+                trainingTitle={certificateData.training_title}
+              />
+            </section>
+          </>
         )}
 
         <button

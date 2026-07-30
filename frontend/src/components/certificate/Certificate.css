@@ -1,7 +1,10 @@
 @import url("https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@500;700&family=Poppins:wght@400;600;700&display=swap");
 
 .certificate-preview-frame {
-  width: min(100%, 841px);
+  flex: 0 1 841px;
+  width: 100%;
+  max-width: 841px;
+  min-width: 0;
   overflow: hidden;
 }
 

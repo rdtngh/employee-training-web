@@ -1,7 +1,9 @@
 .employee-certificate-page {
   width: 100%;
+  min-width: 0;
   max-width: 1100px;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .employee-certificate-header {
@@ -34,11 +36,22 @@
 }
 
 .employee-certificate-actions button {
-  min-height: 36px;
-  padding: 6px 0;
+  min-height: 40px;
+  padding: 8px 14px;
   background: transparent;
+  border-radius: 8px;
   color: #327537;
   font-weight: 700;
+}
+
+.employee-certificate-actions .employee-certificate-download {
+  background: #327537;
+  color: #ffffff;
+}
+
+.employee-certificate-actions .employee-certificate-download:hover {
+  background: #285f2c;
+  text-decoration: none;
 }
 
 .employee-certificate-actions button:hover {
@@ -67,9 +80,11 @@
   display: flex;
   justify-content: center;
   width: 100%;
+  max-width: 100%;
   min-width: 0;
+  box-sizing: border-box;
   padding: 18px;
-  overflow-x: auto;
+  overflow: hidden;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: #ffffff;
@@ -93,13 +108,34 @@
   font-weight: 600;
 }
 
+.employee-certificate-download-error {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
 @media (max-width: 760px) {
   .employee-certificate-header {
     flex-direction: column;
+    gap: 14px;
+    margin-bottom: 18px;
   }
 
   .employee-certificate-actions {
+    width: 100%;
     justify-content: flex-start;
+  }
+
+  .employee-certificate-actions button {
+    min-height: 44px;
+  }
+
+  .employee-certificate-actions .employee-certificate-download {
+    flex: 1 1 160px;
   }
 
   .employee-certificate-stage {

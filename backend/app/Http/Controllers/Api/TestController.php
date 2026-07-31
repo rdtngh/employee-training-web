@@ -156,6 +156,7 @@ class TestController extends Controller
                     'status' => $status,
                     'started_at' => $startedAt,
                     'finished_at' => $finishedAt,
+                    'excluded_from_top_scores_at' => null,
                 ]
             );
 

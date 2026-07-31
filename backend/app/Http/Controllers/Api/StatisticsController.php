@@ -3,11 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Certificate;
 use App\Models\TestResult;
 use App\Models\Training;
-use App\Models\UserAnswer;
-use App\Models\UserMaterial;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -54,78 +51,32 @@ class StatisticsController extends Controller
             ], 404);
         }
 
-        $testIds = $training->tests()->pluck('id');
-        $questionIds = $training->tests()
-            ->with('questions:id,test_id')
-            ->get()
-            ->flatMap(fn ($test) => $test->questions->pluck('id'));
-        $materialIds = $training->materials()->pluck('id');
-
-        $participantUserIds = TestResult::query()
-            ->whereIn('test_id', $testIds)
-            ->whereHas('user.role', fn ($query) => $query->where('name', 'Karyawan'))
-            ->pluck('user_id')
-            ->merge(
-                UserMaterial::query()
-                    ->whereIn('material_id', $materialIds)
-                    ->whereHas('user.role', fn ($query) => $query->where('name', 'Karyawan'))
-                    ->pluck('user_id')
-            )
-            ->unique()
-            ->values();
-
-        $deleted = DB::transaction(function () use ($testIds, $questionIds, $materialIds, $participantUserIds) {
-            $resultIds = TestResult::query()
-                ->whereIn('test_id', $testIds)
-                ->whereIn('user_id', $participantUserIds)
-                ->pluck('id');
-
-            $certifiedResultIds = Certificate::query()
-                ->whereIn('test_result_id', $resultIds)
-                ->pluck('test_result_id');
-
-            $resettableResultIds = $resultIds
-                ->diff($certifiedResultIds)
-                ->values();
-
-            $preservedResults = TestResult::query()
-                ->whereIn('id', $certifiedResultIds)
-                ->update(['excluded_from_statistics_at' => now()]);
-
-            $answers = UserAnswer::query()
-                ->whereIn('question_id', $questionIds)
-                ->whereIn('user_id', $participantUserIds)
-                ->delete();
-
-            $materials = UserMaterial::query()
-                ->whereIn('material_id', $materialIds)
-                ->whereIn('user_id', $participantUserIds)
-                ->delete();
-
-            $results = TestResult::query()
-                ->whereIn('id', $resettableResultIds)
-                ->delete();
-
-            return [
-                'certificates' => 0,
-                'preserved_certificates' => $certifiedResultIds->count(),
-                'preserved_results' => $preservedResults,
-                'answers' => $answers,
-                'materials' => $materials,
-                'results' => $results,
-            ];
+        $updated = DB::transaction(function () use ($training) {
+            return TestResult::query()
+                ->whereHas('test', function ($query) use ($training) {
+                    $query->where('training_id', $training->id)
+                        ->where('type', 'posttest');
+                })
+                ->whereHas('user.role', fn ($query) => $query->where('name', 'Karyawan'))
+                ->whereNull('excluded_from_top_scores_at')
+                ->update(['excluded_from_top_scores_at' => now()]);
         });
 
         return response()->json([
             'success' => true,
-            'message' => 'Statistik dan progres peserta berhasil direset.',
+            'message' => 'Top 3 statistik berhasil direset.',
             'data' => [
                 'training' => [
                     'id' => $training->id,
                     'title' => $training->title,
                 ],
-                'participant_count' => $participantUserIds->count(),
-                'deleted' => $deleted,
+                'updated' => [
+                    'top_score_results' => $updated,
+                    'certificates' => 0,
+                    'answers' => 0,
+                    'materials' => 0,
+                    'results' => 0,
+                ],
             ],
         ]);
     }
@@ -141,7 +92,7 @@ class StatisticsController extends Controller
             ], 404);
         }
 
-        $statistics = $this->trainingStatistics($training);
+        $statistics = $this->trainingStatistics($training, false);
         $participantRows = $statistics['participant_rows'];
         $participantCount = count($participantRows);
 
@@ -222,11 +173,14 @@ class StatisticsController extends Controller
             ->first();
     }
 
-    private function trainingStatistics(Training $training): array
+    private function trainingStatistics(Training $training, bool $applyTopScoreReset = true): array
     {
         $testIds = $training->tests()->pluck('id');
         $pretestResults = $this->latestResultsByType($training, 'pretest');
         $posttestResults = $this->latestResultsByType($training, 'posttest');
+        $topScoreResults = $applyTopScoreReset
+            ? $posttestResults->whereNull('excluded_from_top_scores_at')->values()
+            : $posttestResults;
         $participantRows = $this->participantScoreRows($pretestResults, $posttestResults);
         $posttestCount = $posttestResults->count();
         $passedCount = $posttestResults->where('status', 'Lulus')->count();
@@ -250,7 +204,7 @@ class StatisticsController extends Controller
             'pass_percentage' => $posttestCount > 0
                 ? $this->formatNumber(($passedCount / $posttestCount) * 100)
                 : 0,
-            'top_scores' => $this->topScores($posttestResults),
+            'top_scores' => $this->topScores($topScoreResults),
             'score_distributions' => $this->scoreDistributions($testIds),
             'participant_rows' => $participantRows,
         ];
@@ -265,7 +219,6 @@ class StatisticsController extends Controller
                     ->where('type', $type);
             })
             ->whereHas('user.role', fn ($query) => $query->where('name', 'Karyawan'))
-            ->whereNull('excluded_from_statistics_at')
             ->orderByDesc('finished_at')
             ->orderByDesc('updated_at')
             ->get()
@@ -417,7 +370,6 @@ class StatisticsController extends Controller
             ->with('test:id,type')
             ->whereIn('test_id', $testIds)
             ->whereHas('user.role', fn ($query) => $query->where('name', 'Karyawan'))
-            ->whereNull('excluded_from_statistics_at')
             ->orderByDesc('updated_at')
             ->get()
             ->groupBy(fn ($result) => $result->test?->type);

@@ -109,7 +109,7 @@ function StatisticsDashboard({
 
     try {
       await statisticsService.resetStatistics({ trainingId: selectedTrainingId });
-      setMessage("Statistik dan progres peserta berhasil direset.");
+      setMessage("Top 3 statistik berhasil direset.");
       setResetDialogOpen(false);
       onReset?.();
     } catch {
@@ -136,7 +136,7 @@ function StatisticsDashboard({
             onClick={() => setResetDialogOpen(true)}
             disabled={loading || resetting}
           >
-            {resetting ? "Mereset..." : "Reset Statistik"}
+            {resetting ? "Mereset..." : "Reset Top 3"}
           </button>
         )}
       </div>
@@ -219,13 +219,13 @@ function StatisticsDashboard({
             aria-labelledby="statistics-reset-title"
           >
             <h3 id="statistics-reset-title" className="statistics-reset-title">
-              Reset Statistik
+              Reset Top 3
             </h3>
             <p className="statistics-reset-message">
-              Apakah Anda yakin ingin mereset statistik peserta?
+              Apakah Anda yakin ingin mereset Top 3 peserta?
             </p>
             <p className="statistics-reset-note">
-              Hasil ujian dan progres materi yang sudah direset tidak dapat dikembalikan. Sertifikat yang sudah terbit tetap tersimpan.
+              Data export XLSX, hasil submit peserta, progres materi, dan sertifikat tetap tersimpan.
             </p>
 
             <div className="statistics-reset-actions">

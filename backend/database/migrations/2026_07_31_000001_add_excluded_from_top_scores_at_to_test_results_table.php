@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('test_results', function (Blueprint $table) {
-            $table->timestamp('excluded_from_statistics_at')
+            $table->timestamp('excluded_from_top_scores_at')
                 ->nullable()
                 ->after('finished_at');
         });
@@ -18,7 +18,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('test_results', function (Blueprint $table) {
-            $table->dropColumn('excluded_from_statistics_at');
+            $table->dropColumn('excluded_from_top_scores_at');
         });
     }
 };

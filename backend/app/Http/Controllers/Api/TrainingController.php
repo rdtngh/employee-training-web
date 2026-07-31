@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Storage;
 
 class TrainingController extends Controller
 {
+    private const EMERGENCY_UNLOCK_EMPLOYEE_FLOW = true;
+
     public function index(): JsonResponse
     {
         $trainings = Training::withCount(['materials', 'tests'])
@@ -119,7 +121,7 @@ class TrainingController extends Controller
 
     public function markMaterialsAccessed(Request $request, Training $training): JsonResponse
     {
-        if (! $this->hasCompletedPreTest($request, $training)) {
+        if (! self::EMERGENCY_UNLOCK_EMPLOYEE_FLOW && ! $this->hasCompletedPreTest($request, $training)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Pre-Test harus dikerjakan sebelum membuka materi.',
@@ -163,11 +165,14 @@ class TrainingController extends Controller
             ->pluck('material_id')
             ->all();
 
-        $preTestCompleted = $this->hasCompletedPreTest($request, $training);
+        $preTestCompleted = self::EMERGENCY_UNLOCK_EMPLOYEE_FLOW || $this->hasCompletedPreTest($request, $training);
 
         $completedLookup = array_flip($completedMaterialIds);
         $materialsWithProgress = $materials->map(function ($material) use ($completedLookup, $preTestCompleted) {
-            $material->setAttribute('completed', $preTestCompleted && array_key_exists($material->id, $completedLookup));
+            $material->setAttribute(
+                'completed',
+                self::EMERGENCY_UNLOCK_EMPLOYEE_FLOW || ($preTestCompleted && array_key_exists($material->id, $completedLookup))
+            );
 
             if (! $preTestCompleted) {
                 $material->setRelation('files', collect());
@@ -181,7 +186,8 @@ class TrainingController extends Controller
                 'id' => $training->id,
                 'title' => $training->title,
                 'pre_test_completed' => $preTestCompleted,
-                'post_test_unlocked' => $preTestCompleted && $materials->isNotEmpty() && count($completedMaterialIds) >= $materials->count(),
+                'post_test_unlocked' => self::EMERGENCY_UNLOCK_EMPLOYEE_FLOW
+                    || ($preTestCompleted && $materials->isNotEmpty() && count($completedMaterialIds) >= $materials->count()),
             ],
             'materials' => $materialsWithProgress,
         ];

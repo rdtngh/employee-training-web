@@ -18,6 +18,8 @@ use Illuminate\Support\Str;
 
 class TestController extends Controller
 {
+    private const EMERGENCY_UNLOCK_EMPLOYEE_FLOW = true;
+
     public function show(Test $test): JsonResponse
     {
         if (! $this->canAccessTest($test)) {
@@ -237,6 +239,10 @@ class TestController extends Controller
 
         if ($test->type !== 'posttest') {
             return false;
+        }
+
+        if (self::EMERGENCY_UNLOCK_EMPLOYEE_FLOW) {
+            return true;
         }
 
         return $this->hasCompletedPreTest($test) && $this->hasCompletedMaterials($test);

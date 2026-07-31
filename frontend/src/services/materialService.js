@@ -3,6 +3,7 @@ import { mockMaterials, mockTrainings } from "./mockTrainingData";
 
 const DEFAULT_TRAINING_ID = 1;
 const CHUNK_SIZE = 1024 * 1024;
+const EMERGENCY_UNLOCK_EMPLOYEE_FLOW = true;
 let mockMaterialStore = mockMaterials.map((material) => ({ ...material }));
 
 const resolveBackendUrl = (path) => {
@@ -30,7 +31,7 @@ const mapMaterialFromApi = (m) => {
     })),
     fileName: files[0]?.file_name || "",
     fileType: files[0]?.file_type || "",
-    completed: Boolean(m.completed),
+    completed: EMERGENCY_UNLOCK_EMPLOYEE_FLOW || Boolean(m.completed),
   };
 };
 
@@ -47,7 +48,13 @@ export const getAllMaterials = async (trainingId = DEFAULT_TRAINING_ID) => {
 };
 
 const mapMaterialProgressFromApi = (data) => ({
-  training: data.training,
+  training: data.training
+    ? {
+        ...data.training,
+        pre_test_completed: EMERGENCY_UNLOCK_EMPLOYEE_FLOW || Boolean(data.training.pre_test_completed),
+        post_test_unlocked: EMERGENCY_UNLOCK_EMPLOYEE_FLOW || Boolean(data.training.post_test_unlocked),
+      }
+    : data.training,
   materials: (data.materials || []).map(mapMaterialFromApi),
 });
 

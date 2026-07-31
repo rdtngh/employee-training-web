@@ -108,7 +108,7 @@ function StatisticsDashboard({
     setMessage("");
 
     try {
-      await statisticsService.resetStatistics();
+      await statisticsService.resetStatistics({ trainingId: selectedTrainingId });
       setMessage("Statistik dan progres peserta berhasil direset.");
       setResetDialogOpen(false);
       onReset?.();
@@ -225,7 +225,7 @@ function StatisticsDashboard({
               Apakah Anda yakin ingin mereset statistik peserta?
             </p>
             <p className="statistics-reset-note">
-              Hasil ujian dan progres materi yang sudah direset tidak dapat dikembalikan.
+              Hasil ujian dan progres materi yang sudah direset tidak dapat dikembalikan. Sertifikat yang sudah terbit tetap tersimpan.
             </p>
 
             <div className="statistics-reset-actions">

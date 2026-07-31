@@ -80,9 +80,17 @@ class StatisticsController extends Controller
                 ->whereIn('user_id', $participantUserIds)
                 ->pluck('id');
 
-            $certificates = Certificate::query()
+            $certifiedResultIds = Certificate::query()
                 ->whereIn('test_result_id', $resultIds)
-                ->delete();
+                ->pluck('test_result_id');
+
+            $resettableResultIds = $resultIds
+                ->diff($certifiedResultIds)
+                ->values();
+
+            $preservedResults = TestResult::query()
+                ->whereIn('id', $certifiedResultIds)
+                ->update(['excluded_from_statistics_at' => now()]);
 
             $answers = UserAnswer::query()
                 ->whereIn('question_id', $questionIds)
@@ -95,10 +103,17 @@ class StatisticsController extends Controller
                 ->delete();
 
             $results = TestResult::query()
-                ->whereIn('id', $resultIds)
+                ->whereIn('id', $resettableResultIds)
                 ->delete();
 
-            return compact('certificates', 'answers', 'materials', 'results');
+            return [
+                'certificates' => 0,
+                'preserved_certificates' => $certifiedResultIds->count(),
+                'preserved_results' => $preservedResults,
+                'answers' => $answers,
+                'materials' => $materials,
+                'results' => $results,
+            ];
         });
 
         return response()->json([
@@ -250,6 +265,7 @@ class StatisticsController extends Controller
                     ->where('type', $type);
             })
             ->whereHas('user.role', fn ($query) => $query->where('name', 'Karyawan'))
+            ->whereNull('excluded_from_statistics_at')
             ->orderByDesc('finished_at')
             ->orderByDesc('updated_at')
             ->get()
@@ -401,6 +417,7 @@ class StatisticsController extends Controller
             ->with('test:id,type')
             ->whereIn('test_id', $testIds)
             ->whereHas('user.role', fn ($query) => $query->where('name', 'Karyawan'))
+            ->whereNull('excluded_from_statistics_at')
             ->orderByDesc('updated_at')
             ->get()
             ->groupBy(fn ($result) => $result->test?->type);

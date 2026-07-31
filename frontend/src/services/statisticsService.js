@@ -24,8 +24,9 @@ export const getStatistics = async (options = {}) => {
   };
 };
 
-export const resetStatistics = async () => {
-  const response = await api.post("/statistics/reset");
+export const resetStatistics = async (options = {}) => {
+  const trainingId = typeof options === "object" ? options.trainingId : undefined;
+  const response = await api.post("/statistics/reset", trainingId ? { training_id: trainingId } : undefined);
   return unwrap(response);
 };
 

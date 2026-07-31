@@ -17,11 +17,13 @@ class TestResult extends Model
         'status',
         'started_at',
         'finished_at',
+        'excluded_from_statistics_at',
     ];
 
     protected $casts = [
         'started_at' => 'datetime',
         'finished_at' => 'datetime',
+        'excluded_from_statistics_at' => 'datetime',
     ];
 
     public function user(): BelongsTo

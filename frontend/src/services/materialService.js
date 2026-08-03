@@ -35,6 +35,23 @@ const mapMaterialFromApi = (m) => {
   };
 };
 
+const openBlankMaterialWindow = () => {
+  const popup = window.open("about:blank", "_blank");
+
+  if (popup) {
+    try {
+      popup.opener = null;
+      popup.document.title = "Memuat materi...";
+      popup.document.body.innerHTML =
+        '<p style="font-family: sans-serif; padding: 24px;">Memuat materi...</p>';
+    } catch {
+      // Some browsers restrict writing to the new window; navigation below can still work.
+    }
+  }
+
+  return popup;
+};
+
 const getMockMaterialsByTraining = (trainingId = DEFAULT_TRAINING_ID) =>
   mockMaterialStore.filter((material) => String(material.training_id) === String(trainingId));
 
@@ -86,7 +103,7 @@ export const markMaterialAccessed = async (materialId) => {
 };
 
 export const openMaterialFile = async (material, file, targetWindow = null) => {
-  const popup = targetWindow ?? window.open("", "_blank", "noopener,noreferrer");
+  const popup = targetWindow ?? openBlankMaterialWindow();
 
   try {
     const response = await api.get(`/materials/${material.id}/files/${file.id}/download`, {
@@ -110,6 +127,8 @@ export const openMaterialFile = async (material, file, targetWindow = null) => {
     throw error;
   }
 };
+
+export const openMaterialWindow = openBlankMaterialWindow;
 
 export const getMaterialProgress = async (trainingId = DEFAULT_TRAINING_ID) => {
   if (import.meta.env.VITE_USE_DUMMY_DATA === "true") {

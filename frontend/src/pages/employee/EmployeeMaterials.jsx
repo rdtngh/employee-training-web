@@ -81,7 +81,7 @@ function EmployeeMaterials() {
     const file = material.files?.[0];
     if (!file?.file_path) return;
 
-    const materialWindow = window.open("", "_blank", "noopener,noreferrer");
+    const materialWindow = materialService.openMaterialWindow();
 
     try {
       await materialService.markMaterialAccessed(material.id);

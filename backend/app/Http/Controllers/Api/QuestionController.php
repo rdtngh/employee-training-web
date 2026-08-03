@@ -267,40 +267,38 @@ class QuestionController extends Controller
                 continue;
             }
 
-            if (preg_match('/^\d+[\.\)]\s*(.+)$/u', $line, $match)) {
+            if ($questionText = $this->extractQuestionText($line)) {
                 if ($current !== null) {
                     $questions[] = $current;
                 }
 
-                $current = $this->emptyParsedQuestion(trim($match[1]));
+                $current = $this->emptyParsedQuestion($questionText);
 
                 continue;
             }
 
-            if (preg_match('/^([A-Z])[\.\)]\s*(.+)$/iu', $line, $match)) {
+            if ($option = $this->extractOption($line)) {
                 if ($current === null) {
                     $current = $this->emptyParsedQuestion('');
                     $current['_format_errors'][] = 'Option ditemukan sebelum pertanyaan.';
                 }
 
-                $option = strtoupper($match[1]);
+                [$optionLabel, $optionText] = $option;
 
-                if (! in_array($option, self::ANSWERS, true)) {
-                    $current['_format_errors'][] = 'Option '.$option.' tidak didukung. Gunakan A sampai D.';
+                if (! in_array($optionLabel, self::ANSWERS, true)) {
+                    $current['_format_errors'][] = 'Option '.$optionLabel.' tidak didukung. Gunakan A sampai D.';
                     continue;
                 }
 
-                $current['option_'.strtolower($option)] = trim($match[2]);
+                $current['option_'.strtolower($optionLabel)] = $optionText;
                 continue;
             }
 
-            if (preg_match('/^(jawaban|answer)\s*:\s*(.+)$/iu', $line, $match)) {
+            if ($answer = $this->extractAnswer($line, $current)) {
                 if ($current === null) {
                     $current = $this->emptyParsedQuestion('');
                     $current['_format_errors'][] = 'Jawaban ditemukan sebelum pertanyaan.';
                 }
-
-                $answer = strtoupper(trim($match[2]));
 
                 if (! in_array($answer, self::ANSWERS, true)) {
                     $current['_format_errors'][] = 'Jawaban '.$answer.' tidak valid. Gunakan A, B, C, atau D.';
@@ -340,6 +338,97 @@ class QuestionController extends Controller
         }
 
         return array_values($questions);
+    }
+
+    private function extractQuestionText(string $line): ?string
+    {
+        $patterns = [
+            '/^\s*(?:soal|pertanyaan|question|q|no\.?)\s*(?:nomor|no\.?)?\s*\d+\s*[\.\):\-\x{2013}\x{2014}]?\s*(.+)$/iu',
+            '/^\s*\d+\s*[\.\):\-\x{2013}\x{2014}]\s*(.+)$/u',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $line, $match)) {
+                $question = trim($match[1]);
+
+                return $question !== '' ? $question : null;
+            }
+        }
+
+        return null;
+    }
+
+    private function extractOption(string $line): ?array
+    {
+        $patterns = [
+            '/^\s*(?:option|opsi|pilihan)\s*([A-D])\s*[\.\):\-\x{2013}\x{2014}]?\s*(.+)$/iu',
+            '/^\s*\(?([A-D])\)?\s*[\.\):\-\x{2013}\x{2014}]\s*(.+)$/iu',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $line, $match)) {
+                $label = strtoupper($match[1]);
+                $text = trim($match[2]);
+
+                return $text !== '' ? [$label, $text] : null;
+            }
+        }
+
+        return null;
+    }
+
+    private function extractAnswer(string $line, ?array $current): ?string
+    {
+        $patterns = [
+            '/^\s*(?:kunci(?:\s*jawaban)?|jawaban(?:\s*benar)?|answer(?:\s*key)?|correct\s*answer|ans|key)\s*[\:\-\x{2013}\x{2014}]?\s*(.+)$/iu',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (! preg_match($pattern, $line, $match)) {
+                continue;
+            }
+
+            $value = trim($match[1]);
+            if (preg_match('/^\(?([A-D])\)?(?:\s*[\.\)]|\s|$)/iu', $value, $answerMatch)) {
+                return strtoupper($answerMatch[1]);
+            }
+
+            $matchedOption = $this->answerFromOptionText($value, $current);
+            if ($matchedOption) {
+                return $matchedOption;
+            }
+
+            return strtoupper($value);
+        }
+
+        return null;
+    }
+
+    private function answerFromOptionText(string $value, ?array $current): ?string
+    {
+        if (! $current) {
+            return null;
+        }
+
+        $normalizedValue = $this->normalizeAnswerText($value);
+        if ($normalizedValue === '') {
+            return null;
+        }
+
+        foreach (self::ANSWERS as $answer) {
+            $optionText = $current['option_'.strtolower($answer)] ?? '';
+
+            if ($this->normalizeAnswerText($optionText) === $normalizedValue) {
+                return $answer;
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeAnswerText(string $value): string
+    {
+        return trim(preg_replace('/\s+/u', ' ', mb_strtolower($value, 'UTF-8')) ?? '');
     }
 
     private function emptyParsedQuestion(string $question): array

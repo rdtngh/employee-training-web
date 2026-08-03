@@ -27,22 +27,46 @@ const waitForNextPaint = () =>
 
 function CertificateDashboard({ certificateData, loading, error }) {
   const navigate = useNavigate();
-  const [printingCertificate, setPrintingCertificate] = useState(null);
+  const [printingCertificates, setPrintingCertificates] = useState([]);
   const [downloadError, setDownloadError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTrainingId, setSelectedTrainingId] = useState("all");
   const certificates = useMemo(
     () => certificateData?.certificates ?? [],
     [certificateData?.certificates]
   );
+  const trainingOptions = useMemo(() => {
+    const trainings = new Map();
+
+    certificates.forEach((certificate) => {
+      const id = certificate.training?.id;
+      const title = certificate.training?.title;
+
+      if (id !== null && id !== undefined && title) {
+        trainings.set(String(id), title);
+      }
+    });
+
+    return [...trainings.entries()]
+      .map(([id, title]) => ({ id, title }))
+      .sort((a, b) => a.title.localeCompare(b.title, "id-ID"));
+  }, [certificates]);
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const filteredCertificates = useMemo(() => {
-    if (!normalizedSearchQuery) {
-      return certificates.map((certificate, index) => ({ certificate, originalIndex: index }));
-    }
-
     return certificates
       .map((certificate, index) => ({ certificate, originalIndex: index }))
       .filter(({ certificate }) => {
+        if (
+          selectedTrainingId !== "all" &&
+          String(certificate.training?.id ?? "") !== selectedTrainingId
+        ) {
+          return false;
+        }
+
+        if (!normalizedSearchQuery) {
+          return true;
+        }
+
         const searchableText = [
           certificate.employee?.name,
           certificate.employee?.employee_number,
@@ -57,12 +81,19 @@ function CertificateDashboard({ certificateData, loading, error }) {
 
         return searchableText.includes(normalizedSearchQuery);
     });
-  }, [certificates, normalizedSearchQuery]);
-  const printingId = printingCertificate?.id ?? null;
+  }, [certificates, normalizedSearchQuery, selectedTrainingId]);
+  const printingCertificate = printingCertificates[0] ?? null;
+  const printingId = printingCertificates.length === 1 ? printingCertificate?.id ?? null : null;
+  const isBulkPrinting = printingCertificates.length > 1;
 
-  async function downloadCertificate(certificate) {
+  async function printCertificates(certificatesToPrint) {
+    if (certificatesToPrint.length === 0) {
+      setDownloadError("Tidak ada sertifikat untuk didownload.");
+      return;
+    }
+
     setDownloadError("");
-    flushSync(() => setPrintingCertificate(certificate));
+    flushSync(() => setPrintingCertificates(certificatesToPrint));
     document.documentElement.classList.add("is-certificate-printing");
     document.body.classList.add("is-certificate-printing");
 
@@ -70,7 +101,7 @@ function CertificateDashboard({ certificateData, loading, error }) {
       window.setTimeout(() => {
         document.documentElement.classList.remove("is-certificate-printing");
         document.body.classList.remove("is-certificate-printing");
-        setPrintingCertificate(null);
+        setPrintingCertificates([]);
         window.removeEventListener("afterprint", finishPrint);
       }, 500);
     };
@@ -89,24 +120,34 @@ function CertificateDashboard({ certificateData, loading, error }) {
     }
   }
 
-  if (printingCertificate) {
+  function downloadCertificate(certificate) {
+    printCertificates([certificate]);
+  }
+
+  function downloadVisibleCertificates() {
+    printCertificates(filteredCertificates.map(({ certificate }) => certificate));
+  }
+
+  if (printingCertificates.length > 0) {
     return (
       <main className="certificate-print-page" aria-label="Sertifikat siap dicetak">
-        <section className="certificate-print-stage">
-          <Certificate
-            employeeName={printingCertificate.employee?.name}
-            trainingTitle={printingCertificate.training?.title}
-            certificateNumber={printingCertificate.certificate_number}
-            sequenceNumber={printingCertificate.sequence_number}
-            romanMonth={printingCertificate.roman_month}
-            year={printingCertificate.year}
-            completionDate={
-              printingCertificate.completion_date ||
-              printingCertificate.result?.finished_at ||
-              printingCertificate.issued_at
-            }
-          />
-        </section>
+        {printingCertificates.map((certificate) => (
+          <section className="certificate-print-stage" key={certificate.id}>
+            <Certificate
+              employeeName={certificate.employee?.name}
+              trainingTitle={certificate.training?.title}
+              certificateNumber={certificate.certificate_number}
+              sequenceNumber={certificate.sequence_number}
+              romanMonth={certificate.roman_month}
+              year={certificate.year}
+              completionDate={
+                certificate.completion_date ||
+                certificate.result?.finished_at ||
+                certificate.issued_at
+              }
+            />
+          </section>
+        ))}
       </main>
     );
   }
@@ -135,19 +176,46 @@ function CertificateDashboard({ certificateData, loading, error }) {
       {!loading && !error && (
         <section className="certificate-card">
           <div className="certificate-toolbar">
-            <label className="certificate-search" htmlFor="certificate-search">
-              <span>Cari Sertifikat</span>
-              <input
-                id="certificate-search"
-                type="search"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Nama, username, pelatihan, no sertifikat..."
-              />
-            </label>
-            <p className="certificate-search-count" role="status">
-              {filteredCertificates.length} dari {certificates.length} sertifikat
-            </p>
+            <div className="certificate-filters">
+              <label className="certificate-filter-field" htmlFor="certificate-training-filter">
+                <span>Filter Pelatihan</span>
+                <select
+                  id="certificate-training-filter"
+                  value={selectedTrainingId}
+                  onChange={(event) => setSelectedTrainingId(event.target.value)}
+                >
+                  <option value="all">Semua pelatihan</option>
+                  {trainingOptions.map((training) => (
+                    <option key={training.id} value={training.id}>
+                      {training.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="certificate-search" htmlFor="certificate-search">
+                <span>Cari Sertifikat</span>
+                <input
+                  id="certificate-search"
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Nama, username, pelatihan, no sertifikat..."
+                />
+              </label>
+            </div>
+            <div className="certificate-toolbar-summary">
+              <p className="certificate-search-count" role="status">
+                {filteredCertificates.length} dari {certificates.length} sertifikat
+              </p>
+              <button
+                type="button"
+                className="certificate-download-all"
+                onClick={downloadVisibleCertificates}
+                disabled={filteredCertificates.length === 0 || isBulkPrinting}
+              >
+                {isBulkPrinting ? "Menyiapkan..." : "Download Semua PDF"}
+              </button>
+            </div>
           </div>
           <div className="certificate-table-wrap">
             <table className="certificate-table">

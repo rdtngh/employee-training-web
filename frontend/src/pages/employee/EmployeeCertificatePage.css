@@ -108,6 +108,12 @@
   font-weight: 600;
 }
 
+.employee-certificate-alert {
+  margin: -8px 0 16px;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
 .employee-certificate-print-page {
   width: 297mm;
   height: 210mm;
@@ -170,8 +176,9 @@
     size: A4 landscape;
   }
 
-  html,
-  body {
+  html.is-certificate-printing,
+  html.is-certificate-printing body,
+  body.is-certificate-printing {
     width: 297mm !important;
     height: 210mm !important;
     margin: 0 !important;
@@ -203,18 +210,17 @@
     transform-origin: top left !important;
   }
 
-  .navbar,
-  .sidebar,
-  .dashboard-sidebar-backdrop,
-  footer {
+  body.is-certificate-printing .navbar,
+  body.is-certificate-printing .sidebar,
+  body.is-certificate-printing .dashboard-sidebar-backdrop,
+  body.is-certificate-printing footer {
     display: none !important;
   }
 
-  .dashboard-layout,
-  .dashboard-body,
-  .dashboard-content,
-  .dashboard-content-inner,
-  .employee-certificate-page {
+  body.is-certificate-printing .dashboard-layout,
+  body.is-certificate-printing .dashboard-body,
+  body.is-certificate-printing .dashboard-content,
+  body.is-certificate-printing .dashboard-content-inner {
     display: block !important;
     width: 297mm !important;
     height: 210mm !important;
@@ -228,42 +234,7 @@
     box-shadow: none !important;
   }
 
-  .dashboard-content-inner::before {
+  body.is-certificate-printing .dashboard-content-inner::before {
     content: none !important;
-  }
-
-  .employee-certificate-page > :not(.employee-certificate-stage) {
-    display: none !important;
-  }
-
-  .employee-certificate-stage {
-    --certificate-print-offset-x: 6mm;
-    --certificate-print-offset-y: 4mm;
-    --certificate-print-scale: 1.275;
-    position: fixed;
-    top: 0;
-    left: 0;
-    display: block;
-    width: 297mm !important;
-    height: 210mm !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible;
-    border: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-  }
-
-  .employee-certificate-stage .certificate-preview-frame {
-    width: 297mm !important;
-    height: 210mm !important;
-    max-width: none !important;
-    overflow: hidden !important;
-  }
-
-  .employee-certificate-stage .certificate-template {
-    transform: translate(var(--certificate-print-offset-x), var(--certificate-print-offset-y))
-      scale(var(--certificate-print-scale)) !important;
-    transform-origin: top left !important;
   }
 }

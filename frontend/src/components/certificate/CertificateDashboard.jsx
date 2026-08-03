@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import Certificate from "./Certificate";
 import "./CertificateDashboard.css";
@@ -6,7 +7,7 @@ import "./CertificateDashboard.css";
 const waitForCertificateAssets = async () => {
   await document.fonts?.ready;
 
-  const images = [...document.querySelectorAll(".certificate-print-stage img")];
+  const images = [...document.querySelectorAll(".certificate-print-page img")];
   await Promise.all(
     images.map((image) => {
       if (image.complete) return Promise.resolve();
@@ -55,45 +56,59 @@ function CertificateDashboard({ certificateData, loading, error }) {
           .toLowerCase();
 
         return searchableText.includes(normalizedSearchQuery);
-      });
+    });
   }, [certificates, normalizedSearchQuery]);
   const printingId = printingCertificate?.id ?? null;
 
-  useEffect(() => {
-    if (!printingCertificate) return undefined;
-
+  async function downloadCertificate(certificate) {
+    setDownloadError("");
+    flushSync(() => setPrintingCertificate(certificate));
+    document.documentElement.classList.add("is-certificate-printing");
     document.body.classList.add("is-certificate-printing");
 
     const finishPrint = () => {
-      document.body.classList.remove("is-certificate-printing");
-      setPrintingCertificate(null);
+      window.setTimeout(() => {
+        document.documentElement.classList.remove("is-certificate-printing");
+        document.body.classList.remove("is-certificate-printing");
+        setPrintingCertificate(null);
+        window.removeEventListener("afterprint", finishPrint);
+      }, 500);
     };
 
-    window.addEventListener("afterprint", finishPrint);
-
-    let active = true;
-
-    const printCertificate = async () => {
+    try {
       await waitForNextPaint();
       await waitForCertificateAssets();
       await waitForNextPaint();
-      if (!active) return;
-
+      window.addEventListener("afterprint", finishPrint);
       window.print();
-    };
+    } catch (error) {
+      setDownloadError(
+        error.message || "Sertifikat gagal disiapkan. Silakan coba lagi."
+      );
+      finishPrint();
+    }
+  }
 
-    printCertificate();
-
-    return () => {
-      active = false;
-      window.removeEventListener("afterprint", finishPrint);
-      document.body.classList.remove("is-certificate-printing");
-    };
-  }, [printingCertificate]);
-
-  function downloadCertificate(certificate) {
-    setDownloadError("");
-    setPrintingCertificate(certificate);
+  if (printingCertificate) {
+    return (
+      <main className="certificate-print-page" aria-label="Sertifikat siap dicetak">
+        <section className="certificate-print-stage">
+          <Certificate
+            employeeName={printingCertificate.employee?.name}
+            trainingTitle={printingCertificate.training?.title}
+            certificateNumber={printingCertificate.certificate_number}
+            sequenceNumber={printingCertificate.sequence_number}
+            romanMonth={printingCertificate.roman_month}
+            year={printingCertificate.year}
+            completionDate={
+              printingCertificate.completion_date ||
+              printingCertificate.result?.finished_at ||
+              printingCertificate.issued_at
+            }
+          />
+        </section>
+      </main>
+    );
   }
 
   return (
@@ -191,24 +206,6 @@ function CertificateDashboard({ certificateData, loading, error }) {
       <button type="button" className="certificate-back" onClick={() => navigate(-1)}>
         Back
       </button>
-
-      {printingCertificate && (
-        <section className="certificate-print-stage" aria-hidden="true">
-          <Certificate
-            employeeName={printingCertificate.employee?.name}
-            trainingTitle={printingCertificate.training?.title}
-            certificateNumber={printingCertificate.certificate_number}
-            sequenceNumber={printingCertificate.sequence_number}
-            romanMonth={printingCertificate.roman_month}
-            year={printingCertificate.year}
-            completionDate={
-              printingCertificate.completion_date ||
-              printingCertificate.result?.finished_at ||
-              printingCertificate.issued_at
-            }
-          />
-        </section>
-      )}
     </main>
   );
 }

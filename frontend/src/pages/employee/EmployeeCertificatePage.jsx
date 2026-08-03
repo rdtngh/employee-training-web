@@ -48,6 +48,7 @@ function EmployeeCertificatePage() {
   const [loading, setLoading] = useState(true);
   const [printMode, setPrintMode] = useState(false);
   const [error, setError] = useState("");
+  const [downloadError, setDownloadError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -77,6 +78,7 @@ function EmployeeCertificatePage() {
   }, [trainingId]);
 
   async function downloadCertificate() {
+    setDownloadError("");
     flushSync(() => setPrintMode(true));
     document.documentElement.classList.add("is-certificate-printing");
     document.body.classList.add("is-certificate-printing");
@@ -87,15 +89,21 @@ function EmployeeCertificatePage() {
         document.body.classList.remove("is-certificate-printing");
         setPrintMode(false);
         window.removeEventListener("afterprint", finishPrint);
-      }, 1000);
+      }, 500);
     };
 
-    await waitForNextPaint();
-    await waitForCertificateAssets();
-    await waitForNextPaint();
-
-    window.addEventListener("afterprint", finishPrint);
-    window.print();
+    try {
+      await waitForNextPaint();
+      await waitForCertificateAssets();
+      await waitForNextPaint();
+      window.addEventListener("afterprint", finishPrint);
+      window.print();
+    } catch (error) {
+      setDownloadError(
+        error.message || "Sertifikat gagal disiapkan. Silakan coba lagi."
+      );
+      finishPrint();
+    }
   }
 
   if (printMode) {
@@ -140,6 +148,11 @@ function EmployeeCertificatePage() {
         {error && (
           <p className="employee-certificate-state employee-certificate-error" role="alert">
             {error}
+          </p>
+        )}
+        {downloadError && (
+          <p className="employee-certificate-alert" role="alert">
+            {downloadError}
           </p>
         )}
         {!loading && !error && (

@@ -131,7 +131,7 @@
 }
 
 .employee-certificate-print-stage .certificate-template {
-  transform: scale(1.331) !important;
+  transform: scale(1.325) !important;
   transform-origin: top left !important;
 }
 
@@ -194,7 +194,7 @@
   }
 
   .employee-certificate-print-stage .certificate-template {
-    transform: scale(1.331) !important;
+    transform: scale(1.325) !important;
     transform-origin: top left !important;
   }
 
@@ -254,7 +254,7 @@
   }
 
   .employee-certificate-stage .certificate-template {
-    transform: scale(1.331) !important;
+    transform: scale(1.325) !important;
     transform-origin: top left !important;
   }
 }

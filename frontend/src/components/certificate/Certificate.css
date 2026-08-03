@@ -66,7 +66,7 @@
 .certificate-daun-kanan-atas {
   z-index: 3;
   top: -2px;
-  left: 656px;
+  right: 0;
   width: 198px;
   height: 196px;
   object-fit: contain;

@@ -86,6 +86,8 @@ const DEFAULT_DIRECTOR = {
   name: "Dr. Charles Z. Suoth, MARS",
   title: "Direktur RSABL",
 };
+const CERTIFICATE_WIDTH = 841;
+const CERTIFICATE_HEIGHT = 595;
 
 function Certificate({
   employeeName = "",
@@ -119,21 +121,27 @@ function Certificate({
     if (!preview) return undefined;
 
     const updateScale = () => {
-      setScale(Math.min(preview.clientWidth / 841, 1));
+      setScale(Math.min(Math.max(preview.clientWidth / CERTIFICATE_WIDTH, 0), 1));
     };
 
     updateScale();
-    const resizeObserver = new ResizeObserver(updateScale);
-    resizeObserver.observe(preview);
 
-    return () => resizeObserver.disconnect();
+    if (typeof ResizeObserver === "function") {
+      const resizeObserver = new ResizeObserver(updateScale);
+      resizeObserver.observe(preview);
+
+      return () => resizeObserver.disconnect();
+    }
+
+    window.addEventListener("resize", updateScale);
+    return () => window.removeEventListener("resize", updateScale);
   }, []);
 
   return (
     <div
       className="certificate-preview-frame"
       ref={previewRef}
-      style={{ height: `${595 * scale}px` }}
+      style={{ height: `${CERTIFICATE_HEIGHT * scale}px` }}
     >
       <article
         className="certificate-template"

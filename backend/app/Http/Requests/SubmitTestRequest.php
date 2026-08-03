@@ -18,6 +18,7 @@ class SubmitTestRequest extends FormRequest
             'answers.*.question_id' => ['required', 'integer', 'exists:questions,id'],
             'answers.*.selected_answer' => ['required', 'string', 'in:A,B,C,D'],
             'started_at' => ['nullable', 'date'],
+            'elapsed_seconds' => ['nullable', 'integer', 'min:0', 'max:86400'],
         ];
     }
 
@@ -31,6 +32,7 @@ class SubmitTestRequest extends FormRequest
             'answers.*.selected_answer.required' => 'Pilih jawaban untuk setiap soal.',
             'answers.*.selected_answer.in' => 'Jawaban harus A, B, C, atau D.',
             'started_at.date' => 'Waktu mulai tes tidak valid.',
+            'elapsed_seconds.integer' => 'Durasi pengerjaan tidak valid.',
         ];
     }
 }

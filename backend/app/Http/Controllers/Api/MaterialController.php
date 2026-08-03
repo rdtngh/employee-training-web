@@ -406,6 +406,8 @@ class MaterialController extends Controller
     private function requiresPreTest(Material $material): bool
     {
         $user = request()->user();
+        $user?->loadMissing('role');
+        $material->loadMissing('training.tests');
 
         if (strtolower($user?->role?->name ?? '') !== 'karyawan') {
             return false;
@@ -416,7 +418,10 @@ class MaterialController extends Controller
             : null;
 
         return $preTestId
-            ? ! TestResult::where('user_id', $user->id)->where('test_id', $preTestId)->exists()
+            ? ! TestResult::where('user_id', $user->id)
+                ->where('test_id', $preTestId)
+                ->whereNull('reset_at')
+                ->exists()
             : true;
     }
 }

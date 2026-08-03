@@ -18,12 +18,14 @@ class TestResult extends Model
         'started_at',
         'finished_at',
         'excluded_from_top_scores_at',
+        'reset_at',
     ];
 
     protected $casts = [
         'started_at' => 'datetime',
         'finished_at' => 'datetime',
         'excluded_from_top_scores_at' => 'datetime',
+        'reset_at' => 'datetime',
     ];
 
     public function user(): BelongsTo

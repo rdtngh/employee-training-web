@@ -201,7 +201,10 @@ class TrainingController extends Controller
             ->value('id');
 
         return $preTestId
-            ? TestResult::where('user_id', $request->user()->id)->where('test_id', $preTestId)->exists()
+            ? TestResult::where('user_id', $request->user()->id)
+                ->where('test_id', $preTestId)
+                ->whereNull('reset_at')
+                ->exists()
             : false;
     }
 
@@ -210,6 +213,7 @@ class TrainingController extends Controller
         return TestResult::query()
             ->where('user_id', $request->user()->id)
             ->where('status', 'Lulus')
+            ->whereNull('reset_at')
             ->whereHas('test', function ($query) use ($training) {
                 $query->where('training_id', $training->id)
                     ->where('type', 'posttest');

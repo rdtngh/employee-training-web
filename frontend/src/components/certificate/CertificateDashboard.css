@@ -139,6 +139,7 @@
   }
 
   .certificate-table tr {
+    width: calc(100% - 24px);
     margin: 12px;
     padding: 10px 14px;
     border: 1px solid #d1d5db;
@@ -231,7 +232,7 @@
   }
 
   body.is-certificate-printing .certificate-print-stage .certificate-template {
-    transform: scale(1.331) !important;
+    transform: scale(1.325) !important;
     transform-origin: top left !important;
   }
 }

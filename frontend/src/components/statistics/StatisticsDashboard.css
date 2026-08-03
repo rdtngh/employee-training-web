@@ -55,6 +55,10 @@
   font-weight: 600;
 }
 
+.statistics-message-warning {
+  color: #b45309;
+}
+
 .statistics-filter {
   width: min(100%, 420px);
   display: flex;
@@ -143,9 +147,12 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: 270px;
   margin: 0;
   padding: 0;
+  overflow: auto;
   list-style: none;
+  scrollbar-gutter: stable;
 }
 
 .statistics-top-list li {
@@ -347,6 +354,8 @@
 
 .statistics-reset-dialog {
   width: min(100%, 390px);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
   background: #fff;
   border-radius: 8px;
   padding: 24px;
@@ -371,6 +380,26 @@
 .statistics-reset-note {
   margin-top: 6px;
   color: #6b7280;
+}
+
+.statistics-reset-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  color: #111827;
+  font-size: .95rem;
+  font-weight: 700;
+}
+
+.statistics-reset-field select {
+  min-height: 42px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #111827;
+  font-weight: 500;
+  padding: 8px 10px;
 }
 
 .statistics-reset-actions {

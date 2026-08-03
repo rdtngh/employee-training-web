@@ -13,6 +13,10 @@ use ZipArchive;
 
 class StatisticsController extends Controller
 {
+    private const RESET_PROTECTED_TRAINING_TITLES = [
+        'Pelatihan Sosialisasi Pendidikan Dalam Pelayanan',
+    ];
+
     public function index(Request $request): JsonResponse
     {
         $training = $this->resolveTraining($request);
@@ -42,6 +46,13 @@ class StatisticsController extends Controller
 
     public function reset(Request $request): JsonResponse
     {
+        $validated = $request->validate([
+            'training_id' => ['required', 'integer', 'exists:trainings,id'],
+            'reset_type' => ['required', 'string', 'in:pretest,posttest'],
+            'user_ids' => ['sometimes', 'array'],
+            'user_ids.*' => ['integer', 'exists:users,id'],
+        ]);
+
         $training = $this->resolveTraining($request);
 
         if (! $training) {
@@ -51,27 +62,43 @@ class StatisticsController extends Controller
             ], 404);
         }
 
-        $updated = DB::transaction(function () use ($training) {
-            return TestResult::query()
+        if ($this->isResetProtectedTraining($training)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pelatihan ini dilindungi dan tidak dapat direset karena digunakan untuk hasil testing.',
+            ], 422);
+        }
+
+        $types = [$validated['reset_type']];
+
+        $updated = DB::transaction(function () use ($training, $types, $validated) {
+            $query = TestResult::query()
                 ->whereHas('test', function ($query) use ($training) {
-                    $query->where('training_id', $training->id)
-                        ->where('type', 'posttest');
+                    $query->where('training_id', $training->id);
                 })
                 ->whereHas('user.role', fn ($query) => $query->where('name', 'Karyawan'))
-                ->whereNull('excluded_from_top_scores_at')
-                ->update(['excluded_from_top_scores_at' => now()]);
+                ->whereHas('test', fn ($query) => $query->whereIn('type', $types))
+                ->whereNull('reset_at');
+
+            if (! empty($validated['user_ids'])) {
+                $query->whereIn('user_id', $validated['user_ids']);
+            }
+
+            return $query->update(['reset_at' => now()]);
         });
 
         return response()->json([
             'success' => true,
-            'message' => 'Top 3 statistik berhasil direset.',
+            'message' => 'Reset pelatihan berhasil diproses.',
             'data' => [
                 'training' => [
                     'id' => $training->id,
                     'title' => $training->title,
                 ],
+                'reset_type' => $validated['reset_type'],
                 'updated' => [
-                    'top_score_results' => $updated,
+                    'test_results' => $updated,
+                    'top_score_results' => 0,
                     'certificates' => 0,
                     'answers' => 0,
                     'materials' => 0,
@@ -92,7 +119,7 @@ class StatisticsController extends Controller
             ], 404);
         }
 
-        $statistics = $this->trainingStatistics($training, false);
+        $statistics = $this->trainingStatistics($training);
         $participantRows = $statistics['participant_rows'];
         $participantCount = count($participantRows);
 
@@ -120,7 +147,7 @@ class StatisticsController extends Controller
 
         foreach ($statistics['top_scores'] as $index => $topScore) {
             $summaryRows[] = [
-                'Top '.($index + 1).' Post-Test',
+                'Top Leaderboard '.($index + 1).' Post-Test',
                 $topScore['employee_name'].' - '.$topScore['score'].' - '.$topScore['duration_label'],
             ];
         }
@@ -173,14 +200,12 @@ class StatisticsController extends Controller
             ->first();
     }
 
-    private function trainingStatistics(Training $training, bool $applyTopScoreReset = true): array
+    private function trainingStatistics(Training $training): array
     {
         $testIds = $training->tests()->pluck('id');
         $pretestResults = $this->latestResultsByType($training, 'pretest');
         $posttestResults = $this->latestResultsByType($training, 'posttest');
-        $topScoreResults = $applyTopScoreReset
-            ? $posttestResults->whereNull('excluded_from_top_scores_at')->values()
-            : $posttestResults;
+        $topScoreResults = $posttestResults;
         $participantRows = $this->participantScoreRows($pretestResults, $posttestResults);
         $posttestCount = $posttestResults->count();
         $passedCount = $posttestResults->where('status', 'Lulus')->count();
@@ -219,6 +244,8 @@ class StatisticsController extends Controller
                     ->where('type', $type);
             })
             ->whereHas('user.role', fn ($query) => $query->where('name', 'Karyawan'))
+            ->whereNull('reset_at')
+            ->whereNotNull('finished_at')
             ->orderByDesc('finished_at')
             ->orderByDesc('updated_at')
             ->get()
@@ -294,7 +321,7 @@ class StatisticsController extends Controller
 
                 return $numberCompare !== 0 ? $numberCompare : ($a->id <=> $b->id);
             })
-            ->take(3)
+            ->take(20)
             ->values()
             ->map(fn (TestResult $result, int $index) => [
                 'rank' => $index + 1,
@@ -315,7 +342,22 @@ class StatisticsController extends Controller
             return null;
         }
 
-        return max(0, $result->finished_at->getTimestamp() - $result->started_at->getTimestamp());
+        $seconds = $result->finished_at->getTimestamp() - $result->started_at->getTimestamp();
+
+        return $seconds > 0 ? $seconds : null;
+    }
+
+    private function isResetProtectedTraining(Training $training): bool
+    {
+        $title = trim(strtolower($training->title));
+
+        foreach (self::RESET_PROTECTED_TRAINING_TITLES as $protectedTitle) {
+            if ($title === trim(strtolower($protectedTitle))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function formatDuration(?int $seconds): string
@@ -370,6 +412,8 @@ class StatisticsController extends Controller
             ->with('test:id,type')
             ->whereIn('test_id', $testIds)
             ->whereHas('user.role', fn ($query) => $query->where('name', 'Karyawan'))
+            ->whereNull('reset_at')
+            ->whereNotNull('finished_at')
             ->orderByDesc('updated_at')
             ->get()
             ->groupBy(fn ($result) => $result->test?->type);

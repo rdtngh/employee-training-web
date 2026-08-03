@@ -6,6 +6,7 @@ import "./StatisticsDashboard.css";
 
 const yAxisTicks = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0];
 const defaultRanges = ["1-20", "21-30", "31-40", "41-50", "51-60", "61-70", "71-80", "81-90", "91-100"];
+const RESET_PROTECTED_TRAINING_TITLE = "Pelatihan Sosialisasi Pendidikan Dalam Pelayanan";
 
 function getDistribution(statistics, type) {
   const distribution = statistics?.score_distributions?.[type];
@@ -97,23 +98,37 @@ function StatisticsDashboard({
   const [resetting, setResetting] = useState(false);
   const [message, setMessage] = useState("");
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetType, setResetType] = useState("pretest");
   const preTestDistribution = getDistribution(statistics, "pretest");
   const postTestDistribution = getDistribution(statistics, "posttest");
   const topScores = statistics?.top_scores ?? [];
   const averagePreTest = statistics?.averages?.pretest ?? statistics?.average_pretest_score;
   const averagePostTest = statistics?.averages?.posttest ?? statistics?.average_posttest_score;
+  const selectedTraining = trainings.find((training) => String(training.id) === String(selectedTrainingId));
+  const selectedTrainingTitle = selectedTraining?.title ?? statistics?.training?.title;
+  const resetProtected = selectedTrainingTitle?.trim().toLowerCase() === RESET_PROTECTED_TRAINING_TITLE.toLowerCase();
 
   async function resetStatistics() {
+    if (!selectedTrainingId) {
+      setMessage("Pilih pelatihan terlebih dahulu sebelum reset.");
+      return;
+    }
+
+    if (resetProtected) {
+      setMessage("Pelatihan ini dilindungi untuk hasil testing dan tidak dapat direset.");
+      return;
+    }
+
     setResetting(true);
     setMessage("");
 
     try {
-      await statisticsService.resetStatistics({ trainingId: selectedTrainingId });
-      setMessage("Top 3 statistik berhasil direset.");
+      await statisticsService.resetStatistics({ trainingId: selectedTrainingId, resetType });
+      setMessage("Reset pelatihan berhasil diproses.");
       setResetDialogOpen(false);
       onReset?.();
-    } catch {
-      setMessage("Reset statistik gagal. Silakan coba lagi.");
+    } catch (error) {
+      setMessage(error.response?.data?.message || "Reset statistik gagal. Silakan coba lagi.");
     } finally {
       setResetting(false);
     }
@@ -134,9 +149,9 @@ function StatisticsDashboard({
             type="button"
             className="statistics-reset"
             onClick={() => setResetDialogOpen(true)}
-            disabled={loading || resetting}
+            disabled={loading || resetting || !selectedTrainingId || resetProtected}
           >
-            {resetting ? "Mereset..." : "Reset Top 3"}
+            {resetting ? "Mereset..." : "Reset"}
           </button>
         )}
       </div>
@@ -161,6 +176,11 @@ function StatisticsDashboard({
       {loading && <p className="statistics-state">Memuat statistik...</p>}
       {error && <p className="statistics-state statistics-error" role="alert">Data statistik gagal dimuat.</p>}
       {message && <p className="statistics-message" role="status">{message}</p>}
+      {selectedTrainingId && resetProtected && (
+        <p className="statistics-message statistics-message-warning" role="status">
+          Pelatihan ini dilindungi untuk hasil testing. Data Pre Test dan Post Test tidak bisa direset dari halaman ini.
+        </p>
+      )}
 
       {!selectedTrainingId && !loading && !error && (
         <p className="statistics-state">Pilih pelatihan untuk melihat statistik.</p>
@@ -184,7 +204,7 @@ function StatisticsDashboard({
             </article>
 
             <article className="statistics-summary-card">
-              <h2>Top 3 Nilai & Kecepatan Post-Test</h2>
+              <h2>Top Leaderboard Post-Test</h2>
               {topScores.length > 0 ? (
                 <ol className="statistics-top-list">
                   {topScores.map((score) => (
@@ -219,13 +239,25 @@ function StatisticsDashboard({
             aria-labelledby="statistics-reset-title"
           >
             <h3 id="statistics-reset-title" className="statistics-reset-title">
-              Reset Top 3
+              Reset Pelatihan
             </h3>
             <p className="statistics-reset-message">
-              Apakah Anda yakin ingin mereset Top 3 peserta?
+              Reset hanya berlaku untuk pelatihan yang sedang dipilih.
             </p>
+            <label className="statistics-reset-field" htmlFor="statistics-reset-type">
+              Jenis Reset
+              <select
+                id="statistics-reset-type"
+                value={resetType}
+                onChange={(event) => setResetType(event.target.value)}
+                disabled={resetting}
+              >
+                <option value="pretest">Reset Pre Test</option>
+                <option value="posttest">Reset Post Test</option>
+              </select>
+            </label>
             <p className="statistics-reset-note">
-              Data export XLSX, hasil submit peserta, progres materi, dan sertifikat tetap tersimpan.
+              Hasil lama dan sertifikat tidak dihapus. Sistem hanya membuka ulang akses sesuai jenis reset.
             </p>
 
             <div className="statistics-reset-actions">

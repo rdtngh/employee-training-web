@@ -33,6 +33,8 @@ function EmployeePreTest() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { answers, setAnswers, clearAnswers } = useSessionAnswers(`rsabl-pretest-answers-${trainingId || "list"}`);
   const [started, setStarted] = useState(false);
+  const [startedAt, setStartedAt] = useState(null);
+  const [startedMs, setStartedMs] = useState(null);
   const [showStartDialog, setShowStartDialog] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [result, setResult] = useState(null);
@@ -72,6 +74,8 @@ function EmployeePreTest() {
       setResult(null);
       setCurrentIndex(0);
       setStarted(false);
+      setStartedAt(null);
+      setStartedMs(null);
       setShowStartDialog(false);
       setShowSubmitDialog(false);
       examService.getPreTest(trainingId)
@@ -109,6 +113,8 @@ function EmployeePreTest() {
           question_id: question.id,
           answer: answers[question.id],
         })),
+        started_at: startedAt,
+        elapsed_seconds: startedMs === null ? undefined : Math.max(1, Math.round((performance.now() - startedMs) / 1000)),
       });
       setResult(unwrapResponse(response));
       clearAnswers();
@@ -197,7 +203,12 @@ function EmployeePreTest() {
       {showStartDialog && (
         <ExamConfirmDialog
           title="Yakin ingin mengerjakan Pre-Test sekarang?"
-          onConfirm={() => { setStarted(true); setShowStartDialog(false); }}
+          onConfirm={() => {
+            setStarted(true);
+            setStartedAt(new Date().toISOString());
+            setStartedMs(performance.now());
+            setShowStartDialog(false);
+          }}
           onCancel={() => setShowStartDialog(false)}
         />
       )}

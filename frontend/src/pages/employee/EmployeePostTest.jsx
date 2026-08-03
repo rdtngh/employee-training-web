@@ -39,6 +39,7 @@ function EmployeePostTest() {
   const { answers, setAnswers, clearAnswers } = useSessionAnswers(`rsabl-posttest-answers-${trainingId || "list"}`);
   const [started, setStarted] = useState(false);
   const [startedAt, setStartedAt] = useState(null);
+  const [startedMs, setStartedMs] = useState(null);
   const [showStart, setShowStart] = useState(false);
   const [showSubmit, setShowSubmit] = useState(false);
   const [showFailureNotice, setShowFailureNotice] = useState(false);
@@ -79,6 +80,7 @@ function EmployeePostTest() {
       setCurrentIndex(0);
       setStarted(false);
       setStartedAt(null);
+      setStartedMs(null);
       setShowStart(false);
       setShowSubmit(false);
       setShowFailureNotice(false);
@@ -114,6 +116,7 @@ function EmployeePostTest() {
         training_id: data.training.id,
         answers: questions.map((item) => ({ question_id: item.id, answer: answers[item.id] })),
         started_at: startedAt,
+        elapsed_seconds: startedMs === null ? undefined : Math.max(1, Math.round((performance.now() - startedMs) / 1000)),
       }));
       setResult(response);
       setShowFailureNotice(!isPassedResult(response));
@@ -139,6 +142,7 @@ function EmployeePostTest() {
       setCurrentIndex(0);
       setStarted(false);
       setStartedAt(null);
+      setStartedMs(null);
       setShowStart(true);
     } catch {
       setError("Post-Test tidak dapat diulang saat ini.");
@@ -227,7 +231,7 @@ function EmployeePostTest() {
           </section>
         </div>
       )}
-      {showStart && <ExamConfirmDialog title="Yakin ingin mengerjakan Post-Test sekarang?" onConfirm={() => { setStarted(true); setStartedAt(new Date().toISOString()); setShowStart(false); }} onCancel={() => navigate(-1)} busy={busy} />}
+      {showStart && <ExamConfirmDialog title="Yakin ingin mengerjakan Post-Test sekarang?" onConfirm={() => { setStarted(true); setStartedAt(new Date().toISOString()); setStartedMs(performance.now()); setShowStart(false); }} onCancel={() => navigate(-1)} busy={busy} />}
       {showSubmit && <ExamConfirmDialog title="Yakin ingin mengumpulkan Post-Test?" onConfirm={submit} onCancel={() => setShowSubmit(false)} busy={busy} />}
       {showFailureNotice && result && !resultPassed && (
         <div className="posttest-failure-overlay" role="presentation">

@@ -161,6 +161,7 @@ const submitTest = async (testId, payload) => {
 
   const response = await api.post(`/tests/${testId}/submit`, {
     ...(payload?.started_at ? { started_at: payload.started_at } : {}),
+    ...(Number.isFinite(payload?.elapsed_seconds) ? { elapsed_seconds: payload.elapsed_seconds } : {}),
     answers: (payload?.answers ?? []).map((answer) => ({
       question_id: answer.question_id,
       selected_answer: normalizeAnswer(answer.selected_answer ?? answer.answer),

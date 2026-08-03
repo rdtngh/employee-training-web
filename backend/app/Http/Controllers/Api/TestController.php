@@ -95,6 +95,14 @@ class TestController extends Controller
             return $this->lockedResponse();
         }
 
+        if ($test->type === 'pretest' && $visibleResult = $this->visibleResultForCurrentUser($test)) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Pre-Test sudah dikerjakan untuk pelatihan ini.',
+                'data' => $this->resultPayload($visibleResult),
+            ]);
+        }
+
         $passedResult = $this->passedResultForCurrentUser($test);
 
         if ($passedResult) {
@@ -136,29 +144,21 @@ class TestController extends Controller
 
         $score = $questions->count() > 0 ? round(($correct / $questions->count()) * 100) : 0;
         $status = $score >= $test->passing_score ? 'Lulus' : 'Tidak Lulus';
-        $finishedAt = now();
-        $startedAt = $request->date('started_at') ?? $finishedAt;
-
-        if ($startedAt->greaterThan($finishedAt)) {
-            $startedAt = $finishedAt;
-        }
+        [$startedAt, $finishedAt] = $this->submissionTimes($request);
 
         $testResult = DB::transaction(function () use ($user, $test, $score, $correct, $wrong, $status, $startedAt, $finishedAt) {
-            $result = TestResult::updateOrCreate(
-                [
-                    'user_id' => $user->id,
-                    'test_id' => $test->id,
-                ],
-                [
-                    'score' => $score,
-                    'correct_answers' => $correct,
-                    'wrong_answers' => $wrong,
-                    'status' => $status,
-                    'started_at' => $startedAt,
-                    'finished_at' => $finishedAt,
-                    'excluded_from_top_scores_at' => null,
-                ]
-            );
+            $result = TestResult::create([
+                'user_id' => $user->id,
+                'test_id' => $test->id,
+                'score' => $score,
+                'correct_answers' => $correct,
+                'wrong_answers' => $wrong,
+                'status' => $status,
+                'started_at' => $startedAt,
+                'finished_at' => $finishedAt,
+                'excluded_from_top_scores_at' => null,
+                'reset_at' => null,
+            ]);
 
             if ($test->type === 'posttest' && $status === 'Lulus') {
                 Certificate::firstOrCreate(
@@ -180,7 +180,7 @@ class TestController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Hasil tes berhasil disimpan.',
-            'data' => $this->resultPayload($testResult),
+            'data' => $this->resultPayload($testResult->loadMissing('test')),
         ]);
     }
 
@@ -209,22 +209,30 @@ class TestController extends Controller
             'can_retry' => $result->test?->type === 'posttest' && $result->status !== 'Lulus',
             'certificate_available' => $result->test?->type === 'posttest' && $result->status === 'Lulus',
             'test_result_id' => $result->id,
+            'started_at' => optional($result->started_at)->toISOString(),
+            'finished_at' => optional($result->finished_at)->toISOString(),
+            'duration_seconds' => $this->durationSeconds($result),
+            'duration_label' => $this->formatDuration($this->durationSeconds($result)),
         ];
     }
 
     private function passedResultForCurrentUser(Test $test): ?TestResult
     {
-        return TestResult::where('user_id', request()->user()->id)
+        return TestResult::with('test')
+            ->where('user_id', request()->user()->id)
             ->where('test_id', $test->id)
             ->where('status', 'Lulus')
+            ->whereNull('reset_at')
             ->first();
     }
 
     private function visibleResultForCurrentUser(Test $test): ?TestResult
     {
         if ($test->type === 'pretest') {
-            return TestResult::where('user_id', request()->user()->id)
+            return TestResult::with('test')
+                ->where('user_id', request()->user()->id)
                 ->where('test_id', $test->id)
+                ->whereNull('reset_at')
                 ->latest('finished_at')
                 ->first();
         }
@@ -273,7 +281,10 @@ class TestController extends Controller
             ->value('id');
 
         return $preTestId
-            ? TestResult::where('user_id', request()->user()->id)->where('test_id', $preTestId)->exists()
+            ? TestResult::where('user_id', request()->user()->id)
+                ->where('test_id', $preTestId)
+                ->whereNull('reset_at')
+                ->exists()
             : false;
     }
 
@@ -301,6 +312,53 @@ class TestController extends Controller
             'success' => false,
             'message' => 'Pre-Test dan materi harus diselesaikan sebelum membuka Post-Test.',
         ], 403);
+    }
+
+    private function submissionTimes(SubmitTestRequest $request): array
+    {
+        $finishedAt = now();
+
+        if ($request->has('elapsed_seconds')) {
+            return [
+                $finishedAt->copy()->subSeconds(max(0, $request->integer('elapsed_seconds'))),
+                $finishedAt,
+            ];
+        }
+
+        $startedAt = $request->date('started_at') ?? $finishedAt;
+
+        if ($startedAt->greaterThan($finishedAt)) {
+            $startedAt = $finishedAt;
+        }
+
+        return [$startedAt, $finishedAt];
+    }
+
+    private function durationSeconds(TestResult $result): ?int
+    {
+        if (! $result->started_at || ! $result->finished_at) {
+            return null;
+        }
+
+        $seconds = $result->finished_at->getTimestamp() - $result->started_at->getTimestamp();
+
+        return $seconds > 0 ? $seconds : null;
+    }
+
+    private function formatDuration(?int $seconds): string
+    {
+        if ($seconds === null) {
+            return '-';
+        }
+
+        $minutes = intdiv($seconds, 60);
+        $remainingSeconds = $seconds % 60;
+
+        if ($minutes <= 0) {
+            return $remainingSeconds.' detik';
+        }
+
+        return $minutes.' menit '.$remainingSeconds.' detik';
     }
 
     private function shuffleQuestionsForUser(Collection $questions, Test $test): Collection

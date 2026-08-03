@@ -85,13 +85,30 @@ export const markMaterialAccessed = async (materialId) => {
   return res.data?.data || {};
 };
 
-export const openMaterialFile = async (material, file) => {
-  const response = await api.get(`/materials/${material.id}/files/${file.id}/download`, {
-    responseType: "blob",
-  });
-  const fileUrl = URL.createObjectURL(response.data);
-  window.open(fileUrl, "_blank", "noopener,noreferrer");
-  window.setTimeout(() => URL.revokeObjectURL(fileUrl), 60000);
+export const openMaterialFile = async (material, file, targetWindow = null) => {
+  const popup = targetWindow ?? window.open("", "_blank", "noopener,noreferrer");
+
+  try {
+    const response = await api.get(`/materials/${material.id}/files/${file.id}/download`, {
+      responseType: "blob",
+    });
+    const fileUrl = URL.createObjectURL(response.data);
+
+    if (popup) {
+      popup.location.href = fileUrl;
+    } else {
+      const link = document.createElement("a");
+      link.href = fileUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.click();
+    }
+
+    window.setTimeout(() => URL.revokeObjectURL(fileUrl), 60000);
+  } catch (error) {
+    popup?.close();
+    throw error;
+  }
 };
 
 export const getMaterialProgress = async (trainingId = DEFAULT_TRAINING_ID) => {

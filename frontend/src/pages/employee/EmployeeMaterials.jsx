@@ -81,14 +81,17 @@ function EmployeeMaterials() {
     const file = material.files?.[0];
     if (!file?.file_path) return;
 
+    const materialWindow = window.open("", "_blank", "noopener,noreferrer");
+
     try {
       await materialService.markMaterialAccessed(material.id);
       setAccessedMaterialIds((current) =>
         current.includes(material.id) ? current : [...current, material.id]
       );
 
-      await materialService.openMaterialFile(material, file);
+      await materialService.openMaterialFile(material, file, materialWindow);
     } catch {
+      materialWindow?.close();
       setError("Akses materi gagal dicatat. Silakan coba lagi.");
     }
   }

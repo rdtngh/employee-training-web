@@ -67,18 +67,18 @@
         .daun-kanan-atas {
             z-index: 3;
             top: -2px;
-            left: 656px;
+            right: 0;
             width: 198px;
             height: 196px;
-            opacity: .45;
+            opacity: .38;
         }
 
         .piagam {
             z-index: 3;
-            left: 50px;
-            bottom: 45px;
-            width: 195px;
-            height: 230px;
+            left: 90px;
+            bottom: 120px;
+            width: 130px;
+            height: 150px;
         }
 
         .content {
@@ -124,15 +124,15 @@
         .brand {
             position: absolute;
             z-index: 6;
-            top: 34px;
-            right: 24px;
-            width: 178px;
+            top: 50px;
+            right: 35px;
+            width: 175px;
             text-align: center;
         }
 
         .brand img {
-            width: 74px;
-            height: 74px;
+            width: 60px;
+            height: 60px;
             margin: 0 auto;
         }
 
@@ -199,7 +199,7 @@
         .training-block {
             position: absolute;
             z-index: 5;
-            top: 360px;
+            top: 345px;
             left: 175px;
             width: 491px;
             text-align: center;
@@ -247,12 +247,12 @@
 
         .signature-space {
             text-align: center;
-            height: 58px;
+            height: 45px;
         }
 
         .signature-image {
-            max-width: 175px;
-            max-height: 56px;
+            max-width: 180px;
+            max-height: 70px;
             object-fit: contain;
         }
 
@@ -265,7 +265,7 @@
 
         .director-name {
             margin: 0;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 400;
             line-height: 1.35;
         }
@@ -323,7 +323,7 @@
             @endif
 
             <section class="recipient">
-                <p class="given-text">Sertifikat penghargaan ini diberikan kepada:</p>
+                <p class="given-text">Sertifikat ini diberikan kepada:</p>
                 <div class="participant">{{ $participantName }}</div>
                 <div class="name-line"></div>
             </section>

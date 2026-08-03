@@ -3,7 +3,7 @@ import { mockMaterials, mockTrainings } from "./mockTrainingData";
 
 const DEFAULT_TRAINING_ID = 1;
 const CHUNK_SIZE = 1024 * 1024;
-const EMERGENCY_UNLOCK_EMPLOYEE_FLOW = true;
+const EMERGENCY_UNLOCK_EMPLOYEE_FLOW = false;
 let mockMaterialStore = mockMaterials.map((material) => ({ ...material }));
 
 const resolveBackendUrl = (path) => {
@@ -64,8 +64,8 @@ export const getMaterials = async (trainingId = DEFAULT_TRAINING_ID) => {
     return {
       training: {
         ...(training ?? { id: trainingId, title: "Pelatihan" }),
-        pre_test_completed: true,
-        post_test_unlocked: true,
+        pre_test_completed: false,
+        post_test_unlocked: false,
       },
       materials: getMockMaterialsByTraining(trainingId).map(mapMaterialFromApi),
     };

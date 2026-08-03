@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
 
 class TrainingController extends Controller
 {
-    private const EMERGENCY_UNLOCK_EMPLOYEE_FLOW = true;
+    private const EMERGENCY_UNLOCK_EMPLOYEE_FLOW = false;
 
     public function index(): JsonResponse
     {
@@ -186,7 +186,8 @@ class TrainingController extends Controller
                 'id' => $training->id,
                 'title' => $training->title,
                 'pre_test_completed' => $preTestCompleted,
-                'post_test_unlocked' => self::EMERGENCY_UNLOCK_EMPLOYEE_FLOW
+                'post_test_unlocked' => $this->hasPassedPostTest($request, $training)
+                    || self::EMERGENCY_UNLOCK_EMPLOYEE_FLOW
                     || ($preTestCompleted && $materials->isNotEmpty() && count($completedMaterialIds) >= $materials->count()),
             ],
             'materials' => $materialsWithProgress,
@@ -202,6 +203,18 @@ class TrainingController extends Controller
         return $preTestId
             ? TestResult::where('user_id', $request->user()->id)->where('test_id', $preTestId)->exists()
             : false;
+    }
+
+    private function hasPassedPostTest(Request $request, Training $training): bool
+    {
+        return TestResult::query()
+            ->where('user_id', $request->user()->id)
+            ->where('status', 'Lulus')
+            ->whereHas('test', function ($query) use ($training) {
+                $query->where('training_id', $training->id)
+                    ->where('type', 'posttest');
+            })
+            ->exists();
     }
 
     private function materialStorageRelativePath(?string $path): ?string

@@ -18,7 +18,7 @@ use Illuminate\Support\Str;
 
 class TestController extends Controller
 {
-    private const EMERGENCY_UNLOCK_EMPLOYEE_FLOW = true;
+    private const EMERGENCY_UNLOCK_EMPLOYEE_FLOW = false;
 
     public function show(Test $test): JsonResponse
     {
@@ -240,6 +240,10 @@ class TestController extends Controller
 
         if ($test->type !== 'posttest') {
             return false;
+        }
+
+        if ($this->passedResultForCurrentUser($test)) {
+            return true;
         }
 
         if (self::EMERGENCY_UNLOCK_EMPLOYEE_FLOW) {

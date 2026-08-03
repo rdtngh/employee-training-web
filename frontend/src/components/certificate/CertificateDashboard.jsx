@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Certificate from "./Certificate";
 import "./CertificateDashboard.css";
@@ -28,7 +28,35 @@ function CertificateDashboard({ certificateData, loading, error }) {
   const navigate = useNavigate();
   const [printingCertificate, setPrintingCertificate] = useState(null);
   const [downloadError, setDownloadError] = useState("");
-  const certificates = certificateData?.certificates ?? [];
+  const [searchQuery, setSearchQuery] = useState("");
+  const certificates = useMemo(
+    () => certificateData?.certificates ?? [],
+    [certificateData?.certificates]
+  );
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const filteredCertificates = useMemo(() => {
+    if (!normalizedSearchQuery) {
+      return certificates.map((certificate, index) => ({ certificate, originalIndex: index }));
+    }
+
+    return certificates
+      .map((certificate, index) => ({ certificate, originalIndex: index }))
+      .filter(({ certificate }) => {
+        const searchableText = [
+          certificate.employee?.name,
+          certificate.employee?.employee_number,
+          certificate.employee?.email,
+          certificate.training?.title,
+          certificate.result?.score,
+          certificate.certificate_number,
+        ]
+          .filter((value) => value !== null && value !== undefined)
+          .join(" ")
+          .toLowerCase();
+
+        return searchableText.includes(normalizedSearchQuery);
+      });
+  }, [certificates, normalizedSearchQuery]);
   const printingId = printingCertificate?.id ?? null;
 
   useEffect(() => {
@@ -91,6 +119,21 @@ function CertificateDashboard({ certificateData, loading, error }) {
 
       {!loading && !error && (
         <section className="certificate-card">
+          <div className="certificate-toolbar">
+            <label className="certificate-search" htmlFor="certificate-search">
+              <span>Cari Sertifikat</span>
+              <input
+                id="certificate-search"
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Nama, username, pelatihan, no sertifikat..."
+              />
+            </label>
+            <p className="certificate-search-count" role="status">
+              {filteredCertificates.length} dari {certificates.length} sertifikat
+            </p>
+          </div>
           <div className="certificate-table-wrap">
             <table className="certificate-table">
               <thead>
@@ -111,10 +154,16 @@ function CertificateDashboard({ certificateData, loading, error }) {
                       Belum ada peserta yang lulus pelatihan.
                     </td>
                   </tr>
+                ) : filteredCertificates.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="certificate-empty">
+                      Sertifikat tidak ditemukan.
+                    </td>
+                  </tr>
                 ) : (
-                  certificates.map((certificate, index) => (
+                  filteredCertificates.map(({ certificate, originalIndex }) => (
                     <tr key={certificate.id}>
-                      <td data-label="No">{index + 1}</td>
+                      <td data-label="No">{originalIndex + 1}</td>
                       <td data-label="Nama Peserta">{certificate.employee?.name || "-"}</td>
                       <td data-label="Username">{certificate.employee?.employee_number || "-"}</td>
                       <td data-label="Pelatihan">{certificate.training?.title || "-"}</td>

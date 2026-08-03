@@ -47,8 +47,8 @@
 
 .certificate-sudut-atas {
   z-index: 3;
-  top: -6px;
-  left: -2px;
+  top: 0;
+  left: 0;
   width: 206px;
   height: 335px;
   object-fit: contain;
@@ -56,8 +56,8 @@
 
 .certificate-sudut-bawah {
   z-index: 3;
-  right: -2px;
-  bottom: -6px;
+  right: 0;
+  bottom: 0;
   width: 206px;
   height: 335px;
   object-fit: contain;
@@ -65,8 +65,8 @@
 
 .certificate-daun-kanan-atas {
   z-index: 3;
-  top: -2px;
-  right: 0;
+  top: 4px;
+  right: 8px;
   width: 198px;
   height: 196px;
   object-fit: contain;

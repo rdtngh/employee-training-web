@@ -117,6 +117,9 @@
 }
 
 .employee-certificate-print-stage {
+  --certificate-print-offset-x: 6mm;
+  --certificate-print-offset-y: 4mm;
+  --certificate-print-scale: 1.275;
   width: 297mm;
   height: 210mm;
   overflow: hidden;
@@ -131,7 +134,8 @@
 }
 
 .employee-certificate-print-stage .certificate-template {
-  transform: scale(1.325) !important;
+  transform: translate(var(--certificate-print-offset-x), var(--certificate-print-offset-y))
+    scale(var(--certificate-print-scale)) !important;
   transform-origin: top left !important;
 }
 
@@ -194,7 +198,8 @@
   }
 
   .employee-certificate-print-stage .certificate-template {
-    transform: scale(1.325) !important;
+    transform: translate(var(--certificate-print-offset-x), var(--certificate-print-offset-y))
+      scale(var(--certificate-print-scale)) !important;
     transform-origin: top left !important;
   }
 
@@ -232,6 +237,9 @@
   }
 
   .employee-certificate-stage {
+    --certificate-print-offset-x: 6mm;
+    --certificate-print-offset-y: 4mm;
+    --certificate-print-scale: 1.275;
     position: fixed;
     top: 0;
     left: 0;
@@ -254,7 +262,8 @@
   }
 
   .employee-certificate-stage .certificate-template {
-    transform: scale(1.325) !important;
+    transform: translate(var(--certificate-print-offset-x), var(--certificate-print-offset-y))
+      scale(var(--certificate-print-scale)) !important;
     transform-origin: top left !important;
   }
 }

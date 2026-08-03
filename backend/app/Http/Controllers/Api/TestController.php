@@ -332,10 +332,11 @@ class TestController extends Controller
     {
         $finishedAt = now();
         $startedAt = $request->date('started_at');
+        $elapsedSeconds = $request->has('elapsed_seconds')
+            ? max(1, $request->integer('elapsed_seconds'))
+            : null;
 
-        if (! $startedAt && $request->has('elapsed_seconds')) {
-            $elapsedSeconds = max(0, $request->integer('elapsed_seconds'));
-
+        if (! $startedAt && $elapsedSeconds !== null) {
             return [
                 $finishedAt->copy()->subSeconds($elapsedSeconds),
                 $finishedAt,
@@ -344,7 +345,9 @@ class TestController extends Controller
 
         $startedAt ??= $finishedAt;
 
-        if ($startedAt->greaterThan($finishedAt)) {
+        if ($startedAt->greaterThanOrEqualTo($finishedAt) && $elapsedSeconds !== null) {
+            $startedAt = $finishedAt->copy()->subSeconds($elapsedSeconds);
+        } elseif ($startedAt->greaterThan($finishedAt)) {
             $startedAt = $finishedAt;
         }
 

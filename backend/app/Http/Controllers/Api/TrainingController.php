@@ -121,11 +121,11 @@ class TrainingController extends Controller
             'template.mimes' => 'Template sertifikat harus berupa JPG, PNG, atau WEBP.',
         ]);
 
-        $this->deleteCertificateTemplateFile($training);
-
         $file = $validated['template'];
         $filename = Str::random(12).'_'.$this->sanitizeFileName($file->getClientOriginalName());
         $path = $file->storeAs('certificate-templates', $filename, 'local');
+
+        $this->deleteCertificateTemplateFile($training);
 
         $training->update([
             'certificate_template_path' => $path,

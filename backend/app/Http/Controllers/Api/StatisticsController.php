@@ -180,6 +180,7 @@ class StatisticsController extends Controller
         return response()->download($path, $filename, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Cache-Control' => 'no-store, no-cache',
+            'X-Filename' => $filename,
         ])->deleteFileAfterSend(true);
     }
 

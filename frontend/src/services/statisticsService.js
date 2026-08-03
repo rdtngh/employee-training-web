@@ -70,6 +70,7 @@ export const exportStatistics = async (options = "xlsx") => {
   return {
     blob: response.data,
     filename:
+      response.headers["x-filename"] ||
       filenameFromDisposition(response.headers["content-disposition"]) ||
       `statistik.${format}`,
   };

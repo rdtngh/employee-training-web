@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../dashboard/DashboardLayout";
 import MaterialTable from "./MaterialTable";
@@ -15,6 +15,89 @@ import "./ManageMaterialPage.css";
 
 const createSelectionId = () =>
   globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+
+const CERTIFICATE_EDITOR_WIDTH = 841;
+const CERTIFICATE_EDITOR_HEIGHT = 595;
+const certificateTemplateFields = [
+  { key: "certificate_number", label: "No Sertifikat", sample: "NO: 001/DIKLATLIT-RSABL/VIII/2026" },
+  { key: "employee_name", label: "Nama Peserta", sample: "Nama Peserta" },
+  { key: "training_title", label: "Judul Pelatihan", sample: "Judul Pelatihan" },
+  { key: "completion_date", label: "Tanggal", sample: "Bandar Lampung, 3 Agustus 2026" },
+];
+const certificateTemplateFontOptions = [
+  { value: "sans", label: "Poppins", css: '"Poppins", sans-serif' },
+  { value: "montserrat", label: "Montserrat", css: '"Montserrat", sans-serif' },
+  { value: "serif", label: "Playfair", css: '"Playfair Display", Georgia, serif' },
+  { value: "merriweather", label: "Merriweather", css: '"Merriweather", Georgia, serif' },
+  { value: "lora", label: "Lora", css: '"Lora", Georgia, serif' },
+  { value: "cinzel", label: "Cinzel", css: '"Cinzel", Georgia, serif' },
+  { value: "cormorant", label: "Cormorant", css: '"Cormorant Garamond", Georgia, serif' },
+  { value: "script", label: "Great Vibes", css: '"Great Vibes", "Brush Script MT", cursive' },
+  { value: "dancing", label: "Dancing Script", css: '"Dancing Script", "Brush Script MT", cursive' },
+  { value: "allura", label: "Allura", css: '"Allura", "Brush Script MT", cursive' },
+  { value: "pacifico", label: "Pacifico", css: '"Pacifico", "Brush Script MT", cursive' },
+];
+const defaultCertificateTemplateSettings = {
+  fields: {
+    certificate_number: {
+      x: 140,
+      y: 154,
+      width: 561,
+      fontSize: 12,
+      color: "#000000",
+      align: "center",
+      fontFamily: "sans",
+      fontWeight: "400",
+    },
+    employee_name: {
+      x: 90,
+      y: 220,
+      width: 661,
+      fontSize: 62,
+      color: "#b99645",
+      align: "center",
+      fontFamily: "script",
+      fontWeight: "400",
+    },
+    training_title: {
+      x: 175,
+      y: 340,
+      width: 491,
+      fontSize: 17,
+      color: "#000000",
+      align: "center",
+      fontFamily: "sans",
+      fontWeight: "700",
+    },
+    completion_date: {
+      x: 175,
+      y: 408,
+      width: 491,
+      fontSize: 14,
+      color: "#000000",
+      align: "center",
+      fontFamily: "sans",
+      fontWeight: "400",
+    },
+  },
+};
+const editorFontFamilies = Object.fromEntries(
+  certificateTemplateFontOptions.map((font) => [font.value, font.css])
+);
+
+const mergeCertificateTemplateSettings = (settings) => ({
+  fields: Object.fromEntries(
+    certificateTemplateFields.map((field) => [
+      field.key,
+      {
+        ...defaultCertificateTemplateSettings.fields[field.key],
+        ...(settings?.fields?.[field.key] ?? {}),
+      },
+    ])
+  ),
+});
+
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 function ManageMaterialPage({ role }) {
   const navigate = useNavigate();
@@ -51,6 +134,15 @@ function ManageMaterialPage({ role }) {
   const [pendingEdit, setPendingEdit] = useState(null);
   const [deletingMaterialId, setDeletingMaterialId] = useState(null);
   const [uploadTarget, setUploadTarget] = useState(null);
+  const [certificateTemplateFile, setCertificateTemplateFile] = useState(null);
+  const [certificateTemplateLoading, setCertificateTemplateLoading] = useState(false);
+  const [certificateTemplateDraft, setCertificateTemplateDraft] = useState(
+    defaultCertificateTemplateSettings
+  );
+  const [selectedCertificateField, setSelectedCertificateField] = useState("employee_name");
+  const [draggingCertificateField, setDraggingCertificateField] = useState(null);
+  const [certificateEditorScale, setCertificateEditorScale] = useState(1);
+  const certificateEditorRef = useRef(null);
   const [toast, setToast] = useState("");
 
   const loadTrainings = useCallback(async () => {
@@ -88,6 +180,43 @@ function ManageMaterialPage({ role }) {
     const timer = window.setTimeout(() => setToast(""), 2400);
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  useEffect(() => {
+    let active = true;
+
+    Promise.resolve().then(() => {
+      if (!active) return;
+      setCertificateTemplateDraft(
+        mergeCertificateTemplateSettings(selectedTraining?.certificate_template?.settings)
+      );
+      setSelectedCertificateField("employee_name");
+      setCertificateTemplateFile(null);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedTraining?.id, selectedTraining?.certificate_template?.settings]);
+
+  useEffect(() => {
+    const editor = certificateEditorRef.current;
+    if (!editor) return undefined;
+
+    const updateScale = () => {
+      setCertificateEditorScale(editor.clientWidth / CERTIFICATE_EDITOR_WIDTH);
+    };
+
+    updateScale();
+
+    if (typeof ResizeObserver !== "function") {
+      window.addEventListener("resize", updateScale);
+      return () => window.removeEventListener("resize", updateScale);
+    }
+
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(editor);
+    return () => observer.disconnect();
+  }, [selectedTraining?.certificate_template?.background_url]);
 
   function openEdit(material) {
     setEditingMaterial(material);
@@ -240,6 +369,164 @@ function ManageMaterialPage({ role }) {
     } finally {
       setEditTrainingLoading(false);
     }
+  }
+
+  async function handleUploadCertificateTemplate(event) {
+    event.preventDefault();
+
+    if (!trainingId || !certificateTemplateFile) {
+      setToast("Pilih file template sertifikat terlebih dahulu.");
+      return;
+    }
+
+    setCertificateTemplateLoading(true);
+
+    try {
+      const updatedTraining = await trainingService.uploadCertificateTemplate(
+        trainingId,
+        certificateTemplateFile
+      );
+      setTrainings((current) =>
+        current.map((training) =>
+          String(training.id) === String(updatedTraining.id) ? updatedTraining : training
+        )
+      );
+      setCertificateTemplateFile(null);
+      setToast("Template sertifikat berhasil disimpan.");
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        Object.values(error.response?.data?.errors ?? {}).flat()[0] ||
+        "Template sertifikat gagal disimpan.";
+      setToast(message);
+    } finally {
+      setCertificateTemplateLoading(false);
+    }
+  }
+
+  async function handleDeleteCertificateTemplate() {
+    if (!trainingId) return;
+
+    setCertificateTemplateLoading(true);
+
+    try {
+      const updatedTraining = await trainingService.deleteCertificateTemplate(trainingId);
+      setTrainings((current) =>
+        current.map((training) =>
+          String(training.id) === String(updatedTraining.id) ? updatedTraining : training
+        )
+      );
+      setCertificateTemplateFile(null);
+      setToast("Template sertifikat berhasil dihapus.");
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        Object.values(error.response?.data?.errors ?? {}).flat()[0] ||
+        "Template sertifikat gagal dihapus.";
+      setToast(message);
+    } finally {
+      setCertificateTemplateLoading(false);
+    }
+  }
+
+  async function handleSaveCertificateTemplateSettings() {
+    if (!trainingId) return;
+
+    setCertificateTemplateLoading(true);
+
+    try {
+      const updatedTraining = await trainingService.updateCertificateTemplateSettings(
+        trainingId,
+        certificateTemplateDraft
+      );
+      setTrainings((current) =>
+        current.map((training) =>
+          String(training.id) === String(updatedTraining.id) ? updatedTraining : training
+        )
+      );
+      setToast("Posisi template sertifikat berhasil disimpan.");
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        Object.values(error.response?.data?.errors ?? {}).flat()[0] ||
+        "Posisi template sertifikat gagal disimpan.";
+      setToast(message);
+    } finally {
+      setCertificateTemplateLoading(false);
+    }
+  }
+
+  function updateCertificateTemplateField(fieldKey, updates) {
+    setCertificateTemplateDraft((current) => ({
+      fields: {
+        ...current.fields,
+        [fieldKey]: {
+          ...current.fields[fieldKey],
+          ...updates,
+        },
+      },
+    }));
+  }
+
+  function certificateEditorPoint(event) {
+    const editor = certificateEditorRef.current;
+    if (!editor) return null;
+
+    const rect = editor.getBoundingClientRect();
+    const scale = rect.width / CERTIFICATE_EDITOR_WIDTH;
+
+    return {
+      x: (event.clientX - rect.left) / scale,
+      y: (event.clientY - rect.top) / scale,
+    };
+  }
+
+  function handleCertificateFieldPointerDown(event, fieldKey) {
+    const point = certificateEditorPoint(event);
+    const field = certificateTemplateDraft.fields[fieldKey];
+
+    if (!point || !field) return;
+
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    setSelectedCertificateField(fieldKey);
+    setDraggingCertificateField({
+      fieldKey,
+      offsetX: point.x - field.x,
+      offsetY: point.y - field.y,
+    });
+  }
+
+  function handleCertificateEditorPointerMove(event) {
+    if (!draggingCertificateField) return;
+
+    const point = certificateEditorPoint(event);
+    const field = certificateTemplateDraft.fields[draggingCertificateField.fieldKey];
+
+    if (!point || !field) return;
+
+    updateCertificateTemplateField(draggingCertificateField.fieldKey, {
+      x: Math.round(clamp(point.x - draggingCertificateField.offsetX, 0, CERTIFICATE_EDITOR_WIDTH - field.width)),
+      y: Math.round(clamp(point.y - draggingCertificateField.offsetY, 0, CERTIFICATE_EDITOR_HEIGHT - field.fontSize)),
+    });
+  }
+
+  function handleCertificateEditorPointerUp() {
+    setDraggingCertificateField(null);
+  }
+
+  function certificateEditorFieldStyle(fieldKey) {
+    const field = certificateTemplateDraft.fields[fieldKey];
+
+    return {
+      left: `${field.x * certificateEditorScale}px`,
+      top: `${field.y * certificateEditorScale}px`,
+      width: `${field.width * certificateEditorScale}px`,
+      color: field.color,
+      fontSize: `${field.fontSize * certificateEditorScale}px`,
+      fontFamily: editorFontFamilies[field.fontFamily] ?? editorFontFamilies.sans,
+      fontWeight: field.fontWeight,
+      textAlign: field.align,
+    };
   }
 
   async function confirmAdd() {
@@ -437,6 +724,220 @@ function ManageMaterialPage({ role }) {
           >
             &larr; Back
           </button>
+        </section>
+
+        <section className="manage-material-card">
+          <div className="manage-material-header">
+            <img src={addIcon} alt="" className="manage-material-header-icon" />
+            <div>
+              <h1 className="manage-material-title">Template Sertifikat</h1>
+              <p className="manage-material-training-name">
+                Template untuk pelatihan: {selectedTraining?.title ?? "Memuat pelatihan..."}
+              </p>
+            </div>
+          </div>
+
+          <form className="manage-certificate-template-form" onSubmit={handleUploadCertificateTemplate}>
+            {selectedTraining?.certificate_template?.background_url && (
+              <div
+                className="manage-certificate-template-editor"
+                ref={certificateEditorRef}
+                onPointerMove={handleCertificateEditorPointerMove}
+                onPointerUp={handleCertificateEditorPointerUp}
+                onPointerLeave={handleCertificateEditorPointerUp}
+              >
+                <img
+                  src={selectedTraining.certificate_template.background_url}
+                  alt="Preview template sertifikat"
+                />
+                {certificateTemplateFields.map((field) => (
+                  <button
+                    type="button"
+                    key={field.key}
+                    className={`manage-certificate-template-field-box${
+                      selectedCertificateField === field.key ? " is-selected" : ""
+                    }`}
+                    style={certificateEditorFieldStyle(field.key)}
+                    onPointerDown={(event) => handleCertificateFieldPointerDown(event, field.key)}
+                  >
+                    {field.sample}
+                  </button>
+                ))}
+              </div>
+            )}
+            <label className="manage-certificate-template-field" htmlFor="certificate-template-file">
+              File template sertifikat
+              <input
+                id="certificate-template-file"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(event) => setCertificateTemplateFile(event.target.files?.[0] ?? null)}
+                disabled={certificateTemplateLoading}
+              />
+            </label>
+            <div className="manage-certificate-template-actions">
+              <button
+                type="submit"
+                className="manage-training-submit"
+                disabled={certificateTemplateLoading || !certificateTemplateFile}
+              >
+                {certificateTemplateLoading ? "Menyimpan..." : "Simpan Template"}
+              </button>
+              {selectedTraining?.certificate_template?.background_url && (
+                <button
+                  type="button"
+                  className="manage-certificate-template-delete"
+                  onClick={handleDeleteCertificateTemplate}
+                  disabled={certificateTemplateLoading}
+                >
+                  Hapus Template
+                </button>
+              )}
+            </div>
+          </form>
+
+          {selectedTraining?.certificate_template?.background_url && (
+            <div className="manage-certificate-template-settings">
+              <label className="manage-certificate-template-setting">
+                Field
+                <select
+                  value={selectedCertificateField}
+                  onChange={(event) => setSelectedCertificateField(event.target.value)}
+                  disabled={certificateTemplateLoading}
+                >
+                  {certificateTemplateFields.map((field) => (
+                    <option key={field.key} value={field.key}>
+                      {field.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="manage-certificate-template-setting">
+                X
+                <input
+                  type="number"
+                  min="0"
+                  max="841"
+                  value={certificateTemplateDraft.fields[selectedCertificateField].x}
+                  onChange={(event) =>
+                    updateCertificateTemplateField(selectedCertificateField, {
+                      x: Number(event.target.value),
+                    })
+                  }
+                />
+              </label>
+              <label className="manage-certificate-template-setting">
+                Y
+                <input
+                  type="number"
+                  min="0"
+                  max="595"
+                  value={certificateTemplateDraft.fields[selectedCertificateField].y}
+                  onChange={(event) =>
+                    updateCertificateTemplateField(selectedCertificateField, {
+                      y: Number(event.target.value),
+                    })
+                  }
+                />
+              </label>
+              <label className="manage-certificate-template-setting">
+                Lebar
+                <input
+                  type="number"
+                  min="40"
+                  max="841"
+                  value={certificateTemplateDraft.fields[selectedCertificateField].width}
+                  onChange={(event) =>
+                    updateCertificateTemplateField(selectedCertificateField, {
+                      width: Number(event.target.value),
+                    })
+                  }
+                />
+              </label>
+              <label className="manage-certificate-template-setting">
+                Ukuran
+                <input
+                  type="number"
+                  min="8"
+                  max="96"
+                  value={certificateTemplateDraft.fields[selectedCertificateField].fontSize}
+                  onChange={(event) =>
+                    updateCertificateTemplateField(selectedCertificateField, {
+                      fontSize: Number(event.target.value),
+                    })
+                  }
+                />
+              </label>
+              <label className="manage-certificate-template-setting">
+                Warna
+                <input
+                  type="color"
+                  value={certificateTemplateDraft.fields[selectedCertificateField].color}
+                  onChange={(event) =>
+                    updateCertificateTemplateField(selectedCertificateField, {
+                      color: event.target.value,
+                    })
+                  }
+                />
+              </label>
+              <label className="manage-certificate-template-setting">
+                Rata
+                <select
+                  value={certificateTemplateDraft.fields[selectedCertificateField].align}
+                  onChange={(event) =>
+                    updateCertificateTemplateField(selectedCertificateField, {
+                      align: event.target.value,
+                    })
+                  }
+                >
+                  <option value="left">Kiri</option>
+                  <option value="center">Tengah</option>
+                  <option value="right">Kanan</option>
+                </select>
+              </label>
+              <label className="manage-certificate-template-setting">
+                Font
+                <select
+                  value={certificateTemplateDraft.fields[selectedCertificateField].fontFamily}
+                  onChange={(event) =>
+                    updateCertificateTemplateField(selectedCertificateField, {
+                      fontFamily: event.target.value,
+                    })
+                  }
+                >
+                  {certificateTemplateFontOptions.map((font) => (
+                    <option key={font.value} value={font.value}>
+                      {font.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="manage-certificate-template-setting">
+                Tebal
+                <select
+                  value={certificateTemplateDraft.fields[selectedCertificateField].fontWeight}
+                  onChange={(event) =>
+                    updateCertificateTemplateField(selectedCertificateField, {
+                      fontWeight: event.target.value,
+                    })
+                  }
+                >
+                  <option value="400">Normal</option>
+                  <option value="500">Medium</option>
+                  <option value="600">Semi Bold</option>
+                  <option value="700">Bold</option>
+                </select>
+              </label>
+              <button
+                type="button"
+                className="manage-certificate-template-save-settings"
+                onClick={handleSaveCertificateTemplateSettings}
+                disabled={certificateTemplateLoading}
+              >
+                {certificateTemplateLoading ? "Menyimpan..." : "Simpan Posisi"}
+              </button>
+            </div>
+          )}
         </section>
 
           </>

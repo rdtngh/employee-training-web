@@ -80,3 +80,30 @@ export const deleteTraining = async (id) => {
   await api.delete(`/trainings/${id}`);
   return true;
 };
+
+export const uploadCertificateTemplate = async (trainingId, file) => {
+  const formData = new FormData();
+  formData.append("template", file, file.name);
+
+  const response = await api.post(`/trainings/${trainingId}/certificate-template`, formData);
+  const training = response.data?.data ?? response.data;
+
+  return normalizeTraining(training);
+};
+
+export const deleteCertificateTemplate = async (trainingId) => {
+  const response = await api.delete(`/trainings/${trainingId}/certificate-template`);
+  const training = response.data?.data ?? response.data;
+
+  return normalizeTraining(training);
+};
+
+export const updateCertificateTemplateSettings = async (trainingId, settings) => {
+  const response = await api.put(
+    `/trainings/${trainingId}/certificate-template/settings`,
+    settings
+  );
+  const training = response.data?.data ?? response.data;
+
+  return normalizeTraining(training);
+};

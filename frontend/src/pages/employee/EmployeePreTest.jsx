@@ -35,6 +35,7 @@ function EmployeePreTest() {
   const [started, setStarted] = useState(false);
   const [startedAt, setStartedAt] = useState(null);
   const [startedMs, setStartedMs] = useState(null);
+  const [starting, setStarting] = useState(false);
   const [showStartDialog, setShowStartDialog] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [result, setResult] = useState(null);
@@ -76,6 +77,7 @@ function EmployeePreTest() {
       setStarted(false);
       setStartedAt(null);
       setStartedMs(null);
+      setStarting(false);
       setShowStartDialog(false);
       setShowSubmitDialog(false);
       examService.getPreTest(trainingId)
@@ -101,6 +103,25 @@ function EmployeePreTest() {
       ? currentQuestion.options.map((option) => [option.id, option.text ?? option.label])
       : Object.entries(currentQuestion.options ?? {})
     : [];
+
+  const startExam = async () => {
+    if (!exam?.test?.id) return;
+
+    setStarting(true);
+    setError("");
+
+    try {
+      const startData = await examService.startTest(exam.test.id);
+      setStartedAt(startData.started_at ?? new Date().toISOString());
+    } catch {
+      setStartedAt(new Date().toISOString());
+    } finally {
+      setStartedMs(performance.now());
+      setStarted(true);
+      setShowStartDialog(false);
+      setStarting(false);
+    }
+  };
 
   const submitAnswers = async () => {
     setSubmitting(true);
@@ -203,13 +224,9 @@ function EmployeePreTest() {
       {showStartDialog && (
         <ExamConfirmDialog
           title="Yakin ingin mengerjakan Pre-Test sekarang?"
-          onConfirm={() => {
-            setStarted(true);
-            setStartedAt(new Date().toISOString());
-            setStartedMs(performance.now());
-            setShowStartDialog(false);
-          }}
+          onConfirm={startExam}
           onCancel={() => setShowStartDialog(false)}
+          busy={starting}
         />
       )}
       {showSubmitDialog && (

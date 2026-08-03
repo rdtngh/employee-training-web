@@ -108,6 +108,25 @@ function EmployeePostTest() {
   const resultPassed = isPassedResult(result);
   const canRetry = !resultPassed;
 
+  const startExam = async () => {
+    if (!data?.post_test?.id) return;
+
+    setBusy(true);
+    setError("");
+
+    try {
+      const startData = await examService.startTest(data.post_test.id);
+      setStartedAt(startData.started_at ?? new Date().toISOString());
+    } catch {
+      setStartedAt(new Date().toISOString());
+    } finally {
+      setStartedMs(performance.now());
+      setStarted(true);
+      setShowStart(false);
+      setBusy(false);
+    }
+  };
+
   const submit = async () => {
     setBusy(true);
     try {
@@ -231,7 +250,7 @@ function EmployeePostTest() {
           </section>
         </div>
       )}
-      {showStart && <ExamConfirmDialog title="Yakin ingin mengerjakan Post-Test sekarang?" onConfirm={() => { setStarted(true); setStartedAt(new Date().toISOString()); setStartedMs(performance.now()); setShowStart(false); }} onCancel={() => navigate(-1)} busy={busy} />}
+      {showStart && <ExamConfirmDialog title="Yakin ingin mengerjakan Post-Test sekarang?" onConfirm={startExam} onCancel={() => navigate(-1)} busy={busy} />}
       {showSubmit && <ExamConfirmDialog title="Yakin ingin mengumpulkan Post-Test?" onConfirm={submit} onCancel={() => setShowSubmit(false)} busy={busy} />}
       {showFailureNotice && result && !resultPassed && (
         <div className="posttest-failure-overlay" role="presentation">

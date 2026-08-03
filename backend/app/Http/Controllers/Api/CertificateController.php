@@ -23,7 +23,7 @@ class CertificateController extends Controller
                 'user:id,employee_number,name,department,position,email',
                 'testResult:id,user_id,test_id,score,status,finished_at',
                 'testResult.test:id,training_id,type',
-                'testResult.test.training:id,title',
+                'testResult.test.training:id,title,certificate_template_path,certificate_template_settings',
             ])
             ->whereHas('testResult.test', function ($query) {
                 $query->where('type', 'posttest');
@@ -72,6 +72,7 @@ class CertificateController extends Controller
                 'year' => optional($result->finished_at)->format('Y'),
                 'completion_date' => optional($result->finished_at)->toDateString(),
                 'issued_at' => optional($certificate->issued_at)->toDateString(),
+                'certificate_template' => $this->certificateTemplatePayload($training),
                 'eligible' => true,
             ],
         ]);
@@ -98,7 +99,7 @@ class CertificateController extends Controller
         $certificate->load([
             'user.role',
             'testResult.user',
-            'testResult.test.training',
+            'testResult.test.training:id,title,certificate_template_path,certificate_template_settings',
         ]);
 
         abort_unless(
@@ -205,6 +206,7 @@ class CertificateController extends Controller
             'training' => [
                 'id' => $training?->id,
                 'title' => $training?->title,
+                'certificate_template' => $this->certificateTemplatePayload($training),
             ],
             'result' => [
                 'id' => $result?->id,
@@ -236,6 +238,67 @@ class CertificateController extends Controller
         }
 
         return $rawNumber ? 'NO: '.$rawNumber : '';
+    }
+
+    private function certificateTemplatePayload(?Training $training): ?array
+    {
+        if (! $training?->certificate_template_path) {
+            return null;
+        }
+
+        return [
+            'background_url' => url("/api/trainings/{$training->id}/certificate-template/background"),
+            'settings' => $training->certificate_template_settings
+                ?: $this->defaultCertificateTemplateSettings(),
+        ];
+    }
+
+    private function defaultCertificateTemplateSettings(): array
+    {
+        return [
+            'fields' => [
+                'certificate_number' => [
+                    'x' => 140,
+                    'y' => 154,
+                    'width' => 561,
+                    'fontSize' => 12,
+                    'color' => '#000000',
+                    'align' => 'center',
+                    'fontFamily' => 'sans',
+                    'fontWeight' => '400',
+                ],
+                'employee_name' => [
+                    'x' => 90,
+                    'y' => 220,
+                    'width' => 661,
+                    'fontSize' => 62,
+                    'color' => '#b99645',
+                    'align' => 'center',
+                    'fontFamily' => 'script',
+                    'fontWeight' => '400',
+                ],
+                'training_title' => [
+                    'x' => 175,
+                    'y' => 340,
+                    'width' => 491,
+                    'fontSize' => 17,
+                    'color' => '#000000',
+                    'align' => 'center',
+                    'fontFamily' => 'sans',
+                    'fontWeight' => '700',
+                ],
+                'completion_date' => [
+                    'x' => 175,
+                    'y' => 408,
+                    'width' => 491,
+                    'fontSize' => 14,
+                    'color' => '#000000',
+                    'align' => 'center',
+                    'fontFamily' => 'sans',
+                    'fontWeight' => '400',
+                ],
+            ],
+        ];
     }
 
     private function certificateSequence(Certificate $certificate): int

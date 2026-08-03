@@ -89,6 +89,20 @@ class TestController extends Controller
         ]);
     }
 
+    public function start(Test $test): JsonResponse
+    {
+        if (! $this->canAccessTest($test)) {
+            return $this->lockedResponse();
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'started_at' => now()->toISOString(),
+            ],
+        ]);
+    }
+
     public function submit(SubmitTestRequest $request, Test $test): JsonResponse
     {
         if (! $this->canAccessTest($test)) {
@@ -317,15 +331,18 @@ class TestController extends Controller
     private function submissionTimes(SubmitTestRequest $request): array
     {
         $finishedAt = now();
+        $startedAt = $request->date('started_at');
 
-        if ($request->has('elapsed_seconds')) {
+        if (! $startedAt && $request->has('elapsed_seconds')) {
+            $elapsedSeconds = max(0, $request->integer('elapsed_seconds'));
+
             return [
-                $finishedAt->copy()->subSeconds(max(0, $request->integer('elapsed_seconds'))),
+                $finishedAt->copy()->subSeconds($elapsedSeconds),
                 $finishedAt,
             ];
         }
 
-        $startedAt = $request->date('started_at') ?? $finishedAt;
+        $startedAt ??= $finishedAt;
 
         if ($startedAt->greaterThan($finishedAt)) {
             $startedAt = $finishedAt;

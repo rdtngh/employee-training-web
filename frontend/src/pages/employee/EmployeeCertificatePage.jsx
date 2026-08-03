@@ -118,6 +118,7 @@ function EmployeeCertificatePage() {
             romanMonth={certificateData.roman_month}
             year={certificateData.year}
             completionDate={certificateData.completion_date || certificateData.issued_at}
+            certificateTemplate={certificateData.certificate_template}
           />
         </section>
       </main>
@@ -165,6 +166,7 @@ function EmployeeCertificatePage() {
               romanMonth={certificateData.roman_month}
               year={certificateData.year}
               completionDate={certificateData.completion_date || certificateData.issued_at}
+              certificateTemplate={certificateData.certificate_template}
             />
           </section>
         )}

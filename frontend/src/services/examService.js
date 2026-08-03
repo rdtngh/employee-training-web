@@ -185,6 +185,15 @@ const submitTest = async (testId, payload) => {
   };
 };
 
+export const startTest = async (testId) => {
+  if (import.meta.env.VITE_USE_DUMMY_DATA === "true") {
+    return { started_at: new Date().toISOString() };
+  }
+
+  const response = await api.post(`/tests/${testId}/start`);
+  return unwrap(response);
+};
+
 const mapPostTestResult = (result = {}) => {
   const passed =
     typeof result.passed === "boolean"

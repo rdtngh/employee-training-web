@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Auth\LoginController;
 
 Route::post('/login', [LoginController::class, 'login']);
+Route::get('/trainings/{training}/certificate-template/background', [TrainingController::class, 'certificateTemplateBackground']);
 
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -31,6 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/trainings/{training}/tests/{type}', [TestController::class, 'showByType']);
         Route::get('/tests/{test}', [TestController::class, 'show']);
         Route::get('/tests/{test}/questions', [TestController::class, 'questions']);
+        Route::post('/tests/{test}/start', [TestController::class, 'start']);
         Route::post('/tests/{test}/submit', [TestController::class, 'submit']);
 
         Route::post('/materials/{material}/access', [MaterialController::class, 'markAccessed']);
@@ -48,6 +50,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/trainings', [TrainingController::class, 'store']);
         Route::put('/trainings/{training}', [TrainingController::class, 'update']);
         Route::delete('/trainings/{training}', [TrainingController::class, 'destroy']);
+        Route::post('/trainings/{training}/certificate-template', [TrainingController::class, 'uploadCertificateTemplate']);
+        Route::put('/trainings/{training}/certificate-template/settings', [TrainingController::class, 'updateCertificateTemplateSettings']);
+        Route::delete('/trainings/{training}/certificate-template', [TrainingController::class, 'deleteCertificateTemplate']);
 
         Route::post('/materials', [MaterialController::class, 'store']);
         Route::post('/materials/chunked', [MaterialController::class, 'storeChunked']);

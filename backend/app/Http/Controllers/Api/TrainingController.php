@@ -9,17 +9,26 @@ use App\Models\UserMaterial;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class TrainingController extends Controller
 {
     private const EMERGENCY_UNLOCK_EMPLOYEE_FLOW = false;
+    private const CERTIFICATE_TEMPLATE_FIELDS = [
+        'certificate_number',
+        'employee_name',
+        'training_title',
+        'completion_date',
+    ];
 
     public function index(): JsonResponse
     {
         $trainings = Training::withCount(['materials', 'tests'])
             ->where('is_active', true)
             ->orderByDesc('start_date')
-            ->get();
+            ->get()
+            ->map(fn (Training $training) => $this->trainingPayload($training))
+            ->values();
 
         return response()->json([
             'success' => true,
@@ -36,7 +45,7 @@ class TrainingController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $training,
+            'data' => $this->trainingPayload($training),
         ]);
     }
 
@@ -92,7 +101,101 @@ class TrainingController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Pelatihan berhasil diperbarui.',
-            'data' => $training,
+            'data' => $this->trainingPayload($training),
+        ]);
+    }
+
+    public function uploadCertificateTemplate(Request $request, Training $training): JsonResponse
+    {
+        $validated = $request->validate([
+            'template' => [
+                'required',
+                'file',
+                'max:8192',
+                'mimes:jpg,jpeg,png,webp',
+                'mimetypes:image/jpeg,image/png,image/webp',
+            ],
+        ], [
+            'template.required' => 'File template sertifikat wajib dipilih.',
+            'template.max' => 'Ukuran template sertifikat maksimal 8MB.',
+            'template.mimes' => 'Template sertifikat harus berupa JPG, PNG, atau WEBP.',
+        ]);
+
+        $this->deleteCertificateTemplateFile($training);
+
+        $file = $validated['template'];
+        $filename = Str::random(12).'_'.$this->sanitizeFileName($file->getClientOriginalName());
+        $path = $file->storeAs('certificate-templates', $filename, 'local');
+
+        $training->update([
+            'certificate_template_path' => $path,
+            'certificate_template_settings' => $training->certificate_template_settings
+                ?: $this->defaultCertificateTemplateSettings(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Template sertifikat berhasil disimpan.',
+            'data' => $this->trainingPayload($training->fresh()),
+        ]);
+    }
+
+    public function deleteCertificateTemplate(Training $training): JsonResponse
+    {
+        $this->deleteCertificateTemplateFile($training);
+
+        $training->update([
+            'certificate_template_path' => null,
+            'certificate_template_settings' => null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Template sertifikat berhasil dihapus.',
+            'data' => $this->trainingPayload($training->fresh()),
+        ]);
+    }
+
+    public function certificateTemplateBackground(Training $training)
+    {
+        $relative = $training->certificate_template_path;
+
+        abort_unless(
+            $relative && Storage::disk('local')->exists($relative),
+            404,
+            'Template sertifikat tidak ditemukan.'
+        );
+
+        return Storage::disk('local')->response($relative);
+    }
+
+    public function updateCertificateTemplateSettings(Request $request, Training $training): JsonResponse
+    {
+        $validated = $request->validate([
+            'fields' => ['required', 'array'],
+            'fields.*.x' => ['required', 'numeric', 'min:0', 'max:841'],
+            'fields.*.y' => ['required', 'numeric', 'min:0', 'max:595'],
+            'fields.*.width' => ['required', 'numeric', 'min:40', 'max:841'],
+            'fields.*.fontSize' => ['required', 'numeric', 'min:8', 'max:96'],
+            'fields.*.color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'fields.*.align' => ['required', 'in:left,center,right'],
+            'fields.*.fontFamily' => [
+                'nullable',
+                'in:sans,montserrat,serif,merriweather,lora,cinzel,cormorant,script,dancing,allura,pacifico',
+            ],
+            'fields.*.fontWeight' => ['nullable', 'in:400,500,600,700'],
+        ]);
+
+        $settings = $this->sanitizeCertificateTemplateSettings($validated);
+
+        $training->update([
+            'certificate_template_settings' => $settings,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pengaturan template sertifikat berhasil disimpan.',
+            'data' => $this->trainingPayload($training->fresh()),
         ]);
     }
 
@@ -110,6 +213,8 @@ class TrainingController extends Controller
                 }
             }
         }
+
+        $this->deleteCertificateTemplateFile($training);
 
         $training->delete();
 
@@ -185,6 +290,7 @@ class TrainingController extends Controller
             'training' => [
                 'id' => $training->id,
                 'title' => $training->title,
+                'certificate_template' => $this->certificateTemplatePayload($training),
                 'pre_test_completed' => $preTestCompleted,
                 'post_test_unlocked' => $this->hasPassedPostTest($request, $training)
                     || self::EMERGENCY_UNLOCK_EMPLOYEE_FLOW
@@ -230,5 +336,110 @@ class TrainingController extends Controller
         $urlPath = parse_url($path, PHP_URL_PATH) ?: $path;
 
         return preg_replace('#^/storage/#', '', $urlPath);
+    }
+
+    private function trainingPayload(Training $training): array
+    {
+        return [
+            ...$training->toArray(),
+            'certificate_template' => $this->certificateTemplatePayload($training),
+        ];
+    }
+
+    private function certificateTemplatePayload(?Training $training): ?array
+    {
+        if (! $training?->certificate_template_path) {
+            return null;
+        }
+
+        return [
+            'background_url' => url("/api/trainings/{$training->id}/certificate-template/background"),
+            'settings' => $training->certificate_template_settings
+                ?: $this->defaultCertificateTemplateSettings(),
+        ];
+    }
+
+    private function deleteCertificateTemplateFile(Training $training): void
+    {
+        if ($training->certificate_template_path) {
+            Storage::disk('local')->delete($training->certificate_template_path);
+        }
+    }
+
+    private function sanitizeFileName(string $fileName): string
+    {
+        return preg_replace('/[^A-Za-z0-9._-]/', '_', $fileName);
+    }
+
+    private function defaultCertificateTemplateSettings(): array
+    {
+        return [
+            'fields' => [
+                'certificate_number' => [
+                    'x' => 140,
+                    'y' => 154,
+                    'width' => 561,
+                    'fontSize' => 12,
+                    'color' => '#000000',
+                    'align' => 'center',
+                    'fontFamily' => 'sans',
+                    'fontWeight' => '400',
+                ],
+                'employee_name' => [
+                    'x' => 90,
+                    'y' => 220,
+                    'width' => 661,
+                    'fontSize' => 62,
+                    'color' => '#b99645',
+                    'align' => 'center',
+                    'fontFamily' => 'script',
+                    'fontWeight' => '400',
+                ],
+                'training_title' => [
+                    'x' => 175,
+                    'y' => 340,
+                    'width' => 491,
+                    'fontSize' => 17,
+                    'color' => '#000000',
+                    'align' => 'center',
+                    'fontFamily' => 'sans',
+                    'fontWeight' => '700',
+                ],
+                'completion_date' => [
+                    'x' => 175,
+                    'y' => 408,
+                    'width' => 491,
+                    'fontSize' => 14,
+                    'color' => '#000000',
+                    'align' => 'center',
+                    'fontFamily' => 'sans',
+                    'fontWeight' => '400',
+                ],
+            ],
+        ];
+    }
+
+    private function sanitizeCertificateTemplateSettings(array $settings): array
+    {
+        $defaults = $this->defaultCertificateTemplateSettings();
+        $sanitized = ['fields' => []];
+
+        foreach (self::CERTIFICATE_TEMPLATE_FIELDS as $field) {
+            $input = $settings['fields'][$field] ?? [];
+            $fallback = $defaults['fields'][$field];
+
+            $sanitized['fields'][$field] = [
+                'x' => round((float) ($input['x'] ?? $fallback['x']), 2),
+                'y' => round((float) ($input['y'] ?? $fallback['y']), 2),
+                'width' => round((float) ($input['width'] ?? $fallback['width']), 2),
+                'fontSize' => round((float) ($input['fontSize'] ?? $fallback['fontSize']), 2),
+                'color' => $input['color'] ?? $fallback['color'],
+                'align' => $input['align'] ?? $fallback['align'],
+                'fontFamily' => $input['fontFamily'] ?? $fallback['fontFamily'],
+                'fontWeight' => (string) ($input['fontWeight'] ?? $fallback['fontWeight']),
+            ];
+        }
+
+        return $sanitized;
     }
 }

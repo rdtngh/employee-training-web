@@ -145,6 +145,7 @@ function CertificateDashboard({ certificateData, loading, error }) {
                 certificate.result?.finished_at ||
                 certificate.issued_at
               }
+              certificateTemplate={certificate.training?.certificate_template}
             />
           </section>
         ))}

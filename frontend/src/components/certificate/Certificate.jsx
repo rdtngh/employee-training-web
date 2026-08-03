@@ -88,6 +88,80 @@ const DEFAULT_DIRECTOR = {
 };
 const CERTIFICATE_WIDTH = 841;
 const CERTIFICATE_HEIGHT = 595;
+const DEFAULT_TEMPLATE_FIELDS = {
+  certificate_number: {
+    x: 140,
+    y: 154,
+    width: 561,
+    fontSize: 12,
+    color: "#000000",
+    align: "center",
+    fontFamily: "sans",
+    fontWeight: "400",
+  },
+  employee_name: {
+    x: 90,
+    y: 220,
+    width: 661,
+    fontSize: 62,
+    color: "#b99645",
+    align: "center",
+    fontFamily: "script",
+    fontWeight: "400",
+  },
+  training_title: {
+    x: 175,
+    y: 340,
+    width: 491,
+    fontSize: 17,
+    color: "#000000",
+    align: "center",
+    fontFamily: "sans",
+    fontWeight: "700",
+  },
+  completion_date: {
+    x: 175,
+    y: 408,
+    width: 491,
+    fontSize: 14,
+    color: "#000000",
+    align: "center",
+    fontFamily: "sans",
+    fontWeight: "400",
+  },
+};
+
+const FONT_FAMILIES = {
+  sans: '"Poppins", sans-serif',
+  montserrat: '"Montserrat", sans-serif',
+  serif: '"Playfair Display", Georgia, serif',
+  merriweather: '"Merriweather", Georgia, serif',
+  lora: '"Lora", Georgia, serif',
+  cinzel: '"Cinzel", Georgia, serif',
+  cormorant: '"Cormorant Garamond", Georgia, serif',
+  script: '"Great Vibes", "Brush Script MT", cursive',
+  dancing: '"Dancing Script", "Brush Script MT", cursive',
+  allura: '"Allura", "Brush Script MT", cursive',
+  pacifico: '"Pacifico", "Brush Script MT", cursive',
+};
+
+const templateFieldStyle = (certificateTemplate, fieldName) => {
+  const field = {
+    ...DEFAULT_TEMPLATE_FIELDS[fieldName],
+    ...(certificateTemplate?.settings?.fields?.[fieldName] ?? {}),
+  };
+
+  return {
+    left: `${field.x}px`,
+    top: `${field.y}px`,
+    width: `${field.width}px`,
+    color: field.color,
+    fontSize: `${field.fontSize}px`,
+    fontFamily: FONT_FAMILIES[field.fontFamily] ?? FONT_FAMILIES.sans,
+    fontWeight: field.fontWeight,
+    textAlign: field.align,
+  };
+};
 
 function Certificate({
   employeeName = "",
@@ -98,6 +172,7 @@ function Certificate({
   romanMonth = "",
   year = "",
   completionDate = "",
+  certificateTemplate = null,
   director = DEFAULT_DIRECTOR,
   signatureSrc = certificateAssets.ttdDirektur,
 }) {
@@ -115,6 +190,7 @@ function Certificate({
   const completionDateText = formatIndonesianDate(completionDate);
   const longName = safeEmployeeName.length > 21;
   const veryLongName = safeEmployeeName.length > 34;
+  const customTemplateUrl = certificateTemplate?.background_url;
 
   useEffect(() => {
     const preview = previewRef.current;
@@ -144,11 +220,19 @@ function Certificate({
       style={{ height: `${CERTIFICATE_HEIGHT * scale}px` }}
     >
       <article
-        className="certificate-template"
+        className={`certificate-template${customTemplateUrl ? " has-custom-template" : ""}`}
         style={{ transform: `scale(${scale})` }}
         aria-label={`Sertifikat penghargaan untuk ${safeEmployeeName}`}
       >
-        {certificateAssets.bgDaun && (
+        {customTemplateUrl && (
+          <img
+            src={customTemplateUrl}
+            alt=""
+            className="certificate-custom-background"
+            aria-hidden="true"
+          />
+        )}
+        {!customTemplateUrl && certificateAssets.bgDaun && (
           <img
             src={certificateAssets.bgDaun}
             alt=""
@@ -156,7 +240,7 @@ function Certificate({
             aria-hidden="true"
           />
         )}
-        {certificateAssets.frameGold && (
+        {!customTemplateUrl && certificateAssets.frameGold && (
           <img
             src={certificateAssets.frameGold}
             alt=""
@@ -164,7 +248,7 @@ function Certificate({
             aria-hidden="true"
           />
         )}
-        {certificateAssets.sudutAtas && (
+        {!customTemplateUrl && certificateAssets.sudutAtas && (
           <img
             src={certificateAssets.sudutAtas}
             alt=""
@@ -172,7 +256,7 @@ function Certificate({
             aria-hidden="true"
           />
         )}
-        {certificateAssets.sudutBawah && (
+        {!customTemplateUrl && certificateAssets.sudutBawah && (
           <img
             src={certificateAssets.sudutBawah}
             alt=""
@@ -180,7 +264,7 @@ function Certificate({
             aria-hidden="true"
           />
         )}
-        {certificateAssets.daunKananAtas && (
+        {!customTemplateUrl && certificateAssets.daunKananAtas && (
           <img
             src={certificateAssets.daunKananAtas}
             alt=""
@@ -188,7 +272,7 @@ function Certificate({
             aria-hidden="true"
           />
         )}
-        {certificateAssets.piagam && (
+        {!customTemplateUrl && certificateAssets.piagam && (
           <img
             src={certificateAssets.piagam}
             alt=""
@@ -197,78 +281,116 @@ function Certificate({
           />
         )}
 
-        <div className="certificate-content">
-          <header className="certificate-title-block">
-            <h1>SERTIFIKAT</h1>
-            <p>PENGHARGAAN</p>
-            {certificateAssets.garisGold && (
-              <img
-                src={certificateAssets.garisGold}
-                alt=""
-                className="certificate-garis-gold"
-                aria-hidden="true"
-              />
+        {customTemplateUrl ? (
+          <div className="certificate-content certificate-custom-content">
+            {safeCertificateNumber && (
+              <p
+                className="certificate-custom-field certificate-custom-number"
+                style={templateFieldStyle(certificateTemplate, "certificate_number")}
+              >
+                {safeCertificateNumber}
+              </p>
             )}
-          </header>
-
-          <section className="certificate-brand" aria-label="Rumah Sakit Advent Bandar Lampung">
-            {certificateAssets.logoRsabl && (
-              <img src={certificateAssets.logoRsabl} alt="" aria-hidden="true" />
-            )}
-            <p>
-              <span>Rumah Sakit Advent</span>
-              <span>Bandar Lampung</span>
-            </p>
-          </section>
-
-          {safeCertificateNumber && (
-            <p className="certificate-number">{safeCertificateNumber}</p>
-          )}
-
-          <section className="certificate-recipient">
-            <p className="certificate-given-text">
-              Sertifikat ini diberikan kepada:
-            </p>
             <h2
               className={[
+                "certificate-custom-field",
+                "certificate-custom-name",
                 longName ? "is-long-name" : "",
                 veryLongName ? "is-very-long-name" : "",
               ].filter(Boolean).join(" ")}
+              style={templateFieldStyle(certificateTemplate, "employee_name")}
             >
               {safeEmployeeName}
             </h2>
-            <div className="certificate-name-line" aria-hidden="true" />
-          </section>
-
-          <section className="certificate-training">
-            <p>Telah mengikuti dan dinyatakan lulus pada</p>
-            <h3>{safeTrainingTitle}</h3>
+            <p
+              className="certificate-custom-field certificate-custom-training"
+              style={templateFieldStyle(certificateTemplate, "training_title")}
+            >
+              {safeTrainingTitle}
+            </p>
             {completionDateText && (
-              <>
-                <p className="certificate-training-date">
-                  pada tanggal {completionDateText}
-                </p>
-                <p className="certificate-location">BANDAR LAMPUNG</p>
-              </>
+              <p
+                className="certificate-custom-field certificate-custom-date"
+                style={templateFieldStyle(certificateTemplate, "completion_date")}
+              >
+                Bandar Lampung, {completionDateText}
+              </p>
             )}
-          </section>
-
-          <section className="certificate-signature">
-            <div className="certificate-signature-space">
-              {signatureSrc && (
+          </div>
+        ) : (
+          <div className="certificate-content">
+            <header className="certificate-title-block">
+              <h1>SERTIFIKAT</h1>
+              <p>PENGHARGAAN</p>
+              {certificateAssets.garisGold && (
                 <img
-                  src={signatureSrc}
+                  src={certificateAssets.garisGold}
                   alt=""
-                  className="certificate-signature-image"
+                  className="certificate-garis-gold"
                   aria-hidden="true"
                 />
               )}
-            </div>
-            <div className="certificate-director-line" aria-hidden="true" />
-            <p className="certificate-director-name">{director.name}</p>
-            <p className="certificate-director-title">{director.title}</p>
-          </section>
-        </div>
+            </header>
+
+            <section className="certificate-brand" aria-label="Rumah Sakit Advent Bandar Lampung">
+              {certificateAssets.logoRsabl && (
+                <img src={certificateAssets.logoRsabl} alt="" aria-hidden="true" />
+              )}
+              <p>
+                <span>Rumah Sakit Advent</span>
+                <span>Bandar Lampung</span>
+              </p>
+            </section>
+
+            {safeCertificateNumber && (
+              <p className="certificate-number">{safeCertificateNumber}</p>
+            )}
+
+            <section className="certificate-recipient">
+              <p className="certificate-given-text">
+                Sertifikat ini diberikan kepada:
+              </p>
+              <h2
+                className={[
+                  longName ? "is-long-name" : "",
+                  veryLongName ? "is-very-long-name" : "",
+                ].filter(Boolean).join(" ")}
+              >
+                {safeEmployeeName}
+              </h2>
+              <div className="certificate-name-line" aria-hidden="true" />
+            </section>
+
+            <section className="certificate-training">
+              <p>Telah mengikuti dan dinyatakan lulus pada</p>
+              <h3>{safeTrainingTitle}</h3>
+              {completionDateText && (
+                <>
+                  <p className="certificate-training-date">
+                    pada tanggal {completionDateText}
+                  </p>
+                  <p className="certificate-location">BANDAR LAMPUNG</p>
+                </>
+              )}
+            </section>
+
+            <section className="certificate-signature">
+              <div className="certificate-signature-space">
+                {signatureSrc && (
+                  <img
+                    src={signatureSrc}
+                    alt=""
+                    className="certificate-signature-image"
+                    aria-hidden="true"
+                  />
+                )}
+              </div>
+              <div className="certificate-director-line" aria-hidden="true" />
+              <p className="certificate-director-name">{director.name}</p>
+              <p className="certificate-director-title">{director.title}</p>
+            </section>
+          </div>
+        )}
       </article>
     </div>
   );

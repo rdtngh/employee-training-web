@@ -174,11 +174,7 @@ class StatisticsController extends Controller
             $row['email'],
         ])->all();
 
-        $filename = sprintf(
-            'statistik-%s-%s.xlsx',
-            $this->slug($training->title),
-            now()->format('Ymd-His')
-        );
+        $filename = sprintf('statistik_%s.xlsx', $this->fileNamePart($training->title));
         $path = $this->createStatisticsWorkbook($summaryRows, $detailRows, $filename);
 
         return response()->download($path, $filename, [
@@ -378,7 +374,7 @@ class StatisticsController extends Controller
 
     private function dateTime($dateTime): ?string
     {
-        return $dateTime?->format('Y-m-d H:i:s');
+        return $dateTime?->copy()->timezone('Asia/Jakarta')->format('Y-m-d H:i:s');
     }
 
     private function emptyStatistics(): array
@@ -485,12 +481,12 @@ class StatisticsController extends Controller
         return fmod($number, 1.0) === 0.0 ? (int) $number : $number;
     }
 
-    private function slug(string $value): string
+    private function fileNamePart(string $value): string
     {
-        $slug = strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $value) ?? '');
-        $slug = trim($slug, '-');
+        $name = strtolower(preg_replace('/[^A-Za-z0-9]+/', '_', $value) ?? '');
+        $name = trim($name, '_');
 
-        return $slug !== '' ? $slug : 'training';
+        return $name !== '' ? $name : 'training';
     }
 
     private function createStatisticsWorkbook(array $summaryRows, array $detailRows, string $filename): string

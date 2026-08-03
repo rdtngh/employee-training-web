@@ -35,7 +35,12 @@ export const resetStatistics = async (options = {}) => {
 };
 
 const filenameFromDisposition = (disposition) => {
-  const match = disposition?.match(/filename="?([^"]+)"?/i);
+  const encodedMatch = disposition?.match(/filename\*=UTF-8''([^;]+)/i);
+  if (encodedMatch?.[1]) {
+    return decodeURIComponent(encodedMatch[1]);
+  }
+
+  const match = disposition?.match(/filename="?([^";]+)"?/i);
   return match?.[1];
 };
 
@@ -66,6 +71,6 @@ export const exportStatistics = async (options = "xlsx") => {
     blob: response.data,
     filename:
       filenameFromDisposition(response.headers["content-disposition"]) ||
-      `statistik-${format}.xlsx`,
+      `statistik.${format}`,
   };
 };

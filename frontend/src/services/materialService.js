@@ -52,68 +52,8 @@ const openBlankMaterialWindow = () => {
   return popup;
 };
 
-const escapeHtml = (value) =>
-  String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-
 const getMaterialFileName = (material, file) =>
   String(file?.file_name || material?.fileName || material?.title || "materi").trim();
-
-const getMaterialViewerPath = (filename) => {
-  const basePath = new URL(import.meta.env.BASE_URL, window.location.origin).pathname;
-  const normalizedBase = basePath.endsWith("/") ? basePath : `${basePath}/`;
-
-  return `${normalizedBase}material-viewer/${encodeURIComponent(filename)}`;
-};
-
-const showMaterialBlobInWindow = (popup, fileUrl, filename) => {
-  if (!popup) return false;
-
-  try {
-    const safeFilename = escapeHtml(filename);
-    const viewerUrl = `${fileUrl}#toolbar=0&navpanes=0`;
-    popup.document.open();
-    popup.document.write(`<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${safeFilename}</title>
-  <style>
-    * { box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; margin: 0; background: #202124; }
-    .material-viewer { display: flex; flex-direction: column; width: 100%; height: 100%; }
-    .material-title {
-      min-height: 44px;
-      padding: 12px 16px;
-      overflow: hidden;
-      background: #303134;
-      color: #ffffff;
-      font: 600 14px Arial, sans-serif;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    iframe { flex: 1; width: 100%; border: 0; background: #ffffff; }
-  </style>
-</head>
-<body>
-  <main class="material-viewer">
-    <div class="material-title">${safeFilename}</div>
-    <iframe src="${viewerUrl}" title="${safeFilename}"></iframe>
-  </main>
-</body>
-</html>`);
-    popup.document.close();
-    popup.history.replaceState(null, "", getMaterialViewerPath(filename));
-    return true;
-  } catch {
-    return false;
-  }
-};
 
 const getMockMaterialsByTraining = (trainingId = DEFAULT_TRAINING_ID) =>
   mockMaterialStore.filter((material) => String(material.training_id) === String(trainingId));
@@ -177,11 +117,6 @@ export const openMaterialFile = async (material, file, targetWindow = null) => {
       type: response.data.type || file.file_type || "application/octet-stream",
     });
     const fileUrl = URL.createObjectURL(namedFile);
-
-    if (showMaterialBlobInWindow(popup, fileUrl, filename)) {
-      window.setTimeout(() => URL.revokeObjectURL(fileUrl), 60000);
-      return;
-    }
 
     if (popup) {
       popup.location.href = fileUrl;

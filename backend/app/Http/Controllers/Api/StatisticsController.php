@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\TestResult;
 use App\Models\Training;
+use App\Models\UserMaterial;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -184,6 +185,61 @@ class StatisticsController extends Controller
         ])->deleteFileAfterSend(true);
     }
 
+    public function attendanceExport(Request $request): JsonResponse|BinaryFileResponse
+    {
+        $training = $this->resolveTraining($request);
+
+        if (! $training) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Training tidak ditemukan.',
+            ], 404);
+        }
+
+        $statistics = $this->trainingStatistics($training);
+        $attendance = $statistics['attendance_recap'];
+        $rows = $attendance['rows'];
+
+        if (count($rows) === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Belum ada peserta yang menyelesaikan seluruh alur pelatihan.',
+            ], 422);
+        }
+
+        $summaryRows = [
+            ['Nama Pelatihan', $training->title],
+            ['Jumlah Peserta Hadir', $attendance['participant_count']],
+            ['Jumlah Materi', $attendance['material_count']],
+            ['Kriteria', 'Pre-Test selesai, seluruh materi selesai, dan Post-Test selesai'],
+        ];
+
+        $detailRows = collect($rows)->map(fn ($row, $index) => [
+            $index + 1,
+            $row['employee_number'],
+            $row['employee_name'],
+            $row['department'],
+            $row['position'],
+            $row['login_status'],
+            $row['pretest_finished_at'],
+            $row['materials_completed_at'],
+            $row['posttest_finished_at'],
+            $row['posttest_score'],
+            $row['posttest_status'],
+            $row['attendance_status'],
+            $row['email'],
+        ])->all();
+
+        $filename = sprintf('rekap_absensi_%s.xlsx', $this->fileNamePart($training->title));
+        $path = $this->createAttendanceWorkbook($summaryRows, $detailRows, $filename);
+
+        return response()->download($path, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Cache-Control' => 'no-store, no-cache',
+            'X-Filename' => $filename,
+        ])->deleteFileAfterSend(true);
+    }
+
     private function resolveTraining(Request $request): ?Training
     {
         if ($request->filled('training_id')) {
@@ -204,6 +260,8 @@ class StatisticsController extends Controller
         $posttestResults = $this->latestResultsByType($training, 'posttest');
         $topScoreResults = $posttestResults;
         $participantRows = $this->participantScoreRows($pretestResults, $posttestResults);
+        $attendanceRows = $this->attendanceRows($training, $pretestResults, $posttestResults);
+        $materialCount = $training->materials()->count();
         $posttestCount = $posttestResults->count();
         $passedCount = $posttestResults->where('status', 'Lulus')->count();
         $failedCount = $posttestResults->where('status', 'Tidak Lulus')->count();
@@ -228,6 +286,11 @@ class StatisticsController extends Controller
                 : 0,
             'top_scores' => $this->topScores($topScoreResults),
             'score_distributions' => $this->scoreDistributions($testIds),
+            'attendance_recap' => [
+                'participant_count' => count($attendanceRows),
+                'material_count' => $materialCount,
+                'rows' => $attendanceRows,
+            ],
             'participant_rows' => $participantRows,
         ];
     }
@@ -287,6 +350,68 @@ class StatisticsController extends Controller
                     'posttest_duration_label' => $this->formatDuration($this->durationSeconds($posttest)),
                 ];
             })
+            ->sortBy(fn ($row) => strtolower((string) $row['employee_name']).'|'.(string) $row['employee_number'])
+            ->values()
+            ->all();
+    }
+
+    private function attendanceRows(Training $training, $pretestResults, $posttestResults): array
+    {
+        $materialIds = $training->materials()->pluck('id');
+
+        if ($materialIds->isEmpty()) {
+            return [];
+        }
+
+        $pretestByUser = $pretestResults->keyBy('user_id');
+        $posttestByUser = $posttestResults->keyBy('user_id');
+        $candidateUserIds = $pretestByUser
+            ->keys()
+            ->intersect($posttestByUser->keys())
+            ->values();
+
+        if ($candidateUserIds->isEmpty()) {
+            return [];
+        }
+
+        $completedMaterialsByUser = UserMaterial::query()
+            ->whereIn('user_id', $candidateUserIds)
+            ->whereIn('material_id', $materialIds)
+            ->where('is_completed', true)
+            ->whereNotNull('completed_at')
+            ->get(['user_id', 'material_id', 'completed_at'])
+            ->groupBy('user_id');
+
+        return $candidateUserIds
+            ->map(function ($userId) use ($pretestByUser, $posttestByUser, $completedMaterialsByUser, $materialIds) {
+                $completedMaterials = $completedMaterialsByUser->get($userId, collect());
+
+                if ($completedMaterials->pluck('material_id')->unique()->count() < $materialIds->count()) {
+                    return null;
+                }
+
+                $pretest = $pretestByUser->get($userId);
+                $posttest = $posttestByUser->get($userId);
+                $user = $posttest?->user ?? $pretest?->user;
+                $materialsCompletedAt = $completedMaterials->max('completed_at');
+
+                return [
+                    'user_id' => $user?->id,
+                    'employee_number' => $user?->employee_number,
+                    'employee_name' => $user?->name,
+                    'department' => $user?->department,
+                    'position' => $user?->position,
+                    'email' => $user?->email,
+                    'login_status' => 'Sudah login',
+                    'pretest_finished_at' => $this->dateTime($pretest?->finished_at),
+                    'materials_completed_at' => $this->dateTime($materialsCompletedAt),
+                    'posttest_finished_at' => $this->dateTime($posttest?->finished_at),
+                    'posttest_score' => $posttest?->score,
+                    'posttest_status' => $posttest?->status ?? '-',
+                    'attendance_status' => 'Hadir',
+                ];
+            })
+            ->filter()
             ->sortBy(fn ($row) => strtolower((string) $row['employee_name']).'|'.(string) $row['employee_number'])
             ->values()
             ->all();
@@ -400,6 +525,11 @@ class StatisticsController extends Controller
             'pass_percentage' => 0,
             'top_scores' => [],
             'score_distributions' => $this->emptyScoreDistributions(),
+            'attendance_recap' => [
+                'participant_count' => 0,
+                'material_count' => 0,
+                'rows' => [],
+            ],
         ];
     }
 
@@ -517,6 +647,33 @@ class StatisticsController extends Controller
         return $path;
     }
 
+    private function createAttendanceWorkbook(array $summaryRows, array $detailRows, string $filename): string
+    {
+        $directory = storage_path('app/exports');
+
+        if (! is_dir($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
+        $path = $directory.DIRECTORY_SEPARATOR.$filename;
+        $zip = new ZipArchive();
+
+        if ($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            abort(500, 'File export gagal dibuat.');
+        }
+
+        $zip->addFromString('[Content_Types].xml', $this->xlsxContentTypes());
+        $zip->addFromString('_rels/.rels', $this->xlsxRootRelations());
+        $zip->addFromString('xl/workbook.xml', $this->xlsxAttendanceWorkbook());
+        $zip->addFromString('xl/_rels/workbook.xml.rels', $this->xlsxWorkbookRelations());
+        $zip->addFromString('xl/styles.xml', $this->xlsxStyles());
+        $zip->addFromString('xl/worksheets/sheet1.xml', $this->xlsxAttendanceSummarySheet($summaryRows));
+        $zip->addFromString('xl/worksheets/sheet2.xml', $this->xlsxAttendanceDetailSheet($detailRows));
+        $zip->close();
+
+        return $path;
+    }
+
     private function xlsxSummarySheet(array $summaryRows): string
     {
         $rows = [
@@ -585,6 +742,65 @@ class StatisticsController extends Controller
             'Q' => 22,
             'R' => 18,
             'S' => 30,
+        ]);
+    }
+
+    private function xlsxAttendanceSummarySheet(array $summaryRows): string
+    {
+        $rows = [
+            ['cells' => [['Ringkasan Rekap Absensi', 1]]],
+            ['cells' => []],
+        ];
+
+        foreach ($summaryRows as $row) {
+            $rows[] = ['cells' => [[$row[0], 2], [$row[1], 3]]];
+        }
+
+        return $this->xlsxSheet($rows, ['A' => 28, 'B' => 58]);
+    }
+
+    private function xlsxAttendanceDetailSheet(array $detailRows): string
+    {
+        $headers = [
+            'No',
+            'Username',
+            'Nama Peserta',
+            'Departemen',
+            'Jabatan',
+            'Status Login',
+            'Selesai Pre-Test',
+            'Selesai Materi',
+            'Selesai Post-Test',
+            'Nilai Post-Test',
+            'Status Post-Test',
+            'Status Absensi',
+            'Email',
+        ];
+
+        $rows = [
+            ['cells' => [['Rekap Absensi', 1]]],
+            ['cells' => []],
+            ['cells' => array_map(fn ($header) => [$header, 4], $headers)],
+        ];
+
+        foreach ($detailRows as $detailRow) {
+            $rows[] = ['cells' => array_map(fn ($value) => [$value, 5], $detailRow)];
+        }
+
+        return $this->xlsxSheet($rows, [
+            'A' => 8,
+            'B' => 18,
+            'C' => 28,
+            'D' => 20,
+            'E' => 18,
+            'F' => 16,
+            'G' => 22,
+            'H' => 22,
+            'I' => 22,
+            'J' => 16,
+            'K' => 18,
+            'L' => 16,
+            'M' => 30,
         ]);
     }
 
@@ -697,6 +913,17 @@ class StatisticsController extends Controller
             .'<sheets>'
             .'<sheet name="Ringkasan" sheetId="1" r:id="rId1"/>'
             .'<sheet name="Detail Peserta" sheetId="2" r:id="rId2"/>'
+            .'</sheets>'
+            .'</workbook>';
+    }
+
+    private function xlsxAttendanceWorkbook(): string
+    {
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            .'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+            .'<sheets>'
+            .'<sheet name="Ringkasan Absensi" sheetId="1" r:id="rId1"/>'
+            .'<sheet name="Rekap Absensi" sheetId="2" r:id="rId2"/>'
             .'</sheets>'
             .'</workbook>';
     }

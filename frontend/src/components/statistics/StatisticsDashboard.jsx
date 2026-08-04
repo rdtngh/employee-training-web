@@ -1,6 +1,7 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import * as statisticsService from "../../services/statisticsService";
+import { downloadFile } from "../../utils/downloadFile";
 import statisticIcon from "../../assets/icons/icon-statistik.svg";
 import "./StatisticsDashboard.css";
 
@@ -95,7 +96,9 @@ function StatisticsDashboard({
   trainingLoading = false,
 }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [resetting, setResetting] = useState(false);
+  const [attendanceExporting, setAttendanceExporting] = useState(false);
   const [message, setMessage] = useState("");
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [resetType, setResetType] = useState("pretest");
@@ -104,6 +107,14 @@ function StatisticsDashboard({
   const topScores = statistics?.top_scores ?? [];
   const averagePreTest = statistics?.averages?.pretest ?? statistics?.average_pretest_score;
   const averagePostTest = statistics?.averages?.posttest ?? statistics?.average_posttest_score;
+  const attendanceRecap = statistics?.attendance_recap ?? {
+    participant_count: 0,
+    material_count: 0,
+    rows: [],
+  };
+  const attendanceRows = attendanceRecap.rows ?? [];
+  const attendanceView = searchParams.get("view") === "attendance";
+  const pageTitle = attendanceView ? "Rekap Absensi" : (statistics?.title || "Statistik");
   const selectedTraining = trainings.find((training) => String(training.id) === String(selectedTrainingId));
   const selectedTrainingTitle = selectedTraining?.title ?? statistics?.training?.title;
   const resetProtected = selectedTrainingTitle?.trim().toLowerCase() === RESET_PROTECTED_TRAINING_TITLE.toLowerCase();
@@ -134,17 +145,41 @@ function StatisticsDashboard({
     }
   }
 
+  async function exportAttendanceRecap() {
+    if (!selectedTrainingId) {
+      setMessage("Pilih pelatihan terlebih dahulu sebelum export rekap absensi.");
+      return;
+    }
+
+    setAttendanceExporting(true);
+    setMessage("");
+
+    try {
+      const file = await statisticsService.exportAttendanceRecap({
+        trainingId: selectedTrainingId,
+      });
+      downloadFile(file);
+    } catch (error) {
+      setMessage(
+        error.response?.data?.message ||
+          "Export rekap absensi gagal. Silakan coba lagi."
+      );
+    } finally {
+      setAttendanceExporting(false);
+    }
+  }
+
   return (
     <main className="statistics-page">
       <div className="statistics-header">
         <div className="statistics-title-wrap">
           <img src={statisticIcon} alt="" className="statistics-title-icon" />
           <div>
-            <h1>{statistics?.title || "Statistik"}</h1>
+            <h1>{pageTitle}</h1>
             {statistics?.training?.title && <p>{statistics.training.title}</p>}
           </div>
         </div>
-        {canReset && (
+        {canReset && !attendanceView && (
           <button
             type="button"
             className="statistics-reset"
@@ -183,10 +218,75 @@ function StatisticsDashboard({
       )}
 
       {!selectedTrainingId && !loading && !error && (
-        <p className="statistics-state">Pilih pelatihan untuk melihat statistik.</p>
+        <p className="statistics-state">
+          {attendanceView
+            ? "Pilih pelatihan untuk melihat rekap absensi."
+            : "Pilih pelatihan untuk melihat statistik."}
+        </p>
       )}
 
-      {selectedTrainingId && !loading && !error && (
+      {selectedTrainingId && !loading && !error && attendanceView && (
+        <section
+          className="statistics-attendance-card"
+          aria-label="Rekap absensi pelatihan"
+        >
+          <div className="statistics-attendance-header">
+            <div>
+              <h2>Rekap Absensi</h2>
+              <p>
+                {attendanceRecap.participant_count} peserta menyelesaikan login, Pre-Test, materi, dan Post-Test.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="statistics-attendance-export"
+              onClick={exportAttendanceRecap}
+              disabled={attendanceExporting || attendanceRows.length === 0}
+            >
+              {attendanceExporting ? "Mengunduh..." : "Export Absensi"}
+            </button>
+          </div>
+
+          {attendanceRows.length > 0 ? (
+            <div className="statistics-attendance-table-wrap">
+              <table className="statistics-attendance-table">
+                <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>Nama Peserta</th>
+                    <th>Username</th>
+                    <th>Departemen</th>
+                    <th>Pre-Test</th>
+                    <th>Materi</th>
+                    <th>Post-Test</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {attendanceRows.map((row, index) => (
+                    <tr key={row.user_id ?? `${row.employee_number}-${index}`}>
+                      <td>{index + 1}</td>
+                      <td>{row.employee_name || "-"}</td>
+                      <td>{row.employee_number || "-"}</td>
+                      <td>{row.department || "-"}</td>
+                      <td>{row.pretest_finished_at || "-"}</td>
+                      <td>{row.materials_completed_at || "-"}</td>
+                      <td>{row.posttest_finished_at || "-"}</td>
+                      <td>{row.attendance_status || "Hadir"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="statistics-attendance-empty">
+              Belum ada peserta yang menyelesaikan seluruh alur pelatihan.
+            </p>
+          )}
+        </section>
+      )}
+
+      {selectedTrainingId && !loading && !error && !attendanceView && (
         <>
           <section className="statistics-summary-grid" aria-label="Ringkasan statistik pelatihan">
             <article className="statistics-summary-card">

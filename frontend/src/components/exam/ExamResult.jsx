@@ -129,6 +129,13 @@ function ExamResult({ role }) {
           <button
             type="button"
             className="exam-result-menu-button"
+            onClick={() => navigate(`/${rolePath}/statistics?view=attendance`)}
+          >
+            Rekap Absensi
+          </button>
+          <button
+            type="button"
+            className="exam-result-menu-button"
             onClick={() => navigate(`/${rolePath}/statistics`)}
           >
             Lihat Statistik

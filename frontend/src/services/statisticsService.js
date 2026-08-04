@@ -75,3 +75,31 @@ export const exportStatistics = async (options = "xlsx") => {
       `statistik.${format}`,
   };
 };
+
+export const exportAttendanceRecap = async (options = {}) => {
+  const trainingId = typeof options === "object" ? options.trainingId : undefined;
+  let response;
+
+  try {
+    response = await api.get("/statistics/attendance/export", {
+      params: trainingId ? { training_id: trainingId } : undefined,
+      responseType: "blob",
+    });
+  } catch (error) {
+    const data = error.response?.data;
+
+    if (data instanceof Blob && data.type.includes("application/json")) {
+      error.response.data = JSON.parse(await data.text());
+    }
+
+    throw error;
+  }
+
+  return {
+    blob: response.data,
+    filename:
+      response.headers["x-filename"] ||
+      filenameFromDisposition(response.headers["content-disposition"]) ||
+      "rekap_absensi.xlsx",
+  };
+};

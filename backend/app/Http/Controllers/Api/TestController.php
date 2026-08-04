@@ -90,7 +90,9 @@ class TestController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $this->shuffleQuestionsForUser($questions, $test),
+            'data' => $this->shuffleQuestionsForUser($questions, $test)
+                ->map(fn (Question $question) => $this->shuffleQuestionOptionsForUser($question, $test))
+                ->values(),
         ]);
     }
 
@@ -141,8 +143,11 @@ class TestController extends Controller
 
         foreach ($questions as $question) {
             $selected = $answers->get($question->id);
+            $selectedAnswer = $selected
+                ? $this->originalAnswerForDisplayedAnswer($question, $test, $selected['selected_answer'])
+                : null;
 
-            if ($selected && $selected['selected_answer'] === $question->correct_answer) {
+            if ($selectedAnswer && $selectedAnswer === $question->correct_answer) {
                 $correct++;
             } else {
                 $wrong++;
@@ -155,7 +160,7 @@ class TestController extends Controller
                         'question_id' => $question->id,
                     ],
                     [
-                        'selected_answer' => $selected['selected_answer'],
+                        'selected_answer' => $selectedAnswer ?? $selected['selected_answer'],
                     ]
                 );
             }
@@ -424,5 +429,47 @@ class TestController extends Controller
         return $questions
             ->sortBy(fn ($question) => crc32("{$test->id}:{$userId}:{$question->id}"))
             ->values();
+    }
+
+    private function shuffleQuestionOptionsForUser(Question $question, Test $test): Question
+    {
+        $displayToOriginal = $this->displayToOriginalAnswerMap($question, $test);
+        $optionValues = [
+            'A' => $question->option_a,
+            'B' => $question->option_b,
+            'C' => $question->option_c,
+            'D' => $question->option_d,
+        ];
+
+        foreach ($displayToOriginal as $displayAnswer => $originalAnswer) {
+            $question->setAttribute(
+                'option_'.strtolower($displayAnswer),
+                $optionValues[$originalAnswer] ?? null
+            );
+        }
+
+        return $question;
+    }
+
+    private function originalAnswerForDisplayedAnswer(Question $question, Test $test, string $displayedAnswer): string
+    {
+        $displayToOriginal = $this->displayToOriginalAnswerMap($question, $test);
+
+        return $displayToOriginal[strtoupper($displayedAnswer)] ?? strtoupper($displayedAnswer);
+    }
+
+    private function displayToOriginalAnswerMap(Question $question, Test $test): array
+    {
+        $userId = request()->user()->id;
+        $answers = collect(['A', 'B', 'C', 'D'])
+            ->sortBy(fn ($answer) => crc32("{$test->id}:{$userId}:{$question->id}:option:{$answer}"))
+            ->values();
+
+        return array_combine(['A', 'B', 'C', 'D'], $answers->all()) ?: [
+            'A' => 'A',
+            'B' => 'B',
+            'C' => 'C',
+            'D' => 'D',
+        ];
     }
 }

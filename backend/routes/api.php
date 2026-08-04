@@ -44,6 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:Super Admin,Admin')->group(function () {
         Route::get('/statistics', [StatisticsController::class, 'index']);
         Route::get('/statistics/export', [StatisticsController::class, 'export']);
+        Route::get('/statistics/attendance/export', [StatisticsController::class, 'attendanceExport']);
         Route::post('/statistics/reset', [StatisticsController::class, 'reset']);
         Route::get('/certificates', [CertificateController::class, 'index']);
         Route::get('/certificates/{certificate}/file', [CertificateController::class, 'downloadFile']);

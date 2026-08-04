@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
-import { flushSync } from "react-dom";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Certificate from "../../components/certificate/Certificate";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import * as certificateService from "../../services/certificateService";
+import { downloadElementAsPng } from "../../utils/downloadElementAsPng";
 import "./EmployeeCertificatePage.css";
 
 const defaultCertificateData = {
@@ -16,37 +16,23 @@ const defaultCertificateData = {
   completion_date: "",
 };
 
-const waitForCertificateAssets = async () => {
-  await document.fonts?.ready;
+const buildCertificateFilename = (certificateData) => {
+  const name = String(certificateData.employee_name || "sertifikat")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 
-  const images = [
-    ...document.querySelectorAll(
-      ".employee-certificate-stage img, .employee-certificate-print-stage img"
-    ),
-  ];
-  await Promise.all(
-    images.map((image) => {
-      if (image.complete) return Promise.resolve();
-
-      return new Promise((resolve) => {
-        image.addEventListener("load", resolve, { once: true });
-        image.addEventListener("error", resolve, { once: true });
-      });
-    })
-  );
+  return `${name || "sertifikat"}-${certificateData.training_id || "pelatihan"}.png`;
 };
-
-const waitForNextPaint = () =>
-  new Promise((resolve) => {
-    requestAnimationFrame(() => requestAnimationFrame(resolve));
-  });
 
 function EmployeeCertificatePage() {
   const navigate = useNavigate();
   const { trainingId } = useParams();
+  const downloadSourceRef = useRef(null);
   const [certificateData, setCertificateData] = useState(defaultCertificateData);
   const [loading, setLoading] = useState(true);
-  const [printMode, setPrintMode] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
   const [downloadError, setDownloadError] = useState("");
 
@@ -79,50 +65,27 @@ function EmployeeCertificatePage() {
 
   async function downloadCertificate() {
     setDownloadError("");
-    flushSync(() => setPrintMode(true));
-    document.documentElement.classList.add("is-certificate-printing");
-    document.body.classList.add("is-certificate-printing");
-
-    const finishPrint = () => {
-      window.setTimeout(() => {
-        document.documentElement.classList.remove("is-certificate-printing");
-        document.body.classList.remove("is-certificate-printing");
-        setPrintMode(false);
-        window.removeEventListener("afterprint", finishPrint);
-      }, 500);
-    };
+    setDownloading(true);
 
     try {
-      await waitForNextPaint();
-      await waitForCertificateAssets();
-      await waitForNextPaint();
-      window.addEventListener("afterprint", finishPrint);
-      window.print();
+      const certificateElement = downloadSourceRef.current?.querySelector(".certificate-template");
+
+      await downloadElementAsPng(
+        certificateElement,
+        buildCertificateFilename({ ...certificateData, training_id: trainingId }),
+        {
+          width: 841,
+          height: 595,
+          pixelRatio: 2,
+        }
+      );
     } catch (error) {
       setDownloadError(
-        error.message || "Sertifikat gagal disiapkan. Silakan coba lagi."
+        error.message || "Sertifikat gagal didownload. Silakan coba lagi."
       );
-      finishPrint();
+    } finally {
+      setDownloading(false);
     }
-  }
-
-  if (printMode) {
-    return (
-      <main className="employee-certificate-print-page" aria-label="Sertifikat siap dicetak">
-        <section className="employee-certificate-print-stage">
-          <Certificate
-            employeeName={certificateData.employee_name}
-            trainingTitle={certificateData.training_title}
-            certificateNumber={certificateData.certificate_number}
-            sequenceNumber={certificateData.sequence_number}
-            romanMonth={certificateData.roman_month}
-            year={certificateData.year}
-            completionDate={certificateData.completion_date || certificateData.issued_at}
-            certificateTemplate={certificateData.certificate_template}
-          />
-        </section>
-      </main>
-    );
   }
 
   return (
@@ -138,8 +101,9 @@ function EmployeeCertificatePage() {
                 type="button"
                 className="employee-certificate-download"
                 onClick={downloadCertificate}
+                disabled={downloading}
               >
-                Download Sertifikat
+                {downloading ? "Mengunduh..." : "Download Sertifikat"}
               </button>
             )}
           </div>
@@ -169,6 +133,24 @@ function EmployeeCertificatePage() {
               certificateTemplate={certificateData.certificate_template}
             />
           </section>
+        )}
+        {!loading && !error && (
+          <div
+            className="employee-certificate-download-source"
+            ref={downloadSourceRef}
+            aria-hidden="true"
+          >
+            <Certificate
+              employeeName={certificateData.employee_name}
+              trainingTitle={certificateData.training_title}
+              certificateNumber={certificateData.certificate_number}
+              sequenceNumber={certificateData.sequence_number}
+              romanMonth={certificateData.roman_month}
+              year={certificateData.year}
+              completionDate={certificateData.completion_date || certificateData.issued_at}
+              certificateTemplate={certificateData.certificate_template}
+            />
+          </div>
         )}
 
         <button

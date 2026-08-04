@@ -26,8 +26,13 @@ class TrainingController extends Controller
 
     public function index(): JsonResponse
     {
-        $trainings = Training::withCount(['materials', 'tests'])
-            ->where('is_active', true)
+        $query = Training::withCount(['materials', 'tests']);
+
+        if (! $this->canManageTrainings()) {
+            $query->where('is_active', true);
+        }
+
+        $trainings = $query
             ->orderByDesc('start_date')
             ->get()
             ->map(fn (Training $training) => $this->trainingPayload($training))
@@ -41,6 +46,10 @@ class TrainingController extends Controller
 
     public function show(Training $training): JsonResponse
     {
+        if ($response = $this->inactiveTrainingResponse($training)) {
+            return $response;
+        }
+
         $training->load([
             'materials.files',
             'tests',
@@ -54,6 +63,10 @@ class TrainingController extends Controller
 
     public function materials(Training $training): JsonResponse
     {
+        if ($response = $this->inactiveTrainingResponse($training)) {
+            return $response;
+        }
+
         $materials = $training->materials()
             ->with('files')
             ->orderBy('order_number')
@@ -67,6 +80,10 @@ class TrainingController extends Controller
 
     public function materialProgress(Request $request, Training $training): JsonResponse
     {
+        if ($response = $this->inactiveTrainingResponse($training)) {
+            return $response;
+        }
+
         return response()->json([
             'success' => true,
             'data' => $this->buildMaterialProgress($request, $training),
@@ -78,13 +95,14 @@ class TrainingController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'post_test_access_code' => ['nullable', 'string', 'max:100'],
+            'is_active' => ['nullable', 'boolean'],
         ]);
 
         $accessCode = trim((string) ($validated['post_test_access_code'] ?? ''));
 
         $training = Training::create([
             'title' => $validated['title'],
-            'is_active' => true,
+            'is_active' => $request->boolean('is_active', true),
             'post_test_access_code_hash' => $accessCode !== '' ? Hash::make($accessCode) : null,
             'post_test_access_code_encrypted' => $accessCode !== '' ? Crypt::encryptString($accessCode) : null,
             'post_test_access_code_updated_at' => $accessCode !== '' ? now() : null,
@@ -103,10 +121,12 @@ class TrainingController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'post_test_access_code' => ['nullable', 'string', 'max:100'],
             'clear_post_test_access_code' => ['nullable', 'boolean'],
+            'is_active' => ['nullable', 'boolean'],
         ]);
 
         $updates = [
             'title' => $validated['title'],
+            'is_active' => $request->boolean('is_active', (bool) $training->is_active),
         ];
 
         $resetPostTestAccesses = false;
@@ -147,6 +167,10 @@ class TrainingController extends Controller
 
     public function verifyPostTestAccessCode(Request $request, Training $training): JsonResponse
     {
+        if ($response = $this->inactiveTrainingResponse($training)) {
+            return $response;
+        }
+
         if (! $this->hasPostTestAccessCode($training)) {
             return response()->json([
                 'success' => false,
@@ -470,6 +494,20 @@ class TrainingController extends Controller
         $role = request()->user()?->role?->name;
 
         return in_array($role, ['Super Admin', 'Admin'], true);
+    }
+
+    private function inactiveTrainingResponse(Training $training): ?JsonResponse
+    {
+        $role = request()->user()?->role?->name;
+
+        if ($role === 'Karyawan' && ! $training->is_active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pelatihan belum tersedia.',
+            ], 403);
+        }
+
+        return null;
     }
 
     private function decryptedPostTestAccessCode(Training $training): ?string

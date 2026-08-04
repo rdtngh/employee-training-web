@@ -41,6 +41,10 @@ class TestController extends Controller
     {
         abort_unless(in_array($type, ['pretest', 'posttest'], true), 404);
 
+        if (! $training->is_active) {
+            return $this->lockedResponse('Pelatihan belum tersedia.');
+        }
+
         $test = Test::firstOrCreate(
             [
                 'training_id' => $training->id,
@@ -257,6 +261,12 @@ class TestController extends Controller
 
     private function testAccessError(Test $test): ?JsonResponse
     {
+        $training = $test->training ?: Training::find($test->training_id);
+
+        if ($training && ! $training->is_active) {
+            return $this->lockedResponse('Pelatihan belum tersedia.');
+        }
+
         if ($test->type === 'pretest') {
             return null;
         }

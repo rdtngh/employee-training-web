@@ -113,6 +113,44 @@
   font-size: 0.82rem;
 }
 
+.manage-training-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  color: #374151;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.manage-training-toggle input {
+  width: auto;
+  min-height: auto;
+  margin: 0;
+  accent-color: #327537;
+}
+
+.manage-training-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.manage-training-status.is-active {
+  background: #e7f5e8;
+  color: #216629;
+}
+
+.manage-training-status.is-inactive {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
 .manage-training-submit {
   min-height: 56px;
   border: 1px solid #111827;
@@ -316,6 +354,18 @@
 
 .manage-training-edit-dialog input:focus {
   border-bottom-color: #327537;
+}
+
+.manage-training-edit-dialog .manage-training-toggle {
+  margin: 0 0 18px;
+}
+
+.manage-training-edit-dialog .manage-training-toggle input {
+  width: auto;
+  min-height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
 .manage-training-clear-code {

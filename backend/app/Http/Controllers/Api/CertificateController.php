@@ -50,6 +50,10 @@ class CertificateController extends Controller
 
     public function show(Request $request, Training $training): JsonResponse
     {
+        if (! $training->is_active) {
+            return $this->inactiveTrainingResponse();
+        }
+
         $result = $this->passedPostTestResult($request, $training);
 
         if (! $result) {
@@ -80,6 +84,8 @@ class CertificateController extends Controller
 
     public function download(Request $request, Training $training): Response
     {
+        abort_if(! $training->is_active, 403, 'Pelatihan belum tersedia.');
+
         $result = $this->passedPostTestResult($request, $training);
 
         if (! $result) {
@@ -126,6 +132,14 @@ class CertificateController extends Controller
             'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             'Content-Length' => strlen($pdf),
         ]);
+    }
+
+    private function inactiveTrainingResponse(): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'Pelatihan belum tersedia.',
+        ], 403);
     }
 
     private function passedPostTestResult(Request $request, Training $training): ?TestResult

@@ -35,7 +35,7 @@ export const createTraining = async (trainingData) => {
       id: nextId,
       title: trainingData.title,
       has_post_test_access_code: Boolean(trainingData.post_test_access_code),
-      is_active: true,
+      is_active: trainingData.is_active ?? true,
     });
 
     mockTrainingStore = [...mockTrainingStore, training];
@@ -45,6 +45,7 @@ export const createTraining = async (trainingData) => {
   const response = await api.post("/trainings", {
     title: trainingData.title,
     post_test_access_code: trainingData.post_test_access_code ?? "",
+    is_active: trainingData.is_active ?? true,
   });
   const training = response.data?.data ?? response.data;
 
@@ -57,7 +58,7 @@ export const updateTraining = async (id, trainingData) => {
       id,
       title: trainingData.title,
       has_post_test_access_code: Boolean(trainingData.post_test_access_code),
-      is_active: true,
+      is_active: trainingData.is_active ?? true,
     });
 
     mockTrainingStore = mockTrainingStore.map((training) =>
@@ -68,6 +69,7 @@ export const updateTraining = async (id, trainingData) => {
 
   const payload = {
     title: trainingData.title,
+    is_active: trainingData.is_active ?? true,
   };
 
   if (typeof trainingData.post_test_access_code === "string") {

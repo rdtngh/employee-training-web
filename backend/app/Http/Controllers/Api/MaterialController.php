@@ -20,6 +20,10 @@ class MaterialController extends Controller
 
     public function show(Material $material): JsonResponse
     {
+        if ($this->inactiveTrainingForEmployee($material)) {
+            return $this->inactiveTrainingResponse();
+        }
+
         if ($this->requiresPreTest($material)) {
             return response()->json([
                 'success' => false,
@@ -37,6 +41,10 @@ class MaterialController extends Controller
 
     public function files(Material $material): JsonResponse
     {
+        if ($this->inactiveTrainingForEmployee($material)) {
+            return $this->inactiveTrainingResponse();
+        }
+
         if ($this->requiresPreTest($material)) {
             return response()->json([
                 'success' => false,
@@ -54,6 +62,10 @@ class MaterialController extends Controller
     {
         if ($file->material_id !== $material->id) {
             abort(404);
+        }
+
+        if ($this->inactiveTrainingForEmployee($material)) {
+            return $this->inactiveTrainingResponse();
         }
 
         if ($this->requiresPreTest($material)) {
@@ -77,6 +89,10 @@ class MaterialController extends Controller
 
     public function markAccessed(Request $request, Material $material): JsonResponse
     {
+        if ($this->inactiveTrainingForEmployee($material)) {
+            return $this->inactiveTrainingResponse();
+        }
+
         if ($this->requiresPreTest($material)) {
             return response()->json([
                 'success' => false,
@@ -423,5 +439,24 @@ class MaterialController extends Controller
                 ->whereNull('reset_at')
                 ->exists()
             : true;
+    }
+
+    private function inactiveTrainingForEmployee(Material $material): bool
+    {
+        $user = request()->user();
+        $user?->loadMissing('role');
+        $material->loadMissing('training');
+
+        return strtolower($user?->role?->name ?? '') === 'karyawan'
+            && $material->training
+            && ! $material->training->is_active;
+    }
+
+    private function inactiveTrainingResponse(): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'Pelatihan belum tersedia.',
+        ], 403);
     }
 }

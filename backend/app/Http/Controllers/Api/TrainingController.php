@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\PostTestAccess;
 use App\Models\TestResult;
 use App\Models\Training;
 use App\Models\UserMaterial;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -74,11 +77,17 @@ class TrainingController extends Controller
     {
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
+            'post_test_access_code' => ['nullable', 'string', 'max:100'],
         ]);
+
+        $accessCode = trim((string) ($validated['post_test_access_code'] ?? ''));
 
         $training = Training::create([
             'title' => $validated['title'],
             'is_active' => true,
+            'post_test_access_code_hash' => $accessCode !== '' ? Hash::make($accessCode) : null,
+            'post_test_access_code_encrypted' => $accessCode !== '' ? Crypt::encryptString($accessCode) : null,
+            'post_test_access_code_updated_at' => $accessCode !== '' ? now() : null,
         ]);
 
         return response()->json([
@@ -92,16 +101,86 @@ class TrainingController extends Controller
     {
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
+            'post_test_access_code' => ['nullable', 'string', 'max:100'],
+            'clear_post_test_access_code' => ['nullable', 'boolean'],
         ]);
 
-        $training->update([
+        $updates = [
             'title' => $validated['title'],
-        ]);
+        ];
+
+        $resetPostTestAccesses = false;
+
+        if ($request->boolean('clear_post_test_access_code')) {
+            $updates['post_test_access_code_hash'] = null;
+            $updates['post_test_access_code_encrypted'] = null;
+            $updates['post_test_access_code_updated_at'] = null;
+            $resetPostTestAccesses = true;
+        } elseif ($request->has('post_test_access_code')) {
+            $accessCode = trim((string) $validated['post_test_access_code']);
+
+            if ($accessCode !== '') {
+                $updates['post_test_access_code_hash'] = Hash::make($accessCode);
+                $updates['post_test_access_code_encrypted'] = Crypt::encryptString($accessCode);
+                $updates['post_test_access_code_updated_at'] = now();
+                $resetPostTestAccesses = true;
+            }
+        }
+
+        $training->update($updates);
+
+        if ($resetPostTestAccesses) {
+            PostTestAccess::where('training_id', $training->id)->delete();
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Pelatihan berhasil diperbarui.',
             'data' => $this->trainingPayload($training),
+        ]);
+    }
+
+    public function verifyPostTestAccessCode(Request $request, Training $training): JsonResponse
+    {
+        if (! $training->post_test_access_code_hash) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Post-Test tidak memerlukan kode akses.',
+                'data' => [
+                    'verified' => true,
+                ],
+            ]);
+        }
+
+        $validated = $request->validate([
+            'access_code' => ['required', 'string', 'max:100'],
+        ], [
+            'access_code.required' => 'Kode akses Post-Test wajib diisi.',
+        ]);
+
+        if (! Hash::check(trim($validated['access_code']), $training->post_test_access_code_hash)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kode akses Post-Test tidak sesuai.',
+            ], 422);
+        }
+
+        PostTestAccess::updateOrCreate(
+            [
+                'user_id' => $request->user()->id,
+                'training_id' => $training->id,
+            ],
+            [
+                'verified_at' => now(),
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kode akses Post-Test berhasil diverifikasi.',
+            'data' => [
+                'verified' => true,
+            ],
         ]);
     }
 
@@ -271,6 +350,10 @@ class TrainingController extends Controller
             ->all();
 
         $preTestCompleted = self::EMERGENCY_UNLOCK_EMPLOYEE_FLOW || $this->hasCompletedPreTest($request, $training);
+        $postTestWorkflowUnlocked = $this->hasPassedPostTest($request, $training)
+            || self::EMERGENCY_UNLOCK_EMPLOYEE_FLOW
+            || ($preTestCompleted && $materials->isNotEmpty() && count($completedMaterialIds) >= $materials->count());
+        $postTestAccessRequired = $this->postTestAccessRequired($training);
 
         $completedLookup = array_flip($completedMaterialIds);
         $materialsWithProgress = $materials->map(function ($material) use ($completedLookup, $preTestCompleted) {
@@ -292,9 +375,10 @@ class TrainingController extends Controller
                 'title' => $training->title,
                 'certificate_template' => $this->certificateTemplatePayload($training),
                 'pre_test_completed' => $preTestCompleted,
-                'post_test_unlocked' => $this->hasPassedPostTest($request, $training)
-                    || self::EMERGENCY_UNLOCK_EMPLOYEE_FLOW
-                    || ($preTestCompleted && $materials->isNotEmpty() && count($completedMaterialIds) >= $materials->count()),
+                'post_test_unlocked' => $postTestWorkflowUnlocked,
+                'post_test_access_required' => $postTestAccessRequired,
+                'post_test_access_verified' => ! $postTestAccessRequired
+                    || $this->hasVerifiedPostTestAccess($request, $training),
             ],
             'materials' => $materialsWithProgress,
         ];
@@ -342,8 +426,52 @@ class TrainingController extends Controller
     {
         return [
             ...$training->toArray(),
+            'has_post_test_access_code' => $this->postTestAccessRequired($training),
+            ...($this->canManageTrainings()
+                ? ['post_test_access_code' => $this->decryptedPostTestAccessCode($training)]
+                : []),
             'certificate_template' => $this->certificateTemplatePayload($training),
         ];
+    }
+
+    private function postTestAccessRequired(Training $training): bool
+    {
+        return (bool) $training->post_test_access_code_hash;
+    }
+
+    private function hasVerifiedPostTestAccess(Request $request, Training $training): bool
+    {
+        if (! $this->postTestAccessRequired($training)) {
+            return true;
+        }
+
+        return PostTestAccess::query()
+            ->where('user_id', $request->user()->id)
+            ->where('training_id', $training->id)
+            ->when($training->post_test_access_code_updated_at, function ($query, $updatedAt) {
+                $query->where('verified_at', '>=', $updatedAt);
+            })
+            ->exists();
+    }
+
+    private function canManageTrainings(): bool
+    {
+        $role = request()->user()?->role?->name;
+
+        return in_array($role, ['Super Admin', 'Admin'], true);
+    }
+
+    private function decryptedPostTestAccessCode(Training $training): ?string
+    {
+        if (! $training->post_test_access_code_encrypted) {
+            return null;
+        }
+
+        try {
+            return Crypt::decryptString($training->post_test_access_code_encrypted);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function certificateTemplatePayload(?Training $training): ?array

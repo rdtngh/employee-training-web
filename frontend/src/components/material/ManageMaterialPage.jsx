@@ -107,10 +107,14 @@ function ManageMaterialPage({ role }) {
   const [trainingLoading, setTrainingLoading] = useState(true);
   const [trainingError, setTrainingError] = useState("");
   const [newTrainingTitle, setNewTrainingTitle] = useState("");
+  const [newTrainingAccessCode, setNewTrainingAccessCode] = useState("");
   const [addingTraining, setAddingTraining] = useState(false);
   const [trainingFormError, setTrainingFormError] = useState("");
   const [editingTraining, setEditingTraining] = useState(null);
   const [editTrainingTitle, setEditTrainingTitle] = useState("");
+  const [editTrainingAccessCode, setEditTrainingAccessCode] = useState("");
+  const [editTrainingOriginalAccessCode, setEditTrainingOriginalAccessCode] = useState("");
+  const [clearTrainingAccessCode, setClearTrainingAccessCode] = useState(false);
   const [editTrainingError, setEditTrainingError] = useState("");
   const [editTrainingLoading, setEditTrainingLoading] = useState(false);
   const [deletingTraining, setDeletingTraining] = useState(null);
@@ -227,12 +231,18 @@ function ManageMaterialPage({ role }) {
   function openTrainingEdit(training) {
     setEditingTraining(training);
     setEditTrainingTitle(training.title ?? "");
+    setEditTrainingAccessCode(training.post_test_access_code ?? "");
+    setEditTrainingOriginalAccessCode(training.post_test_access_code ?? "");
+    setClearTrainingAccessCode(false);
     setEditTrainingError("");
   }
 
   function closeTrainingEdit() {
     setEditingTraining(null);
     setEditTrainingTitle("");
+    setEditTrainingAccessCode("");
+    setEditTrainingOriginalAccessCode("");
+    setClearTrainingAccessCode(false);
     setEditTrainingError("");
     setEditTrainingLoading(false);
   }
@@ -299,9 +309,13 @@ function ManageMaterialPage({ role }) {
     setTrainingFormError("");
 
     try {
-      const training = await trainingService.createTraining({ title });
+      const training = await trainingService.createTraining({
+        title,
+        post_test_access_code: newTrainingAccessCode.trim(),
+      });
       setTrainings((current) => [...current, training]);
       setNewTrainingTitle("");
+      setNewTrainingAccessCode("");
       setToast("Pelatihan berhasil ditambahkan.");
     } catch (error) {
       const message =
@@ -352,7 +366,14 @@ function ManageMaterialPage({ role }) {
     setEditTrainingError("");
 
     try {
-      const updatedTraining = await trainingService.updateTraining(editingTraining.id, { title });
+      const updatedTraining = await trainingService.updateTraining(editingTraining.id, {
+        title,
+        ...(editTrainingAccessCode.trim()
+          && editTrainingAccessCode.trim() !== editTrainingOriginalAccessCode.trim()
+          ? { post_test_access_code: editTrainingAccessCode.trim() }
+          : {}),
+        clear_post_test_access_code: clearTrainingAccessCode,
+      });
       setTrainings((current) =>
         current.map((training) =>
           String(training.id) === String(updatedTraining.id) ? updatedTraining : training
@@ -592,13 +613,14 @@ function ManageMaterialPage({ role }) {
                       <tr>
                         <th>No</th>
                         <th>Daftar Pelatihan</th>
+                        <th>Kode Post-Test</th>
                         <th>Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
                       {trainings.length === 0 ? (
                         <tr>
-                          <td colSpan="3" className="material-table-empty">
+                          <td colSpan="4" className="material-table-empty">
                             Belum ada pelatihan.
                           </td>
                         </tr>
@@ -607,6 +629,9 @@ function ManageMaterialPage({ role }) {
                           <tr key={training.id}>
                             <td data-label="No">{index + 1}</td>
                             <td data-label="Daftar Pelatihan">{training.title}</td>
+                            <td data-label="Kode Post-Test">
+                              {training.post_test_access_code || (training.has_post_test_access_code ? "Aktif" : "Belum diatur")}
+                            </td>
                             <td data-label="Aksi">
                               <div className="material-table-actions">
                                 <button
@@ -664,6 +689,16 @@ function ManageMaterialPage({ role }) {
                       {trainingFormError}
                     </span>
                   )}
+                </div>
+
+                <div className="manage-training-field">
+                  <label htmlFor="new-training-access-code">Kode Post-Test</label>
+                  <input
+                    id="new-training-access-code"
+                    value={newTrainingAccessCode}
+                    onChange={(event) => setNewTrainingAccessCode(event.target.value)}
+                    disabled={addingTraining}
+                  />
                 </div>
 
                 <button
@@ -993,6 +1028,32 @@ function ManageMaterialPage({ role }) {
               <p className="manage-training-edit-error" role="alert">
                 {editTrainingError}
               </p>
+            )}
+            <label className="manage-training-edit-field" htmlFor="edit-training-access-code">
+              Kode Post-Test Baru
+            </label>
+            <input
+              id="edit-training-access-code"
+              value={editTrainingAccessCode}
+              onChange={(event) => {
+                setEditTrainingAccessCode(event.target.value);
+                setClearTrainingAccessCode(false);
+              }}
+              disabled={editTrainingLoading || clearTrainingAccessCode}
+            />
+            {editingTraining.has_post_test_access_code && (
+              <label className="manage-training-clear-code">
+                <input
+                  type="checkbox"
+                  checked={clearTrainingAccessCode}
+                  onChange={(event) => {
+                    setClearTrainingAccessCode(event.target.checked);
+                    if (event.target.checked) setEditTrainingAccessCode("");
+                  }}
+                  disabled={editTrainingLoading}
+                />
+                Hapus kode Post-Test yang aktif
+              </label>
             )}
             <div className="manage-training-edit-actions">
               <button

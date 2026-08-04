@@ -30,6 +30,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('role:Karyawan')->group(function () {
         Route::get('/trainings/{training}/tests/{type}', [TestController::class, 'showByType']);
+        Route::post('/trainings/{training}/post-test-access-code/verify', [TrainingController::class, 'verifyPostTestAccessCode']);
         Route::get('/tests/{test}', [TestController::class, 'show']);
         Route::get('/tests/{test}/questions', [TestController::class, 'questions']);
         Route::post('/tests/{test}/start', [TestController::class, 'start']);

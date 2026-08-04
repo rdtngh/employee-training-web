@@ -73,6 +73,8 @@ const mapMaterialProgressFromApi = (data) => ({
         ...data.training,
         pre_test_completed: EMERGENCY_UNLOCK_EMPLOYEE_FLOW || Boolean(data.training.pre_test_completed),
         post_test_unlocked: EMERGENCY_UNLOCK_EMPLOYEE_FLOW || Boolean(data.training.post_test_unlocked),
+        post_test_access_required: Boolean(data.training.post_test_access_required),
+        post_test_access_verified: EMERGENCY_UNLOCK_EMPLOYEE_FLOW || Boolean(data.training.post_test_access_verified),
       }
     : data.training,
   materials: (data.materials || []).map(mapMaterialFromApi),
@@ -86,6 +88,8 @@ export const getMaterials = async (trainingId = DEFAULT_TRAINING_ID) => {
         ...(training ?? { id: trainingId, title: "Pelatihan" }),
         pre_test_completed: false,
         post_test_unlocked: false,
+        post_test_access_required: false,
+        post_test_access_verified: true,
       },
       materials: getMockMaterialsByTraining(trainingId).map(mapMaterialFromApi),
     };

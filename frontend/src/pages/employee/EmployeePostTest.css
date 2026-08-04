@@ -5,6 +5,73 @@
 .posttest-retry { align-self: flex-end; color: #ef1d24; }
 .posttest-certificate:disabled, .posttest-retry:disabled { opacity: .5; }
 
+.posttest-access-card {
+  width: min(100%, 460px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-inline: auto;
+  padding: 28px 32px;
+  border: 2px solid #327537;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.97);
+}
+
+.posttest-access-card h1 {
+  margin: 0;
+  color: #111827;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.posttest-access-card p {
+  margin: 0 0 6px;
+  color: #4b5563;
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
+.posttest-access-card label {
+  color: #111827;
+  font-weight: 600;
+}
+
+.posttest-access-card input {
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid #9ca3af;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #111827;
+  font: inherit;
+}
+
+.posttest-access-card input:focus {
+  border-color: #327537;
+  outline: 2px solid rgba(50, 117, 55, 0.18);
+}
+
+.posttest-access-card button {
+  min-height: 44px;
+  margin-top: 4px;
+  border-radius: 6px;
+  background: #327537;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.posttest-access-card button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.posttest-access-error {
+  color: #bf1515;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .posttest-failure-overlay { position: absolute; inset: 0; z-index: 60; display: grid; place-items: center; padding: 24px; background: transparent; }
 .posttest-failure-overlay::before { content: ""; position: absolute; inset: 0; background: rgba(255,255,255,.58); backdrop-filter: blur(1px); }
 .posttest-failure-dialog { position: fixed; z-index: 61; top: 42vh; left: calc(280px + (100vw - 280px) / 2); transform: translate(-50%, -50%); width: min(460px, calc(100vw - 48px)); min-height: 220px; display: flex; flex-direction: column; margin: 0; padding: 28px 32px 24px; border: 2px solid #bf1515; border-radius: 12px; background: white; box-shadow: 8px 11px 10px rgba(191,21,21,.22); }
@@ -30,6 +97,7 @@
   .posttest-locked-dialog { padding: 18px 20px 22px; }
   .posttest-locked-dialog h2 { font-size: clamp(22px, 6vw, 28px); }
   .posttest-locked-dialog p { font-size: clamp(16px, 4.5vw, 20px); }
+  .posttest-access-card { padding: 24px 18px; }
 }
 
 @media (min-width: 761px) and (max-width: 1100px) {

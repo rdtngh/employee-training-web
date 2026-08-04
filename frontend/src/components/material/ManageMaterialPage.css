@@ -303,6 +303,7 @@
 
 .manage-training-edit-dialog input {
   width: 100%;
+  margin-bottom: 18px;
   border: none;
   border-bottom: 1px solid #111827;
   background: transparent;
@@ -315,6 +316,26 @@
 
 .manage-training-edit-dialog input:focus {
   border-bottom-color: #327537;
+}
+
+.manage-training-clear-code {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: #374151;
+  font-family: "Instrument Sans", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.manage-training-clear-code input {
+  width: auto;
+  min-height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  accent-color: #327537;
 }
 
 .manage-training-edit-error {

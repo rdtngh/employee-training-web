@@ -1,13 +1,20 @@
 import "./DashboardLayout.css";
 
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 
 import Navbar from "../landing/Navbar";
 import Sidebar from "./Sidebar";
 import Footer from "../common/Footer";
 
 function DashboardLayout({ children, role = "superadmin" }) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const location = useLocation();
+  const [sidebarState, setSidebarState] = useState({
+    isOpen: false,
+    pathname: location.pathname,
+  });
+  const isSidebarOpen = sidebarState.pathname === location.pathname && sidebarState.isOpen;
+  const closeSidebar = () => setSidebarState({ isOpen: false, pathname: location.pathname });
 
   return (
     <div className={`dashboard-layout dashboard-layout-${role}`}>
@@ -17,20 +24,22 @@ function DashboardLayout({ children, role = "superadmin" }) {
         buttonLink="/"
         showMenuButton={true}
         isMenuOpen={isSidebarOpen}
-        onMenuToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
+        onMenuToggle={() =>
+          setSidebarState({ isOpen: !isSidebarOpen, pathname: location.pathname })
+        }
       />
 
       <div className="dashboard-body">
         <Sidebar
           role={role}
           isOpen={isSidebarOpen}
-          onNavigate={() => setIsSidebarOpen(false)}
+          onNavigate={closeSidebar}
         />
         <button
           type="button"
           className={`dashboard-sidebar-backdrop${isSidebarOpen ? " is-visible" : ""}`}
           aria-label="Tutup menu navigasi"
-          onClick={() => setIsSidebarOpen(false)}
+          onClick={closeSidebar}
         />
 
         <main className="dashboard-content">

@@ -46,6 +46,8 @@ function EmployeePostTest() {
   const [loading, setLoading] = useState(Boolean(trainingId));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [accessCode, setAccessCode] = useState("");
+  const [accessCodeError, setAccessCodeError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -84,6 +86,8 @@ function EmployeePostTest() {
       setShowStart(false);
       setShowSubmit(false);
       setShowFailureNotice(false);
+      setAccessCode("");
+      setAccessCodeError("");
       examService.getPostTest(trainingId)
         .then((rawResponse) => {
           if (!active) return;
@@ -92,6 +96,8 @@ function EmployeePostTest() {
           if (["PASSED", "FAILED"].includes(response.post_test?.status)) {
             setResult(response.post_test);
             setShowFailureNotice(!isPassedResult(response.post_test));
+          } else if (response.post_test_access_required && !response.post_test_access_verified) {
+            setShowStart(false);
           } else if (response.materials_completed) {
             setShowStart(true);
           }
@@ -107,6 +113,47 @@ function EmployeePostTest() {
   const options = question ? Object.entries(question.options ?? {}) : [];
   const resultPassed = isPassedResult(result);
   const canRetry = !resultPassed;
+  const needsAccessCode = Boolean(
+    data?.materials_completed &&
+    data?.post_test_access_required &&
+    !data?.post_test_access_verified
+  );
+
+  const verifyAccessCode = async (event) => {
+    event.preventDefault();
+
+    const trimmedCode = accessCode.trim();
+    if (!trimmedCode) {
+      setAccessCodeError("Kode akses wajib diisi.");
+      return;
+    }
+
+    setBusy(true);
+    setAccessCodeError("");
+    setError("");
+
+    try {
+      await examService.verifyPostTestAccessCode(trainingId, trimmedCode);
+      const response = unwrap(await examService.getPostTest(trainingId));
+      setData(response);
+      setAccessCode("");
+
+      if (["PASSED", "FAILED"].includes(response.post_test?.status)) {
+        setResult(response.post_test);
+        setShowFailureNotice(!isPassedResult(response.post_test));
+      } else if (response.materials_completed) {
+        setShowStart(true);
+      }
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        Object.values(error.response?.data?.errors ?? {}).flat()[0] ||
+        "Kode akses tidak dapat diverifikasi.";
+      setAccessCodeError(message);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const startExam = async () => {
     if (!data?.post_test?.id) return;
@@ -204,7 +251,34 @@ function EmployeePostTest() {
           </ExamResultCard>
         )}
 
-        {trainingId && !loading && !result && question && (
+        {trainingId && !loading && !result && needsAccessCode && (
+          <form className="posttest-access-card" onSubmit={verifyAccessCode}>
+            <h1>Kode Akses Post-Test</h1>
+            <p>Masukkan kode yang diberikan oleh admin atau instruktur pelatihan.</p>
+            <label htmlFor="posttest-access-code">Kode akses</label>
+            <input
+              id="posttest-access-code"
+              type="password"
+              value={accessCode}
+              onChange={(event) => {
+                setAccessCode(event.target.value);
+                setAccessCodeError("");
+              }}
+              disabled={busy}
+              autoFocus
+            />
+            {accessCodeError && (
+              <span className="posttest-access-error" role="alert">
+                {accessCodeError}
+              </span>
+            )}
+            <button type="submit" disabled={busy}>
+              {busy ? "Memeriksa..." : "Buka Post-Test"}
+            </button>
+          </form>
+        )}
+
+        {trainingId && !loading && !result && !needsAccessCode && question && (
           <div className={`pretest-exam${started ? "" : " is-blocked"}`}>
             <article className="pretest-question-card">
               <p className="pretest-question-number">Q{currentIndex + 1} / {questions.length}</p>
@@ -227,7 +301,7 @@ function EmployeePostTest() {
           </div>
         )}
 
-        {trainingId && !loading && !result && !question && data?.materials_completed && !error && (
+        {trainingId && !loading && !result && !question && data?.materials_completed && !needsAccessCode && !error && (
           <p className="pretest-status">Post-Test belum tersedia untuk pelatihan ini.</p>
         )}
 

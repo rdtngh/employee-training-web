@@ -34,6 +34,7 @@ export const createTraining = async (trainingData) => {
     const training = normalizeTraining({
       id: nextId,
       title: trainingData.title,
+      has_post_test_access_code: Boolean(trainingData.post_test_access_code),
       is_active: true,
     });
 
@@ -43,6 +44,7 @@ export const createTraining = async (trainingData) => {
 
   const response = await api.post("/trainings", {
     title: trainingData.title,
+    post_test_access_code: trainingData.post_test_access_code ?? "",
   });
   const training = response.data?.data ?? response.data;
 
@@ -54,6 +56,7 @@ export const updateTraining = async (id, trainingData) => {
     const updatedTraining = normalizeTraining({
       id,
       title: trainingData.title,
+      has_post_test_access_code: Boolean(trainingData.post_test_access_code),
       is_active: true,
     });
 
@@ -63,9 +66,19 @@ export const updateTraining = async (id, trainingData) => {
     return updatedTraining;
   }
 
-  const response = await api.put(`/trainings/${id}`, {
+  const payload = {
     title: trainingData.title,
-  });
+  };
+
+  if (typeof trainingData.post_test_access_code === "string") {
+    payload.post_test_access_code = trainingData.post_test_access_code;
+  }
+
+  if (trainingData.clear_post_test_access_code) {
+    payload.clear_post_test_access_code = true;
+  }
+
+  const response = await api.put(`/trainings/${id}`, payload);
   const training = response.data?.data ?? response.data;
 
   return normalizeTraining(training);

@@ -13,14 +13,24 @@ class Training extends Model
         'start_date',
         'end_date',
         'is_active',
+        'post_test_access_code_hash',
+        'post_test_access_code_encrypted',
+        'post_test_access_code_updated_at',
         'certificate_template_path',
         'certificate_template_settings',
+    ];
+
+    protected $hidden = [
+        'post_test_access_code_hash',
+        'post_test_access_code_encrypted',
+        'post_test_access_code_updated_at',
     ];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
         'is_active' => 'boolean',
+        'post_test_access_code_updated_at' => 'datetime',
         'certificate_template_settings' => 'array',
     ];
 

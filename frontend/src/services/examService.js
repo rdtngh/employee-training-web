@@ -194,6 +194,18 @@ export const startTest = async (testId) => {
   return unwrap(response);
 };
 
+export const verifyPostTestAccessCode = async (trainingId, accessCode) => {
+  if (import.meta.env.VITE_USE_DUMMY_DATA === "true") {
+    return { verified: Boolean(accessCode?.trim()) };
+  }
+
+  const response = await api.post(`/trainings/${trainingId}/post-test-access-code/verify`, {
+    access_code: accessCode,
+  });
+
+  return unwrap(response);
+};
+
 const mapPostTestResult = (result = {}) => {
   const passed =
     typeof result.passed === "boolean"
@@ -223,12 +235,40 @@ export const getPostTest = async (trainingId = DEFAULT_TRAINING_ID) => {
     id: trainingId,
     title: "Post-Test",
     post_test_unlocked: false,
+    post_test_access_required: false,
+    post_test_access_verified: true,
   };
 
   if (!progressTraining.post_test_unlocked) {
     return {
       training: progressTraining,
       materials_completed: false,
+      post_test_access_required: Boolean(progressTraining.post_test_access_required),
+      post_test_access_verified: Boolean(progressTraining.post_test_access_verified),
+      post_test: {
+        id: DEFAULT_POST_TEST_ID,
+        status: "LOCKED",
+        attempt: 0,
+        max_attempt: 1,
+        can_retry: false,
+        certificate_available: false,
+        passing_grade: 0,
+        score: 0,
+        correct: 0,
+        wrong: 0,
+        percentage: 0,
+        passed: false,
+      },
+      questions: [],
+    };
+  }
+
+  if (progressTraining.post_test_access_required && !progressTraining.post_test_access_verified) {
+    return {
+      training: progressTraining,
+      materials_completed: true,
+      post_test_access_required: true,
+      post_test_access_verified: false,
       post_test: {
         id: DEFAULT_POST_TEST_ID,
         status: "LOCKED",
@@ -257,6 +297,8 @@ export const getPostTest = async (trainingId = DEFAULT_TRAINING_ID) => {
   return {
     training,
     materials_completed: Boolean(training.post_test_unlocked),
+    post_test_access_required: Boolean(training.post_test_access_required),
+    post_test_access_verified: Boolean(training.post_test_access_verified ?? true),
     post_test: completedResult ?? {
       id: data.test.id,
       status: "NOT_STARTED",

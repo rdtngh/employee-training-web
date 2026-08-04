@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SubmitTestRequest;
 use App\Models\Certificate;
+use App\Models\PostTestAccess;
 use App\Models\Question;
 use App\Models\Test;
 use App\Models\TestResult;
@@ -22,8 +23,8 @@ class TestController extends Controller
 
     public function show(Test $test): JsonResponse
     {
-        if (! $this->canAccessTest($test)) {
-            return $this->lockedResponse();
+        if ($response = $this->testAccessError($test)) {
+            return $response;
         }
 
         $test->load('training');
@@ -53,8 +54,8 @@ class TestController extends Controller
 
         $test->load('training');
 
-        if (! $this->canAccessTest($test)) {
-            return $this->lockedResponse();
+        if ($response = $this->testAccessError($test)) {
+            return $response;
         }
 
         $visibleResult = $this->visibleResultForCurrentUser($test);
@@ -67,8 +68,8 @@ class TestController extends Controller
 
     public function questions(Test $test): JsonResponse
     {
-        if (! $this->canAccessTest($test)) {
-            return $this->lockedResponse();
+        if ($response = $this->testAccessError($test)) {
+            return $response;
         }
 
         if ($this->visibleResultForCurrentUser($test)) {
@@ -91,8 +92,8 @@ class TestController extends Controller
 
     public function start(Test $test): JsonResponse
     {
-        if (! $this->canAccessTest($test)) {
-            return $this->lockedResponse();
+        if ($response = $this->testAccessError($test)) {
+            return $response;
         }
 
         return response()->json([
@@ -105,8 +106,8 @@ class TestController extends Controller
 
     public function submit(SubmitTestRequest $request, Test $test): JsonResponse
     {
-        if (! $this->canAccessTest($test)) {
-            return $this->lockedResponse();
+        if ($response = $this->testAccessError($test)) {
+            return $response;
         }
 
         if ($test->type === 'pretest' && $visibleResult = $this->visibleResultForCurrentUser($test)) {
@@ -254,25 +255,33 @@ class TestController extends Controller
         return $this->passedResultForCurrentUser($test);
     }
 
-    private function canAccessTest(Test $test): bool
+    private function testAccessError(Test $test): ?JsonResponse
     {
         if ($test->type === 'pretest') {
-            return true;
+            return null;
         }
 
         if ($test->type !== 'posttest') {
-            return false;
+            return $this->lockedResponse('Tes tidak dapat diakses.');
         }
 
         if ($this->passedResultForCurrentUser($test)) {
-            return true;
+            return null;
         }
 
         if (self::EMERGENCY_UNLOCK_EMPLOYEE_FLOW) {
-            return true;
+            return null;
         }
 
-        return $this->hasCompletedPreTest($test) && $this->hasCompletedMaterials($test);
+        if (! $this->hasCompletedPreTest($test) || ! $this->hasCompletedMaterials($test)) {
+            return $this->lockedResponse('Pre-Test dan materi harus diselesaikan sebelum membuka Post-Test.');
+        }
+
+        if (! $this->hasVerifiedPostTestAccess($test)) {
+            return $this->lockedResponse('Masukkan kode akses Post-Test untuk membuka tes.');
+        }
+
+        return null;
     }
 
     private function questionsForTest(Test $test)
@@ -320,11 +329,28 @@ class TestController extends Controller
         return $completedCount >= $materialIds->count();
     }
 
-    private function lockedResponse(): JsonResponse
+    private function hasVerifiedPostTestAccess(Test $test): bool
+    {
+        $training = $test->training ?: Training::find($test->training_id);
+
+        if (! $training?->post_test_access_code_hash) {
+            return true;
+        }
+
+        return PostTestAccess::query()
+            ->where('user_id', request()->user()->id)
+            ->where('training_id', $training->id)
+            ->when($training->post_test_access_code_updated_at, function ($query, $updatedAt) {
+                $query->where('verified_at', '>=', $updatedAt);
+            })
+            ->exists();
+    }
+
+    private function lockedResponse(string $message): JsonResponse
     {
         return response()->json([
             'success' => false,
-            'message' => 'Pre-Test dan materi harus diselesaikan sebelum membuka Post-Test.',
+            'message' => $message,
         ], 403);
     }
 

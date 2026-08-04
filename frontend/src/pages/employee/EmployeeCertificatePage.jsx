@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Certificate from "../../components/certificate/Certificate";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import * as certificateService from "../../services/certificateService";
-import { downloadElementAsPng } from "../../utils/downloadElementAsPng";
+import {
+  buildCertificatePngFilename,
+  downloadCertificateAsPng,
+} from "../../utils/downloadCertificateAsPng";
 import "./EmployeeCertificatePage.css";
 
 const defaultCertificateData = {
@@ -16,20 +19,9 @@ const defaultCertificateData = {
   completion_date: "",
 };
 
-const buildCertificateFilename = (certificateData) => {
-  const name = String(certificateData.employee_name || "sertifikat")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-
-  return `${name || "sertifikat"}-${certificateData.training_id || "pelatihan"}.png`;
-};
-
 function EmployeeCertificatePage() {
   const navigate = useNavigate();
   const { trainingId } = useParams();
-  const downloadSourceRef = useRef(null);
   const [certificateData, setCertificateData] = useState(defaultCertificateData);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
@@ -68,16 +60,9 @@ function EmployeeCertificatePage() {
     setDownloading(true);
 
     try {
-      const certificateElement = downloadSourceRef.current?.querySelector(".certificate-template");
-
-      await downloadElementAsPng(
-        certificateElement,
-        buildCertificateFilename({ ...certificateData, training_id: trainingId }),
-        {
-          width: 841,
-          height: 595,
-          pixelRatio: 2,
-        }
+      await downloadCertificateAsPng(
+        certificateData,
+        buildCertificatePngFilename(certificateData, trainingId)
       );
     } catch (error) {
       setDownloadError(
@@ -134,25 +119,6 @@ function EmployeeCertificatePage() {
             />
           </section>
         )}
-        {!loading && !error && (
-          <div
-            className="employee-certificate-download-source"
-            ref={downloadSourceRef}
-            aria-hidden="true"
-          >
-            <Certificate
-              employeeName={certificateData.employee_name}
-              trainingTitle={certificateData.training_title}
-              certificateNumber={certificateData.certificate_number}
-              sequenceNumber={certificateData.sequence_number}
-              romanMonth={certificateData.roman_month}
-              year={certificateData.year}
-              completionDate={certificateData.completion_date || certificateData.issued_at}
-              certificateTemplate={certificateData.certificate_template}
-            />
-          </div>
-        )}
-
         <button
           type="button"
           className="employee-certificate-back"

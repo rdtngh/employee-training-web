@@ -114,31 +114,6 @@
   font-weight: 600;
 }
 
-.employee-certificate-download-source {
-  position: fixed;
-  top: 0;
-  left: -10000px;
-  z-index: -1;
-  width: 841px;
-  height: 595px;
-  overflow: hidden;
-  background: #ffffff;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.employee-certificate-download-source .certificate-preview-frame {
-  width: 841px;
-  height: 595px !important;
-  max-width: none;
-  overflow: hidden;
-}
-
-.employee-certificate-download-source .certificate-template {
-  transform: none !important;
-  transform-origin: top left !important;
-}
-
 @media (max-width: 760px) {
   .employee-certificate-header {
     flex-direction: column;

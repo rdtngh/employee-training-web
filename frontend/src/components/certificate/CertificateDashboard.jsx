@@ -2,7 +2,25 @@ import { useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import Certificate from "./Certificate";
+import {
+  buildCertificatePngFilename,
+  downloadCertificateAsPng,
+} from "../../utils/downloadCertificateAsPng";
 import "./CertificateDashboard.css";
+
+const certificateDownloadPayload = (certificate) => ({
+  employee_name: certificate.employee?.name,
+  training_title: certificate.training?.title,
+  certificate_number: certificate.certificate_number,
+  sequence_number: certificate.sequence_number,
+  roman_month: certificate.roman_month,
+  year: certificate.year,
+  completion_date:
+    certificate.completion_date ||
+    certificate.result?.finished_at ||
+    certificate.issued_at,
+  certificate_template: certificate.training?.certificate_template,
+});
 
 const waitForCertificateAssets = async () => {
   await document.fonts?.ready;
@@ -28,6 +46,7 @@ const waitForNextPaint = () =>
 function CertificateDashboard({ certificateData, loading, error }) {
   const navigate = useNavigate();
   const [printingCertificates, setPrintingCertificates] = useState([]);
+  const [downloadingCertificateId, setDownloadingCertificateId] = useState(null);
   const [downloadError, setDownloadError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTrainingId, setSelectedTrainingId] = useState("all");
@@ -82,11 +101,30 @@ function CertificateDashboard({ certificateData, loading, error }) {
         return searchableText.includes(normalizedSearchQuery);
     });
   }, [certificates, normalizedSearchQuery, selectedTrainingId]);
-  const printingCertificate = printingCertificates[0] ?? null;
-  const printingId = printingCertificates.length === 1 ? printingCertificate?.id ?? null : null;
   const isBulkPrinting = printingCertificates.length > 1;
 
-  async function printCertificates(certificatesToPrint) {
+  async function downloadCertificate(certificate) {
+    setDownloadError("");
+    setDownloadingCertificateId(certificate.id);
+
+    try {
+      const payload = certificateDownloadPayload(certificate);
+      await downloadCertificateAsPng(
+        payload,
+        buildCertificatePngFilename(payload, certificate.training?.id)
+      );
+    } catch (error) {
+      setDownloadError(
+        error.message || "Sertifikat gagal didownload. Silakan coba lagi."
+      );
+    } finally {
+      setDownloadingCertificateId(null);
+    }
+  }
+
+  async function printVisibleCertificates() {
+    const certificatesToPrint = filteredCertificates.map(({ certificate }) => certificate);
+
     if (certificatesToPrint.length === 0) {
       setDownloadError("Tidak ada sertifikat untuk didownload.");
       return;
@@ -118,14 +156,6 @@ function CertificateDashboard({ certificateData, loading, error }) {
       );
       finishPrint();
     }
-  }
-
-  function downloadCertificate(certificate) {
-    printCertificates([certificate]);
-  }
-
-  function downloadVisibleCertificates() {
-    printCertificates(filteredCertificates.map(({ certificate }) => certificate));
   }
 
   if (printingCertificates.length > 0) {
@@ -211,7 +241,7 @@ function CertificateDashboard({ certificateData, loading, error }) {
               <button
                 type="button"
                 className="certificate-download-all"
-                onClick={downloadVisibleCertificates}
+                onClick={printVisibleCertificates}
                 disabled={filteredCertificates.length === 0 || isBulkPrinting}
               >
                 {isBulkPrinting ? "Menyiapkan..." : "Download Semua PDF"}
@@ -258,9 +288,9 @@ function CertificateDashboard({ certificateData, loading, error }) {
                           type="button"
                           className="certificate-download"
                           onClick={() => downloadCertificate(certificate)}
-                          disabled={printingId === certificate.id}
+                          disabled={isBulkPrinting || downloadingCertificateId === certificate.id}
                         >
-                          {printingId === certificate.id ? "Menyiapkan..." : "Download PDF"}
+                          {downloadingCertificateId === certificate.id ? "Mengunduh..." : "Download PNG"}
                         </button>
                       </td>
                     </tr>

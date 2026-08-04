@@ -256,10 +256,6 @@ function StatisticsDashboard({
                 <option value="posttest">Reset Post Test</option>
               </select>
             </label>
-            <p className="statistics-reset-note">
-              Hasil lama dan sertifikat tidak dihapus. Sistem hanya membuka ulang akses sesuai jenis reset.
-            </p>
-
             <div className="statistics-reset-actions">
               <button
                 type="button"

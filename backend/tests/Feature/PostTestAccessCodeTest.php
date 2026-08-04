@@ -11,6 +11,7 @@ use App\Models\Training;
 use App\Models\User;
 use App\Models\UserMaterial;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -79,7 +80,49 @@ class PostTestAccessCodeTest extends TestCase
         $this->getJson("/api/trainings/{$training->id}/tests/posttest")->assertOk();
     }
 
-    private function readyEmployeeAndLockedPostTest(): array
+    public function test_post_test_stays_locked_when_admin_has_not_configured_access_code(): void
+    {
+        [$employee, $training] = $this->readyEmployeeAndLockedPostTest(null);
+
+        Sanctum::actingAs($employee);
+
+        $this->getJson("/api/trainings/{$training->id}/materials/progress")
+            ->assertOk()
+            ->assertJsonPath('data.training.post_test_access_required', true)
+            ->assertJsonPath('data.training.post_test_access_verified', false);
+
+        $this->getJson("/api/trainings/{$training->id}/tests/posttest")
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Masukkan kode akses Post-Test untuk membuka tes.');
+
+        $this->postJson("/api/trainings/{$training->id}/post-test-access-code/verify", [
+            'access_code' => 'APA-SAJA',
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Kode akses belum tersedia.');
+    }
+
+    public function test_employee_can_verify_access_code_when_only_encrypted_admin_display_value_exists(): void
+    {
+        [$employee, $training] = $this->readyEmployeeAndLockedPostTest(null);
+
+        $training->forceFill([
+            'post_test_access_code_encrypted' => Crypt::encryptString('DIKLAT2026'),
+            'post_test_access_code_updated_at' => now(),
+        ])->save();
+
+        Sanctum::actingAs($employee);
+
+        $this->postJson("/api/trainings/{$training->id}/post-test-access-code/verify", [
+            'access_code' => 'DIKLAT2026',
+        ])->assertOk();
+
+        $this->assertNotNull($training->fresh()->post_test_access_code_hash);
+
+        $this->getJson("/api/trainings/{$training->id}/tests/posttest")->assertOk();
+    }
+
+    private function readyEmployeeAndLockedPostTest(?string $accessCode = 'KODE-123'): array
     {
         $employeeRole = Role::create(['name' => 'Karyawan']);
         Role::firstOrCreate(['name' => 'Admin']);
@@ -95,12 +138,17 @@ class PostTestAccessCodeTest extends TestCase
             'password' => Hash::make('andi123'),
         ]);
 
-        $training = Training::create([
+        $trainingPayload = [
             'title' => 'Pelatihan Keselamatan',
             'is_active' => true,
-            'post_test_access_code_hash' => Hash::make('KODE-123'),
-            'post_test_access_code_updated_at' => now(),
-        ]);
+        ];
+
+        if ($accessCode !== null) {
+            $trainingPayload['post_test_access_code_hash'] = Hash::make($accessCode);
+            $trainingPayload['post_test_access_code_updated_at'] = now();
+        }
+
+        $training = Training::create($trainingPayload);
 
         $preTest = TrainingTest::create([
             'training_id' => $training->id,

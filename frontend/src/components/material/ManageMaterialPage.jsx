@@ -368,8 +368,7 @@ function ManageMaterialPage({ role }) {
     try {
       const updatedTraining = await trainingService.updateTraining(editingTraining.id, {
         title,
-        ...(editTrainingAccessCode.trim()
-          && editTrainingAccessCode.trim() !== editTrainingOriginalAccessCode.trim()
+        ...(editTrainingAccessCode.trim() && !clearTrainingAccessCode
           ? { post_test_access_code: editTrainingAccessCode.trim() }
           : {}),
         clear_post_test_access_code: clearTrainingAccessCode,
@@ -1041,7 +1040,7 @@ function ManageMaterialPage({ role }) {
               }}
               disabled={editTrainingLoading || clearTrainingAccessCode}
             />
-            {editingTraining.has_post_test_access_code && (
+            {(editingTraining.has_post_test_access_code || editTrainingOriginalAccessCode) && (
               <label className="manage-training-clear-code">
                 <input
                   type="checkbox"

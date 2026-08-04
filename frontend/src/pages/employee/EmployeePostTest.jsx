@@ -7,6 +7,8 @@ import TrainingSelectionCard from "../../components/employee/TrainingSelectionCa
 import { useSessionAnswers } from "../../hooks/useSessionAnswers";
 import * as examService from "../../services/examService";
 import * as trainingService from "../../services/trainingService";
+import eyeOpenIcon from "../../assets/icons/icon-matabuka.svg";
+import eyeClosedIcon from "../../assets/icons/icon-matatutup.svg";
 import "./EmployeePreTest.css";
 import "./EmployeePostTest.css";
 
@@ -48,6 +50,7 @@ function EmployeePostTest() {
   const [error, setError] = useState("");
   const [accessCode, setAccessCode] = useState("");
   const [accessCodeError, setAccessCodeError] = useState("");
+  const [showAccessCode, setShowAccessCode] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -88,6 +91,7 @@ function EmployeePostTest() {
       setShowFailureNotice(false);
       setAccessCode("");
       setAccessCodeError("");
+      setShowAccessCode(false);
       examService.getPostTest(trainingId)
         .then((rawResponse) => {
           if (!active) return;
@@ -256,17 +260,28 @@ function EmployeePostTest() {
             <h1>Kode Akses Post-Test</h1>
             <p>Masukkan kode yang diberikan oleh admin atau instruktur pelatihan.</p>
             <label htmlFor="posttest-access-code">Kode akses</label>
-            <input
-              id="posttest-access-code"
-              type="password"
-              value={accessCode}
-              onChange={(event) => {
-                setAccessCode(event.target.value);
-                setAccessCodeError("");
-              }}
-              disabled={busy}
-              autoFocus
-            />
+            <div className="posttest-access-input-row">
+              <input
+                id="posttest-access-code"
+                type={showAccessCode ? "text" : "password"}
+                value={accessCode}
+                onChange={(event) => {
+                  setAccessCode(event.target.value);
+                  setAccessCodeError("");
+                }}
+                disabled={busy}
+                autoFocus
+              />
+              <button
+                type="button"
+                className="posttest-access-toggle"
+                onClick={() => setShowAccessCode((visible) => !visible)}
+                disabled={busy}
+                aria-label={showAccessCode ? "Sembunyikan kode akses" : "Tampilkan kode akses"}
+              >
+                <img src={showAccessCode ? eyeOpenIcon : eyeClosedIcon} alt="" />
+              </button>
+            </div>
             {accessCodeError && (
               <span className="posttest-access-error" role="alert">
                 {accessCodeError}

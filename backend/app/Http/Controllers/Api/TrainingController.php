@@ -93,7 +93,7 @@ class TrainingController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Pelatihan berhasil ditambahkan.',
-            'data' => $training,
+            'data' => $this->trainingPayload($training),
         ], 201);
     }
 
@@ -120,10 +120,15 @@ class TrainingController extends Controller
             $accessCode = trim((string) $validated['post_test_access_code']);
 
             if ($accessCode !== '') {
-                $updates['post_test_access_code_hash'] = Hash::make($accessCode);
-                $updates['post_test_access_code_encrypted'] = Crypt::encryptString($accessCode);
-                $updates['post_test_access_code_updated_at'] = now();
-                $resetPostTestAccesses = true;
+                $currentAccessCode = $this->decryptedPostTestAccessCode($training);
+                $codeChanged = $currentAccessCode !== $accessCode;
+
+                if ($codeChanged || ! $training->post_test_access_code_hash) {
+                    $updates['post_test_access_code_hash'] = Hash::make($accessCode);
+                    $updates['post_test_access_code_encrypted'] = Crypt::encryptString($accessCode);
+                    $updates['post_test_access_code_updated_at'] = now();
+                    $resetPostTestAccesses = $codeChanged;
+                }
             }
         }
 
@@ -142,14 +147,11 @@ class TrainingController extends Controller
 
     public function verifyPostTestAccessCode(Request $request, Training $training): JsonResponse
     {
-        if (! $training->post_test_access_code_hash) {
+        if (! $this->hasPostTestAccessCode($training)) {
             return response()->json([
-                'success' => true,
-                'message' => 'Post-Test tidak memerlukan kode akses.',
-                'data' => [
-                    'verified' => true,
-                ],
-            ]);
+                'success' => false,
+                'message' => 'Kode akses belum tersedia.',
+            ], 422);
         }
 
         $validated = $request->validate([
@@ -158,12 +160,16 @@ class TrainingController extends Controller
             'access_code.required' => 'Kode akses Post-Test wajib diisi.',
         ]);
 
-        if (! Hash::check(trim($validated['access_code']), $training->post_test_access_code_hash)) {
+        $accessCode = trim($validated['access_code']);
+
+        if (! $this->accessCodeMatches($training, $accessCode)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Kode akses Post-Test tidak sesuai.',
             ], 422);
         }
+
+        $this->repairMissingPostTestAccessCodeHash($training, $accessCode);
 
         PostTestAccess::updateOrCreate(
             [
@@ -426,7 +432,7 @@ class TrainingController extends Controller
     {
         return [
             ...$training->toArray(),
-            'has_post_test_access_code' => $this->postTestAccessRequired($training),
+            'has_post_test_access_code' => $this->hasPostTestAccessCode($training),
             ...($this->canManageTrainings()
                 ? ['post_test_access_code' => $this->decryptedPostTestAccessCode($training)]
                 : []),
@@ -436,13 +442,18 @@ class TrainingController extends Controller
 
     private function postTestAccessRequired(Training $training): bool
     {
-        return (bool) $training->post_test_access_code_hash;
+        return true;
+    }
+
+    private function hasPostTestAccessCode(Training $training): bool
+    {
+        return (bool) ($training->post_test_access_code_hash || $training->post_test_access_code_encrypted);
     }
 
     private function hasVerifiedPostTestAccess(Request $request, Training $training): bool
     {
-        if (! $this->postTestAccessRequired($training)) {
-            return true;
+        if (! $this->hasPostTestAccessCode($training)) {
+            return false;
         }
 
         return PostTestAccess::query()
@@ -472,6 +483,29 @@ class TrainingController extends Controller
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    private function accessCodeMatches(Training $training, string $accessCode): bool
+    {
+        if ($training->post_test_access_code_hash && Hash::check($accessCode, $training->post_test_access_code_hash)) {
+            return true;
+        }
+
+        $encryptedAccessCode = $this->decryptedPostTestAccessCode($training);
+
+        return $encryptedAccessCode !== null && hash_equals($encryptedAccessCode, $accessCode);
+    }
+
+    private function repairMissingPostTestAccessCodeHash(Training $training, string $accessCode): void
+    {
+        if ($training->post_test_access_code_hash) {
+            return;
+        }
+
+        $training->forceFill([
+            'post_test_access_code_hash' => Hash::make($accessCode),
+            'post_test_access_code_updated_at' => now(),
+        ])->save();
     }
 
     private function certificateTemplatePayload(?Training $training): ?array

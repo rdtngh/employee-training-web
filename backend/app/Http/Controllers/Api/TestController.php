@@ -333,8 +333,8 @@ class TestController extends Controller
     {
         $training = $test->training ?: Training::find($test->training_id);
 
-        if (! $training?->post_test_access_code_hash) {
-            return true;
+        if (! ($training?->post_test_access_code_hash || $training?->post_test_access_code_encrypted)) {
+            return false;
         }
 
         return PostTestAccess::query()

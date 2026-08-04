@@ -37,22 +37,47 @@
   font-weight: 600;
 }
 
-.posttest-access-card input {
-  min-height: 42px;
-  padding: 8px 10px;
+.posttest-access-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  overflow: hidden;
   border: 1px solid #9ca3af;
   border-radius: 6px;
   background: #ffffff;
-  color: #111827;
-  font: inherit;
 }
 
-.posttest-access-card input:focus {
+.posttest-access-card input {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 0;
+  background: #ffffff;
+  color: #111827;
+  font: inherit;
+  outline: 0;
+}
+
+.posttest-access-input-row:focus-within {
   border-color: #327537;
   outline: 2px solid rgba(50, 117, 55, 0.18);
 }
 
-.posttest-access-card button {
+.posttest-access-toggle {
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-left: 1px solid #d1d5db;
+  background: #ffffff;
+}
+
+.posttest-access-toggle img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.posttest-access-card > button {
   min-height: 44px;
   margin-top: 4px;
   border-radius: 6px;

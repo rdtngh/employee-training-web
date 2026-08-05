@@ -63,7 +63,7 @@ class UserImportTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('data.created', 1)
             ->assertJsonPath('data.updated', 1)
-            ->assertJsonPath('data.deleted', 1)
+            ->assertJsonPath('data.deactivated', 1)
             ->assertJsonPath('data.skipped', 1);
 
         $this->assertDatabaseHas('users', [
@@ -80,8 +80,9 @@ class UserImportTest extends TestCase
             'role_id' => $employeeRole->id,
         ]);
 
-        $this->assertDatabaseMissing('users', [
+        $this->assertDatabaseHas('users', [
             'employee_number' => '2002',
+            'is_active' => false,
         ]);
 
         $this->assertDatabaseMissing('users', [
@@ -304,7 +305,7 @@ class UserImportTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('data.created', 1)
             ->assertJsonPath('data.updated', 0)
-            ->assertJsonPath('data.deleted', 0)
+            ->assertJsonPath('data.deactivated', 0)
             ->assertJsonPath('data.skipped', 1);
 
         $this->assertDatabaseHas('users', [

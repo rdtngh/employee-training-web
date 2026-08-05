@@ -60,13 +60,37 @@
   cursor: pointer;
 }
 
-.btn-delete {
+.btn-deactivate,
+.btn-activate {
   background: transparent;
   border: 1px solid #ef4444;
   color: #ef4444;
   padding: 6px 10px;
   border-radius: 6px;
   cursor: pointer;
+}
+
+.btn-activate {
+  border-color: #327537;
+  color: #327537;
+}
+
+.user-status-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.user-status-badge.is-active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.user-status-badge.is-inactive {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 @media (max-width: 600px) {

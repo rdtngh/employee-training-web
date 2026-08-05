@@ -146,4 +146,44 @@ class UserManagementTest extends TestCase
         $this->getJson('/api/users')->assertForbidden();
         $this->getJson('/api/users/options')->assertForbidden();
     }
+
+    public function test_super_admin_can_deactivate_and_reactivate_user_without_deleting_data(): void
+    {
+        $superAdminRole = Role::create(['name' => 'Super Admin']);
+        $employeeRole = Role::create(['name' => 'Karyawan']);
+        $superAdmin = User::create(['role_id' => $superAdminRole->id, 'employee_number' => 'superadmin', 'name' => 'Super Admin', 'department' => 'IT', 'position' => 'Super Admin', 'email' => null, 'password' => 'superadmin']);
+        $employee = User::create(['role_id' => $employeeRole->id, 'employee_number' => 'alex', 'name' => 'Alex', 'department' => 'IGD', 'position' => 'Karyawan', 'email' => null, 'password' => 'alex']);
+
+        Sanctum::actingAs($superAdmin);
+
+        $this->patchJson("/api/users/{$employee->id}/status", ['is_active' => false])
+            ->assertOk()
+            ->assertJsonPath('data.isActive', false);
+
+        $this->assertDatabaseHas('users', ['id' => $employee->id, 'is_active' => false]);
+        $this->deleteJson("/api/users/{$employee->id}")->assertMethodNotAllowed();
+
+        $this->postJson('/api/login', ['employee_number' => 'alex', 'password' => 'alex'])
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Akun Anda telah dinonaktifkan. Hubungi administrator.');
+
+        $this->patchJson("/api/users/{$employee->id}/status", ['is_active' => true])
+            ->assertOk()
+            ->assertJsonPath('data.isActive', true);
+
+        $this->postJson('/api/login', ['employee_number' => 'alex', 'password' => 'alex'])
+            ->assertOk();
+    }
+
+    public function test_super_admin_cannot_be_deactivated(): void
+    {
+        $superAdminRole = Role::create(['name' => 'Super Admin']);
+        $superAdmin = User::create(['role_id' => $superAdminRole->id, 'employee_number' => 'superadmin', 'name' => 'Super Admin', 'department' => 'IT', 'position' => 'Super Admin', 'email' => null, 'password' => 'superadmin']);
+        Sanctum::actingAs($superAdmin);
+
+        $this->patchJson("/api/users/{$superAdmin->id}/status", ['is_active' => false])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('users', ['id' => $superAdmin->id, 'is_active' => true]);
+    }
 }

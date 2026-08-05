@@ -1,6 +1,6 @@
 import "./UserTable.css";
 
-function UserTable({ users, onEdit, onDelete, emptyMessage = "Belum ada pengguna." }) {
+function UserTable({ users, onEdit, onToggleStatus, emptyMessage = "Belum ada pengguna." }) {
   return (
     <div className="user-table-wrap">
       <table className="user-table">
@@ -11,13 +11,14 @@ function UserTable({ users, onEdit, onDelete, emptyMessage = "Belum ada pengguna
             <th>Nama</th>
             <th>Departemen</th>
             <th>Role</th>
+            <th>Status</th>
             <th>Aksi</th>
           </tr>
         </thead>
         <tbody>
           {users.length === 0 ? (
             <tr>
-              <td colSpan="6" className="user-table-empty">
+              <td colSpan="7" className="user-table-empty">
                 {emptyMessage}
               </td>
             </tr>
@@ -29,16 +30,17 @@ function UserTable({ users, onEdit, onDelete, emptyMessage = "Belum ada pengguna
                 <td data-label="Nama">{user.user}</td>
                 <td data-label="Departemen">{user.department}</td>
                 <td data-label="Role">{user.role}</td>
+                <td data-label="Status"><span className={`user-status-badge ${user.isActive ? "is-active" : "is-inactive"}`}>{user.isActive ? "Aktif" : "Nonaktif"}</span></td>
                 <td data-label="Aksi">
                   <div className="user-table-actions">
                     <button className="btn-edit" type="button" onClick={() => onEdit(user)}>
                       Edit
                     </button>
                     {user.role === "Super Admin" ? (
-                      <span className="muted">Tidak Bisa Dihapus</span>
+                      <span className="muted">Selalu Aktif</span>
                     ) : (
-                      <button className="btn-delete" type="button" onClick={() => onDelete(user.id)}>
-                        Hapus
+                      <button className={user.isActive ? "btn-deactivate" : "btn-activate"} type="button" onClick={() => onToggleStatus(user)}>
+                        {user.isActive ? "Nonaktifkan" : "Aktifkan"}
                       </button>
                     )}
                   </div>

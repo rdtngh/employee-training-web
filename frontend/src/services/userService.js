@@ -13,6 +13,7 @@ const mapFromApiResponse = (user) => ({
   userId: user.userId,
   department: user.department,
   role: user.role,
+  isActive: user.isActive ?? true,
 });
 
 export const getAllUsers = async (search = "") => {
@@ -39,8 +40,8 @@ export const updateUser = async (id, payload) => {
   await api.put(`/users/${id}`, mapToApiPayload(payload));
 };
 
-export const deleteUser = async (id) => {
-  await api.delete(`/users/${id}`);
+export const updateUserStatus = async (id, isActive) => {
+  await api.patch(`/users/${id}/status`, { is_active: isActive });
 };
 
 export const importUsers = async (file) => {

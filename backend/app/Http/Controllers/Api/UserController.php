@@ -37,6 +37,7 @@ class UserController extends Controller
                 'userId' => $user->employee_number,
                 'department' => $user->department,
                 'role' => $user->role?->name,
+                'isActive' => $user->is_active,
             ]);
 
         return response()->json([
@@ -94,6 +95,7 @@ class UserController extends Controller
             'position' => $request->role,
             'email' => $request->email ?? null,
             'password' => Hash::make($request->employee_number),
+            'is_active' => true,
         ]);
 
         return response()->json([
@@ -105,6 +107,7 @@ class UserController extends Controller
                 'userId' => $user->employee_number,
                 'department' => $user->department,
                 'role' => $role?->name,
+                'isActive' => $user->is_active,
             ],
         ], 201);
     }
@@ -145,6 +148,7 @@ class UserController extends Controller
                 'userId' => $user->employee_number,
                 'department' => $user->department,
                 'role' => $role?->name,
+                'isActive' => $user->is_active,
             ],
         ]);
     }
@@ -173,7 +177,7 @@ class UserController extends Controller
         $created = 0;
         $updated = 0;
         $skipped = 0;
-        $deleted = 0;
+        $deactivated = 0;
         $importRows = [];
         $seenEmployeeNumbers = [];
         $fileEmployeeNumbers = [];
@@ -230,7 +234,7 @@ class UserController extends Controller
             ], 422);
         }
 
-        DB::transaction(function () use ($importRows, $role, $fileEmployeeNumbers, &$created, &$updated, &$skipped, &$deleted) {
+        DB::transaction(function () use ($importRows, $role, $fileEmployeeNumbers, &$created, &$updated, &$skipped, &$deactivated) {
             $incomingEmployeeNumbers = array_keys($fileEmployeeNumbers);
 
             foreach ($importRows as $row) {
@@ -251,6 +255,7 @@ class UserController extends Controller
                         'name' => $name,
                         'department' => $department,
                         'position' => 'Karyawan',
+                        'is_active' => true,
                     ]);
                     $updated++;
 
@@ -265,13 +270,21 @@ class UserController extends Controller
                     'position' => 'Karyawan',
                     'email' => null,
                     'password' => Hash::make($employeeNumber),
+                    'is_active' => true,
                 ]);
                 $created++;
             }
 
-            $deleted = User::where('role_id', $role->id)
+            $usersToDeactivate = User::where('role_id', $role->id)
                 ->whereNotIn('employee_number', $incomingEmployeeNumbers)
-                ->delete();
+                ->where('is_active', true)
+                ->get();
+
+            $deactivated = $usersToDeactivate->count();
+            $usersToDeactivate->each(function (User $user) {
+                $user->update(['is_active' => false]);
+                $user->tokens()->delete();
+            });
         });
 
         return response()->json([
@@ -280,27 +293,41 @@ class UserController extends Controller
             'data' => [
                 'created' => $created,
                 'updated' => $updated,
-                'deleted' => $deleted,
+                'deactivated' => $deactivated,
                 'skipped' => $skipped,
                 'total_rows' => count($rows),
             ],
         ]);
     }
 
-    public function destroy(User $user): JsonResponse
+    public function updateStatus(Request $request, User $user): JsonResponse
     {
+        $validated = $request->validate([
+            'is_active' => ['required', 'boolean'],
+        ]);
+
         if ($user->role?->name === 'Super Admin') {
             return response()->json([
                 'success' => false,
-                'message' => 'Super Admin tidak dapat dihapus.',
+                'message' => 'Super Admin tidak dapat dinonaktifkan.',
             ], 403);
         }
 
-        $user->delete();
+        $user->update(['is_active' => $validated['is_active']]);
+
+        if (! $user->is_active) {
+            $user->tokens()->delete();
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'Pengguna berhasil dihapus.',
+            'message' => $user->is_active
+                ? 'Pengguna berhasil diaktifkan kembali.'
+                : 'Pengguna berhasil dinonaktifkan.',
+            'data' => [
+                'id' => $user->id,
+                'isActive' => $user->is_active,
+            ],
         ]);
     }
 

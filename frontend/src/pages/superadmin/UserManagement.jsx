@@ -3,7 +3,7 @@ import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import UserForm from "../../components/user/UserForm";
 import UserTable from "../../components/user/UserTable";
 import EditUserDialog from "../../components/user/EditUserDialog";
-import DeleteUserDialog from "../../components/user/DeleteUserDialog";
+import UserStatusDialog from "../../components/user/UserStatusDialog";
 import { useUsers } from "../../hooks/useUsers";
 import "./UserManagement.css";
 
@@ -15,11 +15,11 @@ function UserManagement() {
     loadUsers,
     addUser,
     updateUser,
-    deleteUser,
+    updateUserStatus,
     importUsers,
   } = useUsers();
   const [editingUser, setEditingUser] = useState(null);
-  const [deletingUserId, setDeletingUserId] = useState(null);
+  const [statusUser, setStatusUser] = useState(null);
   const [importFile, setImportFile] = useState(null);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [toast, setToast] = useState("");
@@ -69,18 +69,13 @@ function UserManagement() {
     return false;
   }
 
-  function openDeleteDialog(id) {
-    const selectedUser = users.find((user) => user.id === id);
-    if (selectedUser?.role === "Super Admin") return;
-
-    setDeletingUserId(id);
-  }
-
-  async function confirmDelete() {
-    const result = await deleteUser(deletingUserId);
+  async function confirmStatusChange() {
+    if (!statusUser) return;
+    const nextStatus = !statusUser.isActive;
+    const result = await updateUserStatus(statusUser.id, nextStatus);
     if (result === true) {
-      setDeletingUserId(null);
-      setToast("Pengguna berhasil dihapus.");
+      setStatusUser(null);
+      setToast(nextStatus ? "Pengguna berhasil diaktifkan kembali." : "Pengguna berhasil dinonaktifkan.");
       return;
     }
 
@@ -107,7 +102,7 @@ function UserManagement() {
     setImportNotice({
       created: result.created ?? 0,
       updated: result.updated ?? 0,
-      deleted: result.deleted ?? 0,
+      deactivated: result.deactivated ?? 0,
       skipped: result.skipped ?? 0,
     });
   }
@@ -131,7 +126,7 @@ function UserManagement() {
           <UserTable
             users={users}
             onEdit={setEditingUser}
-            onDelete={openDeleteDialog}
+            onToggleStatus={setStatusUser}
             emptyMessage={searchKeyword.trim() ? "Pengguna tidak ditemukan." : "Belum ada pengguna."}
           />
         </section>
@@ -181,10 +176,11 @@ function UserManagement() {
         roles={userFormOptions.roles}
       />
 
-      <DeleteUserDialog
-        isOpen={Boolean(deletingUserId)}
-        onConfirm={confirmDelete}
-        onCancel={() => setDeletingUserId(null)}
+      <UserStatusDialog
+        user={statusUser}
+        onConfirm={confirmStatusChange}
+        onCancel={() => setStatusUser(null)}
+        loading={loading}
       />
 
       {toast && <div className="user-management-toast">{toast}</div>}
@@ -194,7 +190,7 @@ function UserManagement() {
             <strong>Import data karyawan berhasil.</strong>
             <span>
               {importNotice.created} baru, {importNotice.updated} update,{" "}
-              {importNotice.deleted} dihapus, {importNotice.skipped} dilewati.
+              {importNotice.deactivated} dinonaktifkan, {importNotice.skipped} dilewati.
             </span>
           </div>
           <button

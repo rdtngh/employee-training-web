@@ -84,17 +84,17 @@ export const useUsers = () => {
     [loadUsers]
   );
 
-  const deleteUser = useCallback(
-    async (id) => {
+  const updateUserStatus = useCallback(
+    async (id, isActive) => {
       setLoading(true);
       try {
-        await userService.deleteUser(id);
+        await userService.updateUserStatus(id, isActive);
         if (!mountedRef.current) return false;
         await loadUsers(currentSearchRef.current, { refreshOptions: true });
         return true;
       } catch (error) {
-        console.error("Error deleting user:", error);
-        return error.response?.data?.message || "Gagal menghapus pengguna.";
+        console.error("Error updating user status:", error);
+        return error.response?.data?.message || "Gagal mengubah status pengguna.";
       } finally {
         if (mountedRef.current) setLoading(false);
       }
@@ -127,7 +127,7 @@ export const useUsers = () => {
     loadUsers,
     addUser,
     updateUser,
-    deleteUser,
+    updateUserStatus,
     importUsers,
   };
 };

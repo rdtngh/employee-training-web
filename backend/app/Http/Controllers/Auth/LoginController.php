@@ -19,11 +19,18 @@ class LoginController extends Controller
             ->where('employee_number', $request->employee_number)
             ->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Nomor karyawan atau password salah.',
             ], 401);
+        }
+
+        if (! $user->is_active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun Anda telah dinonaktifkan. Hubungi administrator.',
+            ], 403);
         }
 
         // Hapus token lama

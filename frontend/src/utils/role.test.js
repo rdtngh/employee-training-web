@@ -7,5 +7,6 @@ test("normalizeRole maps supported backend role labels", () => {
   assert.equal(normalizeRole("Admin"), "admin");
   assert.equal(normalizeRole("Karyawan"), "employee");
   assert.equal(normalizeRole("employee"), "employee");
+  assert.equal(normalizeRole("Mahasiswa/Pelajar"), "employee");
   assert.equal(normalizeRole(null), "");
 });

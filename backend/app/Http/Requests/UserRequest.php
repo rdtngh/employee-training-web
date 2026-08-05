@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -17,7 +18,7 @@ class UserRequest extends FormRequest
         $userIdRule = ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9._-]+$/'];
         $nameRule = ['required', 'string', 'max:255'];
         $departmentRule = ['required', 'string', 'max:255'];
-        $roleRule = ['required', 'string', Rule::in(['Super Admin', 'Admin', 'Karyawan'])];
+        $roleRule = ['required', 'string', Rule::in(['Super Admin', 'Admin', ...User::PARTICIPANT_ROLES])];
         $emailRule = ['nullable', 'email', 'max:255'];
 
         if ($this->method() === 'POST') {

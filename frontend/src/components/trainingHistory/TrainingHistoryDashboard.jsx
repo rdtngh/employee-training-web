@@ -157,14 +157,14 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
       {!loading && !error && (
         <div className="history-admin-table-wrap">
           <table className="history-admin-table">
-            <thead><tr><th>No</th><th>Karyawan</th><th>Pelatihan</th><th>Selesai</th><th>Status</th><th>Sertifikat</th><th>Aksi</th></tr></thead>
+            <thead><tr><th>No</th><th>Peserta</th><th>Pelatihan</th><th>Selesai</th><th>Status</th><th>Sertifikat</th><th>Aksi</th></tr></thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr><td colSpan="7" className="history-admin-empty">Riwayat tidak ditemukan.</td></tr>
               ) : filtered.map((history, index) => (
                 <tr key={`${history.employee.id}-${history.training.id}`}>
                   <td data-label="No">{index + 1}</td>
-                  <td data-label="Karyawan"><strong>{history.employee.name}</strong><small>{history.employee.employee_number}</small></td>
+                  <td data-label="Peserta"><strong>{history.employee.name}</strong><small>{history.employee.employee_number}</small></td>
                   <td data-label="Pelatihan">{history.training.title}</td>
                   <td data-label="Selesai">{new Date(history.result.finished_at).toLocaleDateString("id-ID")}</td>
                   <td data-label="Status">{history.result.status} ({history.result.score})</td>
@@ -196,7 +196,7 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
         <div className="history-dialog-backdrop" role="presentation" onMouseDown={() => !deleting && setPendingDelete(null)}>
           <section className="history-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-history-title" onMouseDown={(event) => event.stopPropagation()}>
             <h2 id="delete-history-title">Hapus riwayat pelatihan?</h2>
-            <p>Riwayat <strong>{pendingDelete.training.title}</strong> milik <strong>{pendingDelete.employee.name}</strong> akan dihapus permanen, termasuk hasil ujian, progres materi, dan sertifikat. Karyawan dapat mengikuti pelatihan ini kembali dari awal.</p>
+            <p>Riwayat <strong>{pendingDelete.training.title}</strong> milik <strong>{pendingDelete.employee.name}</strong> akan dihapus permanen, termasuk hasil ujian, progres materi, dan sertifikat. Peserta dapat mengikuti pelatihan ini kembali dari awal.</p>
             <div className="history-dialog-actions">
               <button type="button" onClick={() => setPendingDelete(null)} disabled={deleting}>Batal</button>
               <button type="button" className="history-delete-confirm" onClick={confirmDelete} disabled={deleting}>{deleting ? "Menghapus..." : "Hapus Permanen"}</button>

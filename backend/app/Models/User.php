@@ -12,6 +12,8 @@ class User extends Authenticatable
 {
     use HasApiTokens, Notifiable;
 
+    public const PARTICIPANT_ROLES = ['Karyawan', 'Mahasiswa/Pelajar'];
+
     protected $fillable = [
         'role_id',
         'employee_number',

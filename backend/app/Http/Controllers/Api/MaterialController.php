@@ -8,6 +8,7 @@ use App\Models\Material;
 use App\Models\MaterialFile;
 use App\Models\TestResult;
 use App\Models\TrainingParticipant;
+use App\Models\User;
 use App\Models\UserMaterial;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -427,7 +428,7 @@ class MaterialController extends Controller
         $user?->loadMissing('role');
         $material->loadMissing('training.tests');
 
-        if (strtolower($user?->role?->name ?? '') !== 'karyawan') {
+        if (! in_array($user?->role?->name, User::PARTICIPANT_ROLES, true)) {
             return false;
         }
 
@@ -449,7 +450,7 @@ class MaterialController extends Controller
         $user?->loadMissing('role');
         $material->loadMissing('training');
 
-        return strtolower($user?->role?->name ?? '') === 'karyawan'
+        return in_array($user?->role?->name, User::PARTICIPANT_ROLES, true)
             && $material->training
             && ! $material->training->is_active;
     }

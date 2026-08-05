@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\TestResult;
 use App\Models\Training;
+use App\Models\User;
 use App\Models\UserMaterial;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -77,7 +78,7 @@ class StatisticsController extends Controller
                 ->whereHas('test', function ($query) use ($training) {
                     $query->where('training_id', $training->id);
                 })
-                ->whereHas('user.role', fn ($query) => $query->where('name', 'Karyawan'))
+                ->whereHas('user.role', fn ($query) => $query->whereIn('name', User::PARTICIPANT_ROLES))
                 ->whereHas('test', fn ($query) => $query->whereIn('type', $types))
                 ->whereNull('reset_at');
 
@@ -307,7 +308,7 @@ class StatisticsController extends Controller
                 $query->where('training_id', $training->id)
                     ->where('type', $type);
             })
-            ->whereHas('user.role', fn ($query) => $query->where('name', 'Karyawan'))
+            ->whereHas('user.role', fn ($query) => $query->whereIn('name', User::PARTICIPANT_ROLES))
             ->whereNull('reset_at')
             ->whereNotNull('finished_at')
             ->orderByDesc('finished_at')
@@ -549,7 +550,7 @@ class StatisticsController extends Controller
         $results = TestResult::query()
             ->with('test:id,type')
             ->whereIn('test_id', $testIds)
-            ->whereHas('user.role', fn ($query) => $query->where('name', 'Karyawan'))
+            ->whereHas('user.role', fn ($query) => $query->whereIn('name', User::PARTICIPANT_ROLES))
             ->whereNull('reset_at')
             ->whereNotNull('finished_at')
             ->orderByDesc('updated_at')

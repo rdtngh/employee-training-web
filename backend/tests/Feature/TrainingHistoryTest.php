@@ -170,6 +170,34 @@ class TrainingHistoryTest extends TestCase
         ]);
     }
 
+    public function test_student_role_uses_the_same_training_history_flow_as_employee(): void
+    {
+        $studentRole = Role::where('name', 'Mahasiswa/Pelajar')->firstOrFail();
+        $student = User::create([
+            'role_id' => $studentRole->id,
+            'employee_number' => 'student01',
+            'name' => 'Mahasiswa Satu',
+            'department' => 'Mahasiswa/Pelajar',
+            'position' => 'Mahasiswa/Pelajar',
+            'email' => 'student@example.com',
+            'password' => 'password',
+        ]);
+        [$training, $postTest] = $this->trainingWithPostTest('Pelatihan Mahasiswa');
+        $result = $this->createTestResult($student, $postTest, 'Lulus', now());
+        Certificate::create(['user_id' => $student->id, 'test_result_id' => $result->id, 'certificate_number' => 'CERT-STUDENT', 'file_path' => '', 'issued_at' => now()]);
+
+        Sanctum::actingAs($student);
+
+        $this->getJson('/api/training-history')
+            ->assertOk()
+            ->assertJsonPath('data.histories.0.training.id', $training->id)
+            ->assertJsonPath('data.histories.0.certificate.certificate_number', 'CERT-STUDENT');
+
+        $this->getJson("/api/certificates/{$training->id}")
+            ->assertOk()
+            ->assertJsonPath('data.employee_name', 'Mahasiswa Satu');
+    }
+
     private function users(): array
     {
         $adminRole = Role::create(['name' => 'Admin']);

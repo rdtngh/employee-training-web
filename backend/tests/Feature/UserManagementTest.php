@@ -93,4 +93,57 @@ class UserManagementTest extends TestCase
         $this->assertTrue(Hash::check('andi456', $employee->password));
         $this->assertFalse(Hash::check('password-lama', $employee->password));
     }
+
+    public function test_super_admin_can_create_student_user_with_department(): void
+    {
+        $superAdminRole = Role::create(['name' => 'Super Admin']);
+        Role::create(['name' => 'Admin']);
+        Role::create(['name' => 'Karyawan']);
+        $studentRole = Role::where('name', 'Mahasiswa/Pelajar')->firstOrFail();
+        $superAdmin = User::create([
+            'role_id' => $superAdminRole->id,
+            'employee_number' => 'superadmin',
+            'name' => 'Super Admin',
+            'department' => 'IT',
+            'position' => 'Super Admin',
+            'email' => 'superadmin@example.com',
+            'password' => Hash::make('superadmin'),
+        ]);
+
+        Sanctum::actingAs($superAdmin);
+
+        $this->postJson('/api/users', [
+            'employee_number' => 'student01',
+            'name' => 'Mahasiswa Satu',
+            'department' => 'Mahasiswa/Pelajar',
+            'role' => 'Mahasiswa/Pelajar',
+        ])->assertCreated()
+            ->assertJsonPath('data.role', 'Mahasiswa/Pelajar')
+            ->assertJsonPath('data.department', 'Mahasiswa/Pelajar');
+
+        $this->assertDatabaseHas('users', [
+            'employee_number' => 'student01',
+            'role_id' => $studentRole->id,
+            'department' => 'Mahasiswa/Pelajar',
+        ]);
+    }
+
+    public function test_admin_cannot_access_user_management(): void
+    {
+        $adminRole = Role::create(['name' => 'Admin']);
+        $admin = User::create([
+            'role_id' => $adminRole->id,
+            'employee_number' => 'admin',
+            'name' => 'Admin',
+            'department' => 'IT',
+            'position' => 'Admin',
+            'email' => 'admin@example.com',
+            'password' => Hash::make('admin'),
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/users')->assertForbidden();
+        $this->getJson('/api/users/options')->assertForbidden();
+    }
 }

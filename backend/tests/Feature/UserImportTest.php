@@ -349,7 +349,7 @@ class UserImportTest extends TestCase
         $response = $this->getJson('/api/users/options');
 
         $response->assertOk()
-            ->assertJsonPath('data.departments', ['Farmasi', 'Radiologi'])
-            ->assertJsonPath('data.roles', ['Super Admin', 'Admin', 'Karyawan']);
+            ->assertJsonPath('data.departments', ['Farmasi', 'Mahasiswa/Pelajar', 'Radiologi'])
+            ->assertJsonPath('data.roles', ['Super Admin', 'Admin', 'Karyawan', 'Mahasiswa/Pelajar']);
     }
 }

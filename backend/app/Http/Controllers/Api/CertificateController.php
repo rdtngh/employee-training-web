@@ -7,6 +7,7 @@ use App\Models\Certificate;
 use App\Models\TestResult;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -30,7 +31,7 @@ class CertificateController extends Controller
                 $query->where('type', 'posttest');
             })
             ->whereHas('user.role', function ($query) {
-                $query->where('name', 'Karyawan');
+                $query->whereIn('name', User::PARTICIPANT_ROLES);
             })
             ->latest('issued_at')
             ->get()
@@ -109,7 +110,7 @@ class CertificateController extends Controller
             $certificate->testResult?->test?->type === 'posttest'
                 && $certificate->testResult?->status === 'Lulus'
                 && $certificate->testResult?->user_id === $certificate->user_id
-                && $certificate->user?->role?->name === 'Karyawan',
+                && in_array($certificate->user?->role?->name, User::PARTICIPANT_ROLES, true),
             404,
             'Sertifikat tidak ditemukan.'
         );
@@ -133,7 +134,7 @@ class CertificateController extends Controller
             $certificate->testResult?->test?->type === 'posttest'
                 && $certificate->testResult?->status === 'Lulus'
                 && $certificate->testResult?->user_id === $certificate->user_id
-                && $certificate->user?->role?->name === 'Karyawan',
+                && in_array($certificate->user?->role?->name, User::PARTICIPANT_ROLES, true),
             404,
             'Sertifikat tidak ditemukan.'
         );
@@ -193,7 +194,7 @@ class CertificateController extends Controller
                 $query->where('type', 'posttest');
             })
             ->whereHas('user.role', function ($query) {
-                $query->where('name', 'Karyawan');
+                $query->whereIn('name', User::PARTICIPANT_ROLES);
             })
             ->whereDoesntHave('certificate')
             ->each(function (TestResult $result) {
@@ -350,7 +351,7 @@ class CertificateController extends Controller
                 $query->where('type', 'posttest');
             })
             ->whereHas('user.role', function ($query) {
-                $query->where('name', 'Karyawan');
+                $query->whereIn('name', User::PARTICIPANT_ROLES);
             })
             ->whereHas('testResult', function ($query) use ($year) {
                 $query->whereYear('finished_at', $year);

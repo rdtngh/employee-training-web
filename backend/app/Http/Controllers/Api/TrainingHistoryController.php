@@ -40,7 +40,7 @@ class TrainingHistoryController extends Controller
     public function adminIndex(): JsonResponse
     {
         $histories = $this->completedResultsQuery()
-            ->whereHas('user.role', fn ($query) => $query->where('name', 'Karyawan'))
+            ->whereHas('user.role', fn ($query) => $query->whereIn('name', User::PARTICIPANT_ROLES))
             ->get()
             ->unique(fn (TestResult $result) => $result->user_id.'-'.$result->test->training_id)
             ->map(fn (TestResult $result) => $this->payload($result, true))
@@ -60,7 +60,7 @@ class TrainingHistoryController extends Controller
 
     public function destroy(Training $training, User $user): JsonResponse
     {
-        abort_unless($user->role?->name === 'Karyawan', 422, 'Riwayat hanya dapat dihapus untuk karyawan.');
+        abort_unless(in_array($user->role?->name, User::PARTICIPANT_ROLES, true), 422, 'Riwayat hanya dapat dihapus untuk peserta.');
 
         $deleted = DB::transaction(function () use ($training, $user) {
             $testIds = $training->tests()->pluck('id');

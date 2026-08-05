@@ -7,6 +7,7 @@ use App\Models\PostTestAccess;
 use App\Models\TestResult;
 use App\Models\Training;
 use App\Models\TrainingParticipant;
+use App\Models\User;
 use App\Models\UserMaterial;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -506,7 +507,7 @@ class TrainingController extends Controller
     {
         $role = request()->user()?->role?->name;
 
-        if ($role === 'Karyawan' && ! $training->is_active) {
+        if (in_array($role, User::PARTICIPANT_ROLES, true) && ! $training->is_active) {
             return response()->json([
                 'success' => false,
                 'message' => 'Pelatihan belum tersedia.',

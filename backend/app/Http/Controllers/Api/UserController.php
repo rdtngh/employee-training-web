@@ -8,8 +8,8 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use ZipArchive;
 
 class UserController extends Controller
@@ -47,14 +47,14 @@ class UserController extends Controller
 
     public function options(): JsonResponse
     {
-        $employeeRole = Role::where('name', 'Karyawan')->first();
+        $participantRoleIds = Role::whereIn('name', User::PARTICIPANT_ROLES)->pluck('id');
 
         $departmentQuery = User::query()
             ->whereNotNull('department')
             ->where('department', '<>', '');
 
-        if ($employeeRole) {
-            $departmentQuery->where('role_id', $employeeRole->id);
+        if ($participantRoleIds->isNotEmpty()) {
+            $departmentQuery->whereIn('role_id', $participantRoleIds);
         }
 
         $departments = $departmentQuery
@@ -62,9 +62,13 @@ class UserController extends Controller
             ->distinct()
             ->orderBy('department')
             ->pluck('department')
+            ->push('Mahasiswa/Pelajar')
+            ->unique()
+            ->sort()
             ->values();
 
-        $roles = Role::orderByRaw("CASE name WHEN 'Super Admin' THEN 1 WHEN 'Admin' THEN 2 WHEN 'Karyawan' THEN 3 ELSE 4 END")
+        $roles = Role::query()
+            ->orderByRaw("CASE name WHEN 'Super Admin' THEN 1 WHEN 'Admin' THEN 2 WHEN 'Karyawan' THEN 3 WHEN 'Mahasiswa/Pelajar' THEN 4 ELSE 5 END")
             ->orderBy('name')
             ->pluck('name')
             ->values();
@@ -181,11 +185,13 @@ class UserController extends Controller
 
             if ($employeeNumber === '') {
                 $skipped++;
+
                 continue;
             }
 
             if (! preg_match('/^[A-Za-z0-9._-]{1,20}$/', $employeeNumber)) {
                 $skipped++;
+
                 continue;
             }
 
@@ -193,16 +199,19 @@ class UserController extends Controller
 
             if ($name === '' || $department === '') {
                 $skipped++;
+
                 continue;
             }
 
             if (strlen($name) > 255 || strlen($department) > 255) {
                 $skipped++;
+
                 continue;
             }
 
             if (isset($seenEmployeeNumbers[$employeeNumber])) {
                 $skipped++;
+
                 continue;
             }
 
@@ -233,6 +242,7 @@ class UserController extends Controller
                 if ($user) {
                     if ($user->role?->name !== 'Karyawan') {
                         $skipped++;
+
                         continue;
                     }
 
@@ -243,6 +253,7 @@ class UserController extends Controller
                         'position' => 'Karyawan',
                     ]);
                     $updated++;
+
                     continue;
                 }
 
@@ -346,7 +357,7 @@ class UserController extends Controller
             abort(500, 'PHP Zip extension belum aktif, sehingga file XLSX tidak dapat dibaca.');
         }
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
 
         if ($zip->open($path) !== true) {
             return [];
@@ -462,6 +473,7 @@ class UserController extends Controller
 
             if ($this->isHeaderRow($values)) {
                 $columnMap = $this->importColumnMap($values);
+
                 continue;
             }
 

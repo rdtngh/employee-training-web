@@ -99,3 +99,8 @@ export const getCertificatePreview = async (trainingId) => {
 
   return payload;
 };
+
+export const getAdminCertificatePreview = async (certificateId) => {
+  const response = await api.get(`/certificates/${certificateId}/preview`);
+  return response.data?.data ?? response.data;
+};

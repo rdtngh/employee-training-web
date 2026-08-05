@@ -12,7 +12,7 @@ function CertificatePage() {
 
   return (
     <DashboardLayout role="superadmin">
-      <TrainingHistoryDashboard historyData={data} loading={loading} error={error} reload={reload} />
+      <TrainingHistoryDashboard historyData={data} loading={loading} error={error} reload={reload} role="superadmin" />
     </DashboardLayout>
   );
 }

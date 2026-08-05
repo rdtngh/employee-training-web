@@ -90,6 +90,21 @@ class TrainingHistoryTest extends TestCase
             ->assertJsonPath('data.eligible', true);
     }
 
+    public function test_admin_can_preview_an_employee_certificate(): void
+    {
+        [$admin, $employee] = $this->users();
+        [$training, $postTest] = $this->trainingWithPostTest('Pelatihan Mutu');
+        $result = $this->createTestResult($employee, $postTest, 'Lulus', now());
+        $certificate = Certificate::create(['user_id' => $employee->id, 'test_result_id' => $result->id, 'certificate_number' => 'CERT-ADMIN', 'file_path' => '', 'issued_at' => now()]);
+
+        Sanctum::actingAs($admin);
+
+        $this->getJson("/api/certificates/{$certificate->id}/preview")
+            ->assertOk()
+            ->assertJsonPath('data.employee.name', 'Karyawan')
+            ->assertJsonPath('data.training.title', $training->title);
+    }
+
     private function users(): array
     {
         $adminRole = Role::create(['name' => 'Admin']);

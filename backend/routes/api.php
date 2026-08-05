@@ -51,6 +51,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/statistics/attendance/export', [StatisticsController::class, 'attendanceExport']);
         Route::post('/statistics/reset', [StatisticsController::class, 'reset']);
         Route::get('/certificates', [CertificateController::class, 'index']);
+        Route::get('/certificates/{certificate}/preview', [CertificateController::class, 'preview']);
         Route::get('/certificates/{certificate}/file', [CertificateController::class, 'downloadFile']);
 
         Route::post('/trainings', [TrainingController::class, 'store']);

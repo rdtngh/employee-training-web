@@ -19,6 +19,7 @@ import ManageExamAdmin from "../pages/admin/ManageExam";
 import ExamResultAdmin from "../pages/admin/ExamResult";
 import StatisticsPageAdmin from "../pages/admin/StatisticsPage";
 import CertificatePageAdmin from "../pages/admin/CertificatePage";
+import CertificatePreviewPageAdmin from "../pages/admin/CertificatePreviewPage";
 
 // Super Admin
 import DashboardSuperAdmin from "../pages/superadmin/DashboardSuperAdmin";
@@ -28,6 +29,7 @@ import ManageExamSuperAdmin from "../pages/superadmin/ManageExam";
 import ExamResultSuperAdmin from "../pages/superadmin/ExamResult";
 import StatisticsPageSuperAdmin from "../pages/superadmin/StatisticsPage";
 import CertificatePageSuperAdmin from "../pages/superadmin/CertificatePage";
+import CertificatePreviewPageSuperAdmin from "../pages/superadmin/CertificatePreviewPage";
 
 // Error Page
 import NotFoundPage from "../pages/NotFoundPage";
@@ -100,6 +102,7 @@ function AppRouter() {
         <Route path="/admin/exam-results" element={protectedPage(<ExamResultAdmin />, ["admin"])} />
         <Route path="/admin/statistics" element={protectedPage(<StatisticsPageAdmin />, ["admin"])} />
         <Route path="/admin/certificates" element={protectedPage(<CertificatePageAdmin />, ["admin"])} />
+        <Route path="/admin/certificates/:certificateId" element={protectedPage(<CertificatePreviewPageAdmin />, ["admin"])} />
 
 
         {/* ================= SUPER ADMIN ================= */}
@@ -135,6 +138,7 @@ function AppRouter() {
         <Route path="/superadmin/exam-results" element={protectedPage(<ExamResultSuperAdmin />, ["superadmin"])} />
         <Route path="/superadmin/statistics" element={protectedPage(<StatisticsPageSuperAdmin />, ["superadmin"])} />
         <Route path="/superadmin/certificates" element={protectedPage(<CertificatePageSuperAdmin />, ["superadmin"])} />
+        <Route path="/superadmin/certificates/:certificateId" element={protectedPage(<CertificatePreviewPageSuperAdmin />, ["superadmin"])} />
 
 
         {/* ================= 404 ================= */}

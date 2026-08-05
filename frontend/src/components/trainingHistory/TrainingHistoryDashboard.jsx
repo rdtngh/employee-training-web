@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import * as trainingHistoryService from "../../services/trainingHistoryService";
 import "./TrainingHistoryDashboard.css";
 
-function TrainingHistoryDashboard({ historyData, loading, error, reload }) {
+function TrainingHistoryDashboard({ historyData, loading, error, reload, role }) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [pendingDelete, setPendingDelete] = useState(null);
@@ -80,7 +80,20 @@ function TrainingHistoryDashboard({ historyData, loading, error, reload }) {
                   <td data-label="Selesai">{new Date(history.result.finished_at).toLocaleDateString("id-ID")}</td>
                   <td data-label="Status">{history.result.status} ({history.result.score})</td>
                   <td data-label="Sertifikat">{history.certificate ? "Tersedia" : "Tidak tersedia"}</td>
-                  <td data-label="Aksi"><button type="button" className="history-delete" onClick={() => setPendingDelete(history)}>Hapus Riwayat</button></td>
+                  <td data-label="Aksi">
+                    <div className="history-actions">
+                      {history.certificate && (
+                        <button
+                          type="button"
+                          className="history-view"
+                          onClick={() => navigate(`/${role}/certificates/${history.certificate.id}`)}
+                        >
+                          Lihat Sertifikat
+                        </button>
+                      )}
+                      <button type="button" className="history-delete" onClick={() => setPendingDelete(history)}>Hapus Riwayat</button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

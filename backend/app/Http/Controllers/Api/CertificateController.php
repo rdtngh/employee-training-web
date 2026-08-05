@@ -118,6 +118,31 @@ class CertificateController extends Controller
         return $this->certificatePdfResponse($certificate, $certificate->testResult, $training);
     }
 
+    public function preview(Certificate $certificate): JsonResponse
+    {
+        $certificate->load([
+            'user:id,role_id,employee_number,name,department,position,email',
+            'user.role:id,name',
+            'testResult:id,user_id,test_id,score,status,finished_at',
+            'testResult.test:id,training_id,type',
+            'testResult.test.training:id,title,certificate_template_path,certificate_template_settings',
+        ]);
+
+        abort_unless(
+            $certificate->testResult?->test?->type === 'posttest'
+                && $certificate->testResult?->status === 'Lulus'
+                && $certificate->testResult?->user_id === $certificate->user_id
+                && $certificate->user?->role?->name === 'Karyawan',
+            404,
+            'Sertifikat tidak ditemukan.'
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->certificatePayload($certificate),
+        ]);
+    }
+
     private function certificatePdfResponse(Certificate $certificate, TestResult $result, Training $training): Response
     {
         $pdf = $this->buildPdf($certificate, $result, $training);

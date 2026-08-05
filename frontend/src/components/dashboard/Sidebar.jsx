@@ -43,7 +43,6 @@ const menuByRole = {
         { id: "superadmin-exam-results", label: "Hasil Ujian", to: "/superadmin/exam-results" },
       ],
     },
-    { id: "superadmin-history", label: "Riwayat Pelatihan", to: "/superadmin/certificates", icon: iconCertificate },
   ],
   admin: [
     {
@@ -64,7 +63,6 @@ const menuByRole = {
         { id: "admin-exam-results", label: "Hasil Ujian", to: "/admin/exam-results" },
       ],
     },
-    { id: "admin-history", label: "Riwayat Pelatihan", to: "/admin/certificates", icon: iconCertificate },
   ],
   employee: [
     {

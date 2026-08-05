@@ -149,7 +149,9 @@ function Sidebar({ role = "superadmin", isOpen = false, onNavigate }) {
                   <img
                     src={itemActive && item.activeIcon ? item.activeIcon : item.icon}
                     alt=""
-                    className={`sidebar-icon${item.activeIcon ? " sidebar-icon-stateful" : ""}`}
+                    className={`sidebar-icon${
+                      item.activeIcon ? " sidebar-icon-stateful" : ""
+                    }${item.id.endsWith("-history") ? " sidebar-icon-history" : ""}`}
                   />
                   <span>{item.label}</span>
                   {item.children && (

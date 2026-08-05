@@ -34,7 +34,7 @@ function EmployeeTrainingHistory() {
                 </div>
                 {history.certificate && (
                   <Link className="employee-history-certificate" to={`/employee/certificate/${history.training.id}`}>
-                    Lihat &amp; Download PNG
+                    Lihat Sertifikat
                   </Link>
                 )}
               </article>

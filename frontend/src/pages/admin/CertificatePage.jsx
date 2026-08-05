@@ -1,18 +1,18 @@
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
-import CertificateDashboard from "../../components/certificate/CertificateDashboard";
-import * as certificateService from "../../services/certificateService";
+import TrainingHistoryDashboard from "../../components/trainingHistory/TrainingHistoryDashboard";
+import * as trainingHistoryService from "../../services/trainingHistoryService";
 import { useServiceData } from "../../hooks/useServiceData";
 
 function CertificatePage() {
-  const { data: certificateData, loading, error } = useServiceData(
-    certificateService.getCertificates,
+  const { data, loading, error, reload } = useServiceData(
+    trainingHistoryService.getAdminHistories,
     "admin",
-    { title: "Sertifikat", message: "", certificates: [] }
+    { title: "Riwayat Pelatihan", message: "", histories: [] }
   );
 
   return (
     <DashboardLayout role="admin">
-      <CertificateDashboard certificateData={certificateData} loading={loading} error={error} />
+      <TrainingHistoryDashboard historyData={data} loading={loading} error={error} reload={reload} />
     </DashboardLayout>
   );
 }

@@ -14,6 +14,7 @@ import iconLogout from "../../assets/icons/icon-logout.svg";
 import iconPreTest from "../../assets/icons/icon-kelolaujianputih.svg";
 import iconPostTest from "../../assets/icons/icon-posttest.svg";
 import iconMaterial from "../../assets/icons/icon-kelola-materi.svg";
+import iconCertificate from "../../assets/icons/icon-sertifikat.svg";
 
 const menuByRole = {
   superadmin: [
@@ -42,6 +43,7 @@ const menuByRole = {
         { id: "superadmin-exam-results", label: "Hasil Ujian", to: "/superadmin/exam-results" },
       ],
     },
+    { id: "superadmin-history", label: "Riwayat Pelatihan", to: "/superadmin/certificates", icon: iconCertificate },
   ],
   admin: [
     {
@@ -62,6 +64,7 @@ const menuByRole = {
         { id: "admin-exam-results", label: "Hasil Ujian", to: "/admin/exam-results" },
       ],
     },
+    { id: "admin-history", label: "Riwayat Pelatihan", to: "/admin/certificates", icon: iconCertificate },
   ],
   employee: [
     {
@@ -80,6 +83,7 @@ const menuByRole = {
       activeIcon: iconExamActive,
     },
     { id: "employee-posttest", label: "Post-Test", to: "/employee/posttest", icon: iconPostTest },
+    { id: "employee-history", label: "Riwayat Pelatihan", to: "/employee/history", icon: iconCertificate },
   ],
 };
 

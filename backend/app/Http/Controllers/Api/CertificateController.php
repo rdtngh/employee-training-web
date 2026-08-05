@@ -50,10 +50,6 @@ class CertificateController extends Controller
 
     public function show(Request $request, Training $training): JsonResponse
     {
-        if (! $training->is_active) {
-            return $this->inactiveTrainingResponse();
-        }
-
         $result = $this->passedPostTestResult($request, $training);
 
         if (! $result) {
@@ -132,14 +128,6 @@ class CertificateController extends Controller
             'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             'Content-Length' => strlen($pdf),
         ]);
-    }
-
-    private function inactiveTrainingResponse(): JsonResponse
-    {
-        return response()->json([
-            'success' => false,
-            'message' => 'Pelatihan belum tersedia.',
-        ], 403);
     }
 
     private function passedPostTestResult(Request $request, Training $training): ?TestResult
@@ -611,7 +599,7 @@ class CertificateController extends Controller
             $pdf .= sprintf("%010d 00000 n \n", $offset);
         }
 
-        $pdf .= "trailer << /Size ".(count($objects) + 1)." /Root 1 0 R >>\n";
+        $pdf .= 'trailer << /Size '.(count($objects) + 1)." /Root 1 0 R >>\n";
         $pdf .= "startxref\n".$xrefOffset."\n%%EOF";
 
         return $pdf;

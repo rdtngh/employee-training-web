@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\CertificateController;
 use App\Http\Controllers\Api\StatisticsController;
 use App\Http\Controllers\Api\TestController;
 use App\Http\Controllers\Api\TrainingController;
+use App\Http\Controllers\Api\TrainingHistoryController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Auth\LoginController;
 
@@ -29,6 +30,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/materials/{material}/files/{file}/download', [MaterialController::class, 'downloadFile']);
 
     Route::middleware('role:Karyawan')->group(function () {
+        Route::get('/training-history', [TrainingHistoryController::class, 'employeeIndex']);
         Route::get('/trainings/{training}/tests/{type}', [TestController::class, 'showByType']);
         Route::post('/trainings/{training}/post-test-access-code/verify', [TrainingController::class, 'verifyPostTestAccessCode']);
         Route::get('/tests/{test}', [TestController::class, 'show']);
@@ -42,6 +44,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::middleware('role:Super Admin,Admin')->group(function () {
+        Route::get('/training-histories', [TrainingHistoryController::class, 'adminIndex']);
+        Route::delete('/training-histories/{training}/users/{user}', [TrainingHistoryController::class, 'destroy']);
         Route::get('/statistics', [StatisticsController::class, 'index']);
         Route::get('/statistics/export', [StatisticsController::class, 'export']);
         Route::get('/statistics/attendance/export', [StatisticsController::class, 'attendanceExport']);

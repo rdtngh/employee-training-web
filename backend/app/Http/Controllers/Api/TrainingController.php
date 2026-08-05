@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PostTestAccess;
 use App\Models\TestResult;
 use App\Models\Training;
+use App\Models\TrainingParticipant;
 use App\Models\UserMaterial;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ use Illuminate\Support\Str;
 class TrainingController extends Controller
 {
     private const EMERGENCY_UNLOCK_EMPLOYEE_FLOW = false;
+
     private const CERTIFICATE_TEMPLATE_FIELDS = [
         'certificate_number',
         'employee_name',
@@ -195,6 +197,8 @@ class TrainingController extends Controller
 
         $this->repairMissingPostTestAccessCodeHash($training, $accessCode);
 
+        TrainingParticipant::capture($request->user(), $training->id);
+
         PostTestAccess::updateOrCreate(
             [
                 'user_id' => $request->user()->id,
@@ -341,6 +345,8 @@ class TrainingController extends Controller
                 'message' => 'Pre-Test harus dikerjakan sebelum membuka materi.',
             ], 403);
         }
+
+        TrainingParticipant::capture($request->user(), $training->id);
 
         $materials = $training->materials()->select('id')->get();
 

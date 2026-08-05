@@ -10,6 +10,7 @@ use App\Models\Role;
 use App\Models\Test;
 use App\Models\TestResult;
 use App\Models\Training;
+use App\Models\TrainingParticipant;
 use App\Models\User;
 use App\Models\UserAnswer;
 use App\Models\UserMaterial;
@@ -60,6 +61,7 @@ class TrainingHistoryTest extends TestCase
         UserMaterial::create(['user_id' => $employee->id, 'material_id' => $material->id, 'is_completed' => true, 'completed_at' => now()]);
         UserAnswer::create(['user_id' => $employee->id, 'question_id' => $question->id, 'selected_answer' => 'A']);
         PostTestAccess::create(['user_id' => $employee->id, 'training_id' => $training->id, 'verified_at' => now()]);
+        TrainingParticipant::capture($employee, $training->id);
 
         Sanctum::actingAs($admin);
 
@@ -72,6 +74,7 @@ class TrainingHistoryTest extends TestCase
         $this->assertDatabaseMissing('user_materials', ['user_id' => $employee->id, 'material_id' => $material->id]);
         $this->assertDatabaseMissing('user_answers', ['user_id' => $employee->id, 'question_id' => $question->id]);
         $this->assertDatabaseMissing('post_test_accesses', ['user_id' => $employee->id, 'training_id' => $training->id]);
+        $this->assertDatabaseMissing('training_participants', ['user_id' => $employee->id, 'training_id' => $training->id]);
         $this->assertDatabaseHas('trainings', ['id' => $training->id]);
     }
 
@@ -134,6 +137,37 @@ class TrainingHistoryTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.sequence_number', 1)
             ->assertJsonPath('data.certificate_number', 'NO: 1/DIKLATLIT-RSABL/I/2027');
+    }
+
+    public function test_training_department_remains_the_original_snapshot_after_user_department_changes(): void
+    {
+        [$admin, $employee] = $this->users();
+        $employee->update(['department' => 'IGD']);
+        [$training, $postTest] = $this->trainingWithPostTest('Pelatihan A');
+        $preTest = Test::create(['training_id' => $training->id, 'type' => 'pretest', 'duration' => 20, 'passing_score' => 70]);
+
+        Sanctum::actingAs($employee);
+        $this->postJson("/api/tests/{$preTest->id}/start")->assertOk();
+
+        $employee->update(['department' => 'CENDANA']);
+        $result = $this->createTestResult($employee, $postTest, 'Lulus', now());
+        $certificate = Certificate::create(['user_id' => $employee->id, 'test_result_id' => $result->id, 'certificate_number' => 'SNAPSHOT-DEPT', 'file_path' => '', 'issued_at' => now()]);
+
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/training-histories')
+            ->assertOk()
+            ->assertJsonPath('data.histories.0.employee.department', 'IGD');
+
+        $this->getJson("/api/certificates/{$certificate->id}/preview")
+            ->assertOk()
+            ->assertJsonPath('data.employee.department', 'IGD');
+
+        $this->assertDatabaseHas('training_participants', [
+            'training_id' => $training->id,
+            'user_id' => $employee->id,
+            'department' => 'IGD',
+        ]);
     }
 
     private function users(): array

@@ -43,4 +43,9 @@ class Training extends Model
     {
         return $this->hasMany(Test::class);
     }
+
+    public function participants(): HasMany
+    {
+        return $this->hasMany(TrainingParticipant::class);
+    }
 }

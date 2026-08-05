@@ -10,6 +10,7 @@ use App\Models\Question;
 use App\Models\Test;
 use App\Models\TestResult;
 use App\Models\Training;
+use App\Models\TrainingParticipant;
 use App\Models\UserAnswer;
 use App\Models\UserMaterial;
 use Illuminate\Http\JsonResponse;
@@ -102,6 +103,8 @@ class TestController extends Controller
             return $response;
         }
 
+        TrainingParticipant::capture(request()->user(), $test->training_id);
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -115,6 +118,8 @@ class TestController extends Controller
         if ($response = $this->testAccessError($test)) {
             return $response;
         }
+
+        TrainingParticipant::capture($request->user(), $test->training_id);
 
         if ($test->type === 'pretest' && $visibleResult = $this->visibleResultForCurrentUser($test)) {
             return response()->json([

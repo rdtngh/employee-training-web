@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Certificate;
 use App\Models\TestResult;
 use App\Models\Training;
+use App\Models\TrainingParticipant;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -213,6 +214,10 @@ class CertificateController extends Controller
         $training = $test?->training;
         $user = $certificate->user;
         $completionDate = $result?->finished_at ?? $certificate->issued_at;
+        $department = TrainingParticipant::query()
+            ->where('training_id', $training?->id)
+            ->where('user_id', $user?->id)
+            ->value('department') ?? $user?->department;
 
         return [
             'id' => $certificate->id,
@@ -226,7 +231,7 @@ class CertificateController extends Controller
                 'id' => $user?->id,
                 'employee_number' => $user?->employee_number,
                 'name' => $user?->name,
-                'department' => $user?->department,
+                'department' => $department,
                 'position' => $user?->position,
                 'email' => $user?->email,
             ],

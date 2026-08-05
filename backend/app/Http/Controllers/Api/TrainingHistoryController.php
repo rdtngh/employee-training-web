@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PostTestAccess;
 use App\Models\TestResult;
 use App\Models\Training;
+use App\Models\TrainingParticipant;
 use App\Models\User;
 use App\Models\UserAnswer;
 use App\Models\UserMaterial;
@@ -69,6 +70,7 @@ class TrainingHistoryController extends Controller
             UserAnswer::query()->where('user_id', $user->id)->whereIn('question_id', $questionIds)->delete();
             UserMaterial::query()->where('user_id', $user->id)->whereIn('material_id', $materialIds)->delete();
             PostTestAccess::query()->where('user_id', $user->id)->where('training_id', $training->id)->delete();
+            TrainingParticipant::query()->where('user_id', $user->id)->where('training_id', $training->id)->delete();
 
             return TestResult::query()
                 ->where('user_id', $user->id)
@@ -94,6 +96,7 @@ class TrainingHistoryController extends Controller
         return TestResult::query()
             ->with([
                 'user:id,employee_number,name,department,position,email,role_id',
+                'user.trainingParticipations:id,user_id,training_id,department',
                 'test:id,training_id,type',
                 'test.training:id,title,start_date,end_date,certificate_template_path,certificate_template_settings',
                 'certificate:id,user_id,test_result_id,certificate_number,issued_at',
@@ -130,11 +133,15 @@ class TrainingHistoryController extends Controller
         ];
 
         if ($includeEmployee) {
+            $department = $result->user->trainingParticipations
+                ->firstWhere('training_id', $training->id)?->department
+                ?? $result->user->department;
+
             $payload['employee'] = [
                 'id' => $result->user->id,
                 'employee_number' => $result->user->employee_number,
                 'name' => $result->user->name,
-                'department' => $result->user->department,
+                'department' => $department,
                 'position' => $result->user->position,
                 'email' => $result->user->email,
             ];

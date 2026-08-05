@@ -7,12 +7,13 @@ use App\Http\Requests\MaterialRequest;
 use App\Models\Material;
 use App\Models\MaterialFile;
 use App\Models\TestResult;
+use App\Models\TrainingParticipant;
 use App\Models\UserMaterial;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Str;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class MaterialController extends Controller
 {
@@ -99,6 +100,8 @@ class MaterialController extends Controller
                 'message' => 'Pre-Test harus dikerjakan sebelum membuka materi.',
             ], 403);
         }
+
+        TrainingParticipant::capture($request->user(), $material->training_id);
 
         UserMaterial::updateOrCreate(
             [
@@ -260,7 +263,7 @@ class MaterialController extends Controller
                 'order_number' => $orderNumber,
             ]);
 
-            $filename = Str::random(12) . '_' . $this->sanitizeFileName($validated['original_name']);
+            $filename = Str::random(12).'_'.$this->sanitizeFileName($validated['original_name']);
             $path = "materials/{$filename}";
             Storage::disk('local')->makeDirectory('materials');
             $target = Storage::disk('local')->path($path);
@@ -292,7 +295,6 @@ class MaterialController extends Controller
             'data' => $material,
         ], 201);
     }
-
 
     public function update(MaterialRequest $request, Material $material): JsonResponse
     {
@@ -359,7 +361,7 @@ class MaterialController extends Controller
         $files = is_array($files) ? $files : [$files];
 
         foreach ($files as $file) {
-            if (!$file || !$file->isValid()) {
+            if (! $file || ! $file->isValid()) {
                 continue;
             }
 
@@ -385,7 +387,7 @@ class MaterialController extends Controller
 
     private function storeUploadedFile($file, Material $material): void
     {
-        $filename = Str::random(12) . '_' . $this->sanitizeFileName($file->getClientOriginalName());
+        $filename = Str::random(12).'_'.$this->sanitizeFileName($file->getClientOriginalName());
         $path = $file->storeAs('materials', $filename, 'local');
 
         MaterialFile::create([

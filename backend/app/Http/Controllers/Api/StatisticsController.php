@@ -259,7 +259,7 @@ class StatisticsController extends Controller
         $pretestResults = $this->latestResultsByType($training, 'pretest');
         $posttestResults = $this->latestResultsByType($training, 'posttest');
         $topScoreResults = $posttestResults;
-        $participantRows = $this->participantScoreRows($pretestResults, $posttestResults);
+        $participantRows = $this->participantScoreRows($training, $pretestResults, $posttestResults);
         $attendanceRows = $this->attendanceRows($training, $pretestResults, $posttestResults);
         $materialCount = $training->materials()->count();
         $posttestCount = $posttestResults->count();
@@ -298,7 +298,11 @@ class StatisticsController extends Controller
     private function latestResultsByType(Training $training, string $type)
     {
         return TestResult::query()
-            ->with(['user:id,employee_number,name,department,position,email', 'test:id,training_id,type,passing_score'])
+            ->with([
+                'user:id,employee_number,name,department,position,email',
+                'user.trainingParticipations' => fn ($query) => $query->where('training_id', $training->id),
+                'test:id,training_id,type,passing_score',
+            ])
             ->whereHas('test', function ($query) use ($training, $type) {
                 $query->where('training_id', $training->id)
                     ->where('type', $type);
@@ -313,7 +317,7 @@ class StatisticsController extends Controller
             ->values();
     }
 
-    private function participantScoreRows($pretestResults, $posttestResults): array
+    private function participantScoreRows(Training $training, $pretestResults, $posttestResults): array
     {
         $pretestByUser = $pretestResults->keyBy('user_id');
         $posttestByUser = $posttestResults->keyBy('user_id');
@@ -322,7 +326,7 @@ class StatisticsController extends Controller
             ->keys()
             ->merge($posttestByUser->keys())
             ->unique()
-            ->map(function ($userId) use ($pretestByUser, $posttestByUser) {
+            ->map(function ($userId) use ($training, $pretestByUser, $posttestByUser) {
                 $pretest = $pretestByUser->get($userId);
                 $posttest = $posttestByUser->get($userId);
                 $user = $posttest?->user ?? $pretest?->user;
@@ -331,7 +335,7 @@ class StatisticsController extends Controller
                     'user_id' => $user?->id,
                     'employee_number' => $user?->employee_number,
                     'employee_name' => $user?->name,
-                    'department' => $user?->department,
+                    'department' => $this->participantDepartment($user, $training),
                     'position' => $user?->position,
                     'email' => $user?->email,
                     'pretest_score' => $pretest?->score,
@@ -383,7 +387,7 @@ class StatisticsController extends Controller
             ->groupBy('user_id');
 
         return $candidateUserIds
-            ->map(function ($userId) use ($pretestByUser, $posttestByUser, $completedMaterialsByUser, $materialIds) {
+            ->map(function ($userId) use ($training, $pretestByUser, $posttestByUser, $completedMaterialsByUser, $materialIds) {
                 $completedMaterials = $completedMaterialsByUser->get($userId, collect());
 
                 if ($completedMaterials->pluck('material_id')->unique()->count() < $materialIds->count()) {
@@ -399,7 +403,7 @@ class StatisticsController extends Controller
                     'user_id' => $user?->id,
                     'employee_number' => $user?->employee_number,
                     'employee_name' => $user?->name,
-                    'department' => $user?->department,
+                    'department' => $this->participantDepartment($user, $training),
                     'position' => $user?->position,
                     'email' => $user?->email,
                     'login_status' => 'Sudah login',
@@ -415,6 +419,13 @@ class StatisticsController extends Controller
             ->sortBy(fn ($row) => strtolower((string) $row['employee_name']).'|'.(string) $row['employee_number'])
             ->values()
             ->all();
+    }
+
+    private function participantDepartment($user, Training $training): ?string
+    {
+        return $user?->trainingParticipations
+            ?->firstWhere('training_id', $training->id)?->department
+            ?? $user?->department;
     }
 
     private function topScores($posttestResults): array
@@ -629,7 +640,7 @@ class StatisticsController extends Controller
         }
 
         $path = $directory.DIRECTORY_SEPARATOR.$filename;
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
 
         if ($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             abort(500, 'File export gagal dibuat.');
@@ -656,7 +667,7 @@ class StatisticsController extends Controller
         }
 
         $path = $directory.DIRECTORY_SEPARATOR.$filename;
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
 
         if ($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             abort(500, 'File export gagal dibuat.');

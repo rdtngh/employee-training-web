@@ -67,7 +67,7 @@ class CertificateController extends Controller
                 'employee_name' => $request->user()->name,
                 'training_title' => $training->title,
                 'certificate_number' => $this->certificateDisplayNumber($certificate, $result->finished_at),
-                'sequence_number' => $this->certificateSequence($certificate),
+                'sequence_number' => $this->certificateSequence($certificate, $result->finished_at),
                 'roman_month' => $this->romanMonth($result->finished_at),
                 'year' => optional($result->finished_at)->format('Y'),
                 'completion_date' => optional($result->finished_at)->toDateString(),
@@ -217,7 +217,7 @@ class CertificateController extends Controller
         return [
             'id' => $certificate->id,
             'certificate_number' => $this->certificateDisplayNumber($certificate, $completionDate),
-            'sequence_number' => $this->certificateSequence($certificate),
+            'sequence_number' => $this->certificateSequence($certificate, $completionDate),
             'roman_month' => $this->romanMonth($completionDate),
             'year' => optional($completionDate)->format('Y'),
             'completion_date' => optional($completionDate)->toDateString(),
@@ -256,7 +256,7 @@ class CertificateController extends Controller
             return 'NO: '.$rawNumber;
         }
 
-        $sequence = ctype_digit($rawNumber) ? $rawNumber : (string) $this->certificateSequence($certificate);
+        $sequence = (string) $this->certificateSequence($certificate, $date);
         $romanMonth = $this->romanMonth($date);
         $year = optional($date)->format('Y');
 
@@ -328,9 +328,15 @@ class CertificateController extends Controller
         ];
     }
 
-    private function certificateSequence(Certificate $certificate): int
+    private function certificateSequence(Certificate $certificate, $date = null): int
     {
         if (! $certificate->id) {
+            return 0;
+        }
+
+        $year = optional($date ?? $certificate->issued_at)->format('Y');
+
+        if (! $year) {
             return 0;
         }
 
@@ -340,6 +346,9 @@ class CertificateController extends Controller
             })
             ->whereHas('user.role', function ($query) {
                 $query->where('name', 'Karyawan');
+            })
+            ->whereHas('testResult', function ($query) use ($year) {
+                $query->whereYear('finished_at', $year);
             })
             ->where('id', '<=', $certificate->id)
             ->count();

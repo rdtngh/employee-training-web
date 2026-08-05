@@ -13,6 +13,7 @@ use App\Models\Training;
 use App\Models\User;
 use App\Models\UserAnswer;
 use App\Models\UserMaterial;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -103,6 +104,36 @@ class TrainingHistoryTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.employee.name', 'Karyawan')
             ->assertJsonPath('data.training.title', $training->title);
+    }
+
+    public function test_certificate_sequence_restarts_from_one_each_year(): void
+    {
+        [$admin, $employee] = $this->users();
+        [$training2026A, $test2026A] = $this->trainingWithPostTest('Pelatihan 2026 A');
+        [$training2026B, $test2026B] = $this->trainingWithPostTest('Pelatihan 2026 B');
+        [$training2027, $test2027] = $this->trainingWithPostTest('Pelatihan 2027');
+        $date2026A = Carbon::parse('2026-08-01 10:00:00');
+        $date2026B = Carbon::parse('2026-09-01 10:00:00');
+        $date2027 = Carbon::parse('2027-01-05 10:00:00');
+
+        $result2026A = $this->createTestResult($employee, $test2026A, 'Lulus', $date2026A);
+        $result2026B = $this->createTestResult($employee, $test2026B, 'Lulus', $date2026B);
+        $result2027 = $this->createTestResult($employee, $test2027, 'Lulus', $date2027);
+        Certificate::create(['user_id' => $employee->id, 'test_result_id' => $result2026A->id, 'certificate_number' => 'LEGACY-1', 'file_path' => '', 'issued_at' => $date2026A]);
+        $certificate2026B = Certificate::create(['user_id' => $employee->id, 'test_result_id' => $result2026B->id, 'certificate_number' => 'LEGACY-2', 'file_path' => '', 'issued_at' => $date2026B]);
+        $certificate2027 = Certificate::create(['user_id' => $employee->id, 'test_result_id' => $result2027->id, 'certificate_number' => 'LEGACY-3', 'file_path' => '', 'issued_at' => $date2027]);
+
+        Sanctum::actingAs($admin);
+
+        $this->getJson("/api/certificates/{$certificate2026B->id}/preview")
+            ->assertOk()
+            ->assertJsonPath('data.sequence_number', 2)
+            ->assertJsonPath('data.certificate_number', 'NO: 2/DIKLATLIT-RSABL/IX/2026');
+
+        $this->getJson("/api/certificates/{$certificate2027->id}/preview")
+            ->assertOk()
+            ->assertJsonPath('data.sequence_number', 1)
+            ->assertJsonPath('data.certificate_number', 'NO: 1/DIKLATLIT-RSABL/I/2027');
     }
 
     private function users(): array

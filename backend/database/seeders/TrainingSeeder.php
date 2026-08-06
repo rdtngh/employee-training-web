@@ -22,5 +22,16 @@ class TrainingSeeder extends Seeder
                 'is_active' => true,
             ]
         );
+
+        Training::updateOrCreate(
+            ['is_general_orientation' => true],
+            [
+                'title' => 'Orientasi Umum',
+                'description' => 'Orientasi umum tetap untuk karyawan baru dan mahasiswa/pelajar.',
+                'start_date' => null,
+                'end_date' => null,
+                'is_active' => true,
+            ]
+        );
     }
 }

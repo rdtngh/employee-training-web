@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import Certificate from "./Certificate";
+import * as certificateService from "../../services/certificateService";
 import {
   buildCertificatePngFilename,
   downloadCertificateAsPng,
@@ -108,11 +109,17 @@ function CertificateDashboard({ certificateData, loading, error }) {
     setDownloadingCertificateId(certificate.id);
 
     try {
-      const payload = certificateDownloadPayload(certificate);
-      await downloadCertificateAsPng(
-        payload,
-        buildCertificatePngFilename(payload, certificate.training?.id)
-      );
+      if (certificate.training?.is_general_orientation) {
+        certificateService.saveCertificateBlob(
+          await certificateService.downloadCertificateFile(certificate.id)
+        );
+      } else {
+        const payload = certificateDownloadPayload(certificate);
+        await downloadCertificateAsPng(
+          payload,
+          buildCertificatePngFilename(payload, certificate.training?.id)
+        );
+      }
     } catch (error) {
       setDownloadError(
         error.message || "Sertifikat gagal didownload. Silakan coba lagi."
@@ -127,6 +134,13 @@ function CertificateDashboard({ certificateData, loading, error }) {
 
     if (certificatesToPrint.length === 0) {
       setDownloadError("Tidak ada sertifikat untuk didownload.");
+      return;
+    }
+
+    if (certificatesToPrint.some((certificate) => certificate.training?.is_general_orientation)) {
+      setDownloadError(
+        "Sertifikat Orientasi Umum terdiri dari dua halaman. Unduh sertifikat tersebut satu per satu agar PDF tetap lengkap."
+      );
       return;
     }
 
@@ -290,7 +304,11 @@ function CertificateDashboard({ certificateData, loading, error }) {
                           onClick={() => downloadCertificate(certificate)}
                           disabled={isBulkPrinting || downloadingCertificateId === certificate.id}
                         >
-                          {downloadingCertificateId === certificate.id ? "Mengunduh..." : "Download PNG"}
+                          {downloadingCertificateId === certificate.id
+                            ? "Mengunduh..."
+                            : certificate.training?.is_general_orientation
+                              ? "Download PDF"
+                              : "Download PNG"}
                         </button>
                       </td>
                     </tr>

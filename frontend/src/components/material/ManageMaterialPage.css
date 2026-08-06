@@ -474,3 +474,11 @@
     padding: 20px 14px 24px;
   }
 }
+.manage-certificate-template-pdf {
+  display: block;
+  width: 100%;
+  min-height: 520px;
+  border: 1px solid #d7dee8;
+  border-radius: 10px;
+  background: #f8fafc;
+}

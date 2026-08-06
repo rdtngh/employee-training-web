@@ -100,6 +100,17 @@ export const getCertificatePreview = async (trainingId) => {
   return payload;
 };
 
+export const saveCertificateBlob = ({ blob, filename }) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
 export const getAdminCertificatePreview = async (certificateId) => {
   const response = await api.get(`/certificates/${certificateId}/preview`);
   return response.data?.data ?? response.data;

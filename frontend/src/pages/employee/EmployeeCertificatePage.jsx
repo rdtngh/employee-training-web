@@ -60,10 +60,16 @@ function EmployeeCertificatePage() {
     setDownloading(true);
 
     try {
-      await downloadCertificateAsPng(
-        certificateData,
-        buildCertificatePngFilename(certificateData, trainingId)
-      );
+      if (certificateData.is_general_orientation) {
+        certificateService.saveCertificateBlob(
+          await certificateService.downloadCertificate(trainingId)
+        );
+      } else {
+        await downloadCertificateAsPng(
+          certificateData,
+          buildCertificatePngFilename(certificateData, trainingId)
+        );
+      }
     } catch (error) {
       setDownloadError(
         error.message || "Sertifikat gagal didownload. Silakan coba lagi."
@@ -107,16 +113,25 @@ function EmployeeCertificatePage() {
         )}
         {!loading && !error && (
           <section className="employee-certificate-stage">
-            <Certificate
-              employeeName={certificateData.employee_name}
-              trainingTitle={certificateData.training_title}
-              certificateNumber={certificateData.certificate_number}
-              sequenceNumber={certificateData.sequence_number}
-              romanMonth={certificateData.roman_month}
-              year={certificateData.year}
-              completionDate={certificateData.completion_date || certificateData.issued_at}
-              certificateTemplate={certificateData.certificate_template}
-            />
+            {certificateData.is_general_orientation ? (
+              <div className="employee-certificate-state">
+                <p>Sertifikat Orientasi Umum terdiri dari dua halaman dan diunduh sebagai PDF.</p>
+                <p>
+                  Materi: {certificateData.orientation_materials?.join(", ")}
+                </p>
+              </div>
+            ) : (
+              <Certificate
+                employeeName={certificateData.employee_name}
+                trainingTitle={certificateData.training_title}
+                certificateNumber={certificateData.certificate_number}
+                sequenceNumber={certificateData.sequence_number}
+                romanMonth={certificateData.roman_month}
+                year={certificateData.year}
+                completionDate={certificateData.completion_date || certificateData.issued_at}
+                certificateTemplate={certificateData.certificate_template}
+              />
+            )}
           </section>
         )}
         <button

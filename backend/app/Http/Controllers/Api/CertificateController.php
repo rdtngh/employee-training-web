@@ -12,10 +12,43 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use setasign\Fpdi\Fpdi;
+use Throwable;
 
 class CertificateController extends Controller
 {
+    private const ORIENTATION_BHD_DEPARTMENTS = [
+        'igd',
+        'rawat jalan',
+        'kamar operasi',
+        'ibs',
+        'kamar operasi ibs',
+        'mahoni',
+        'kenanga',
+        'mahoni kenanga',
+        'elim 2',
+        'elim 3',
+        'cemara',
+        'cendana',
+        'tapis',
+        'akasia',
+        'pinus',
+        'akasia pinus',
+        'elim 5',
+        'icu',
+        'medis',
+    ];
+
+    private const ORIENTATION_MATERIALS = [
+        'BUDAYA DAN PERATURAN RS',
+        'PENINGKATAN MUTU DAN KESELAMATAN RUMAH SAKIT',
+        'PENCEGAHAN PENULARAN INFEKSI',
+        'PENGGUNAAN ALAT PEMADAM API RINGAN',
+        'KOMUNIKASI EFEKTIF',
+    ];
+
     public function index(): JsonResponse
     {
         $this->ensureCertificatesForPassedPostTests();
@@ -25,7 +58,7 @@ class CertificateController extends Controller
                 'user:id,employee_number,name,department,position,email',
                 'testResult:id,user_id,test_id,score,status,finished_at',
                 'testResult.test:id,training_id,type',
-                'testResult.test.training:id,title,is_testing_certificate,certificate_template_path,certificate_template_settings',
+                'testResult.test.training:id,title,is_testing_certificate,is_general_orientation,certificate_template_path,certificate_template_settings',
             ])
             ->whereHas('testResult.test', function ($query) {
                 $query->where('type', 'posttest');
@@ -63,6 +96,11 @@ class CertificateController extends Controller
         }
 
         $certificate = $this->firstOrCreateCertificate($request->user()->id, $result);
+        $department = TrainingParticipant::query()
+            ->where('training_id', $training->id)
+            ->where('user_id', $request->user()->id)
+            ->value('department') ?? $request->user()->department;
+        $isOrientation = $this->isGeneralOrientation($training);
 
         return response()->json([
             'success' => true,
@@ -76,6 +114,10 @@ class CertificateController extends Controller
                 'completion_date' => optional($result->finished_at)->toDateString(),
                 'issued_at' => optional($certificate->issued_at)->toDateString(),
                 'certificate_template' => $this->certificateTemplatePayload($training),
+                'is_general_orientation' => $isOrientation,
+                'orientation_materials' => $isOrientation ? $this->orientationMaterials($department) : [],
+                'orientation_has_bhd' => $isOrientation
+                    && in_array($this->normalizedLabel($department), self::ORIENTATION_BHD_DEPARTMENTS, true),
                 'eligible' => true,
             ],
         ]);
@@ -104,7 +146,7 @@ class CertificateController extends Controller
         $certificate->load([
             'user.role',
             'testResult.user',
-            'testResult.test.training:id,title,is_testing_certificate,certificate_template_path,certificate_template_settings',
+            'testResult.test.training:id,title,is_testing_certificate,is_general_orientation,certificate_template_path,certificate_template_settings',
         ]);
 
         abort_unless(
@@ -128,7 +170,7 @@ class CertificateController extends Controller
             'user.role:id,name',
             'testResult:id,user_id,test_id,score,status,finished_at',
             'testResult.test:id,training_id,type',
-            'testResult.test.training:id,title,is_testing_certificate,certificate_template_path,certificate_template_settings',
+            'testResult.test.training:id,title,is_testing_certificate,is_general_orientation,certificate_template_path,certificate_template_settings',
         ]);
 
         abort_unless(
@@ -244,6 +286,7 @@ class CertificateController extends Controller
                 'title' => $training?->title,
                 'is_testing_certificate' => $training?->is_testing_certificate ?? false,
                 'certificate_template' => $this->certificateTemplatePayload($training),
+                'is_general_orientation' => $training ? $this->isGeneralOrientation($training) : false,
             ],
             'result' => [
                 'id' => $result?->id,
@@ -289,6 +332,7 @@ class CertificateController extends Controller
 
         return [
             'background_url' => url("/api/trainings/{$training->id}/certificate-template/background"),
+            'format' => strtolower(pathinfo($training->certificate_template_path, PATHINFO_EXTENSION)),
             'settings' => $training->certificate_template_settings
                 ?: $this->defaultCertificateTemplateSettings(),
         ];
@@ -431,6 +475,10 @@ class CertificateController extends Controller
     {
         $completionDate = $result->finished_at ?? $certificate->issued_at ?? now();
 
+        if ($this->isGeneralOrientation($training)) {
+            return $this->buildOrientationPdf($certificate, $result, $training, $completionDate);
+        }
+
         return Pdf::loadView('certificates.template', [
             'participantName' => Str::title($result->user->name),
             'trainingTitle' => $training->title,
@@ -442,6 +490,151 @@ class CertificateController extends Controller
         ])
             ->setPaper('a4', 'landscape')
             ->output();
+    }
+
+    private function buildOrientationPdf(
+        Certificate $certificate,
+        TestResult $result,
+        Training $training,
+        $completionDate
+    ): string {
+        abort_unless(
+            $training->certificate_template_path,
+            422,
+            'Template PDF dua halaman untuk Orientasi Umum belum diunggah.'
+        );
+
+        $templatePath = Storage::disk('local')->path($training->certificate_template_path);
+
+        abort_unless(
+            is_file($templatePath) && strtolower(pathinfo($templatePath, PATHINFO_EXTENSION)) === 'pdf',
+            422,
+            'Template Orientasi Umum harus berupa PDF dua halaman.'
+        );
+
+        $pdf = new Fpdi('L', 'mm', 'A4');
+        $pdf->SetAutoPageBreak(false);
+
+        try {
+            $pageCount = $pdf->setSourceFile($templatePath);
+        } catch (Throwable $exception) {
+            abort(422, 'Template PDF Orientasi Umum tidak dapat dibaca. Unggah ulang PDF yang valid.');
+        }
+
+        abort_unless($pageCount === 2, 422, 'Template Orientasi Umum harus tepat dua halaman.');
+
+        for ($pageNumber = 1; $pageNumber <= 2; $pageNumber++) {
+            $templateId = $pdf->importPage($pageNumber);
+            $size = $pdf->getTemplateSize($templateId);
+            $orientation = $size['width'] > $size['height'] ? 'L' : 'P';
+            $pdf->AddPage($orientation, [$size['width'], $size['height']]);
+            $pdf->useTemplate($templateId);
+
+            if ($pageNumber === 1) {
+                $this->writeOrientationParticipantData($pdf, $certificate, $result, $training, $completionDate, $size);
+            } else {
+                $department = TrainingParticipant::query()
+                    ->where('training_id', $training->id)
+                    ->where('user_id', $result->user_id)
+                    ->value('department') ?? $result->user?->department;
+
+                $this->writeOrientationMaterials($pdf, $this->orientationMaterials($department), $size);
+            }
+        }
+
+        return $pdf->Output('S');
+    }
+
+    private function writeOrientationParticipantData(
+        Fpdi $pdf,
+        Certificate $certificate,
+        TestResult $result,
+        Training $training,
+        $completionDate,
+        array $pageSize
+    ): void {
+        $settings = $training->certificate_template_settings ?: $this->defaultCertificateTemplateSettings();
+        $values = [
+            'certificate_number' => $this->certificateDisplayNumber($certificate, $completionDate),
+            'employee_name' => Str::title($result->user->name),
+            'training_title' => Str::upper($training->title),
+            'completion_date' => 'Diselenggarakan pada tanggal '.$this->indonesianDate($completionDate),
+        ];
+
+        foreach ($values as $key => $value) {
+            $field = $settings['fields'][$key] ?? $this->defaultCertificateTemplateSettings()['fields'][$key];
+            $x = ((float) $field['x'] / 841) * $pageSize['width'];
+            $y = ((float) $field['y'] / 595) * $pageSize['height'];
+            $width = ((float) $field['width'] / 841) * $pageSize['width'];
+            $fontSize = max(8, min(96, (float) $field['fontSize']));
+            $style = ((string) ($field['fontWeight'] ?? '400')) >= '600' ? 'B' : '';
+            $align = match ($field['align'] ?? 'center') {
+                'left' => 'L',
+                'right' => 'R',
+                default => 'C',
+            };
+
+            $pdf->SetTextColor(...$this->hexToRgb($field['color'] ?? '#000000'));
+            $pdf->SetFont('Helvetica', $style, $fontSize);
+            $pdf->SetXY($x, $y);
+            $pdf->Cell($width, 8, $this->pdfLatinText($value), 0, 0, $align);
+        }
+    }
+
+    private function writeOrientationMaterials(Fpdi $pdf, array $materials, array $pageSize): void
+    {
+        $tableWidth = min(255, $pageSize['width'] - 40);
+        $numberWidth = 20;
+        $rowHeight = 9;
+        $x = ($pageSize['width'] - $tableWidth) / 2;
+        $y = 28;
+
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetDrawColor(0, 0, 0);
+        $pdf->SetLineWidth(.25);
+        $pdf->SetFont('Helvetica', 'B', 11);
+        $pdf->SetXY($x, $y);
+        $pdf->Cell($numberWidth, $rowHeight, 'NO', 1, 0, 'C');
+        $pdf->Cell($tableWidth - $numberWidth, $rowHeight, 'MATERI', 1, 1, 'C');
+
+        foreach ($materials as $index => $material) {
+            $pdf->SetX($x);
+            $pdf->Cell($numberWidth, $rowHeight, (string) ($index + 1), 1, 0, 'C');
+            $pdf->Cell($tableWidth - $numberWidth, $rowHeight, $this->pdfLatinText($material), 1, 1, 'C');
+        }
+    }
+
+    private function orientationMaterials(?string $department): array
+    {
+        $materials = self::ORIENTATION_MATERIALS;
+
+        if (in_array($this->normalizedLabel($department), self::ORIENTATION_BHD_DEPARTMENTS, true)) {
+            array_splice($materials, 3, 0, ['BANTUAN HIDUP DASAR']);
+        }
+
+        return $materials;
+    }
+
+    private function isGeneralOrientation(Training $training): bool
+    {
+        return (bool) $training->is_general_orientation;
+    }
+
+    private function normalizedLabel(?string $value): string
+    {
+        return trim(preg_replace('/\s+/', ' ', Str::lower(preg_replace('/[^\pL\pN]+/u', ' ', (string) $value))));
+    }
+
+    private function pdfLatinText(string $value): string
+    {
+        return iconv('UTF-8', 'windows-1252//TRANSLIT//IGNORE', $value) ?: $value;
+    }
+
+    private function hexToRgb(string $color): array
+    {
+        $hex = ltrim($color, '#');
+
+        return [hexdec(substr($hex, 0, 2)), hexdec(substr($hex, 2, 2)), hexdec(substr($hex, 4, 2))];
     }
 
     private function certificateAssetDataUris(): array

@@ -15,6 +15,9 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use setasign\Fpdi\Fpdi;
+use Throwable;
 
 class TrainingController extends Controller
 {
@@ -101,6 +104,8 @@ class TrainingController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
 
+        $this->rejectReservedOrientationTitle($validated['title']);
+
         $accessCode = trim((string) ($validated['post_test_access_code'] ?? ''));
 
         $training = Training::create([
@@ -127,9 +132,15 @@ class TrainingController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
 
+        if (! $training->is_general_orientation) {
+            $this->rejectReservedOrientationTitle($validated['title']);
+        }
+
         $updates = [
-            'title' => $validated['title'],
-            'is_active' => $request->boolean('is_active', (bool) $training->is_active),
+            'title' => $training->is_general_orientation ? 'Orientasi Umum' : $validated['title'],
+            'is_active' => $training->is_general_orientation
+                ? true
+                : $request->boolean('is_active', (bool) $training->is_active),
         ];
 
         $resetPostTestAccesses = false;
@@ -221,21 +232,44 @@ class TrainingController extends Controller
 
     public function uploadCertificateTemplate(Request $request, Training $training): JsonResponse
     {
+        $isOrientation = $this->isGeneralOrientation($training);
         $validated = $request->validate([
             'template' => [
                 'required',
                 'file',
                 'max:8192',
-                'mimes:jpg,jpeg,png,webp',
-                'mimetypes:image/jpeg,image/png,image/webp',
+                $isOrientation ? 'mimes:pdf' : 'mimes:jpg,jpeg,png,webp',
+                $isOrientation
+                    ? 'mimetypes:application/pdf,application/x-pdf'
+                    : 'mimetypes:image/jpeg,image/png,image/webp',
             ],
         ], [
             'template.required' => 'File template sertifikat wajib dipilih.',
             'template.max' => 'Ukuran template sertifikat maksimal 8MB.',
-            'template.mimes' => 'Template sertifikat harus berupa JPG, PNG, atau WEBP.',
+            'template.mimes' => $isOrientation
+                ? 'Template Orientasi Umum harus berupa PDF dua halaman.'
+                : 'Template sertifikat harus berupa JPG, PNG, atau WEBP.',
         ]);
 
         $file = $validated['template'];
+
+        if ($isOrientation) {
+            try {
+                $pdf = new Fpdi;
+                $pageCount = $pdf->setSourceFile($file->getRealPath());
+            } catch (Throwable $exception) {
+                throw ValidationException::withMessages([
+                    'template' => 'Template PDF tidak dapat dibaca. Pilih PDF yang valid.',
+                ]);
+            }
+
+            if ($pageCount !== 2) {
+                throw ValidationException::withMessages([
+                    'template' => 'Template Orientasi Umum harus tepat dua halaman.',
+                ]);
+            }
+        }
+
         $filename = Str::random(12).'_'.$this->sanitizeFileName($file->getClientOriginalName());
         $path = $file->storeAs('certificate-templates', $filename, 'local');
 
@@ -315,6 +349,8 @@ class TrainingController extends Controller
 
     public function destroy(Training $training): JsonResponse
     {
+        abort_if($training->is_general_orientation, 422, 'Pelatihan Orientasi Umum bersifat tetap dan tidak dapat dihapus.');
+
         $training->load('materials.files');
 
         foreach ($training->materials as $material) {
@@ -525,7 +561,7 @@ class TrainingController extends Controller
 
         try {
             return Crypt::decryptString($training->post_test_access_code_encrypted);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
     }
@@ -561,9 +597,26 @@ class TrainingController extends Controller
 
         return [
             'background_url' => url("/api/trainings/{$training->id}/certificate-template/background"),
+            'format' => strtolower(pathinfo($training->certificate_template_path, PATHINFO_EXTENSION)),
             'settings' => $training->certificate_template_settings
                 ?: $this->defaultCertificateTemplateSettings(),
         ];
+    }
+
+    private function isGeneralOrientation(Training $training): bool
+    {
+        return (bool) $training->is_general_orientation;
+    }
+
+    private function rejectReservedOrientationTitle(string $title): void
+    {
+        $normalized = trim(preg_replace('/\s+/', ' ', Str::lower($title)));
+
+        if ($normalized === 'orientasi umum') {
+            throw ValidationException::withMessages([
+                'title' => 'Orientasi Umum sudah tersedia sebagai pelatihan tetap.',
+            ]);
+        }
     }
 
     private function deleteCertificateTemplateFile(Training $training): void

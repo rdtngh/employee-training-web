@@ -122,6 +122,7 @@ function ManageMaterialPage({ role }) {
   const [deletingTraining, setDeletingTraining] = useState(null);
   const [deletingTrainingLoading, setDeletingTrainingLoading] = useState(false);
   const selectedTraining = trainings.find((training) => String(training.id) === String(trainingId));
+  const isGeneralOrientation = Boolean(selectedTraining?.is_general_orientation);
   const {
     materials,
     loading,
@@ -660,13 +661,15 @@ function ManageMaterialPage({ role }) {
                                 >
                                   Edit
                                 </button>
-                                <button
-                                  type="button"
-                                  className="material-action material-action-delete"
-                                  onClick={() => setDeletingTraining(training)}
-                                >
-                                  Hapus
-                                </button>
+                                {!training.is_general_orientation && (
+                                  <button
+                                    type="button"
+                                    className="material-action material-action-delete"
+                                    onClick={() => setDeletingTraining(training)}
+                                  >
+                                    Hapus
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -795,7 +798,7 @@ function ManageMaterialPage({ role }) {
           </div>
 
           <form className="manage-certificate-template-form" onSubmit={handleUploadCertificateTemplate}>
-            {selectedTraining?.certificate_template?.background_url && (
+            {selectedTraining?.certificate_template?.background_url && !isGeneralOrientation && (
               <div
                 className="manage-certificate-template-editor"
                 ref={certificateEditorRef}
@@ -822,12 +825,26 @@ function ManageMaterialPage({ role }) {
                 ))}
               </div>
             )}
+            {selectedTraining?.certificate_template?.background_url && isGeneralOrientation && (
+              <object
+                className="manage-certificate-template-pdf"
+                data={selectedTraining.certificate_template.background_url}
+                type="application/pdf"
+                aria-label="Preview template PDF Orientasi Umum"
+              >
+                <a href={selectedTraining.certificate_template.background_url} target="_blank" rel="noreferrer">
+                  Buka template PDF Orientasi Umum
+                </a>
+              </object>
+            )}
             <label className="manage-certificate-template-field" htmlFor="certificate-template-file">
-              File template sertifikat
+              {isGeneralOrientation
+                ? "File template Orientasi Umum (PDF tepat 2 halaman)"
+                : "File template sertifikat"}
               <input
                 id="certificate-template-file"
                 type="file"
-                accept="image/png,image/jpeg,image/webp"
+                accept={isGeneralOrientation ? "application/pdf" : "image/png,image/jpeg,image/webp"}
                 onChange={(event) => setCertificateTemplateFile(event.target.files?.[0] ?? null)}
                 disabled={certificateTemplateLoading}
               />
@@ -855,6 +872,11 @@ function ManageMaterialPage({ role }) {
 
           {selectedTraining?.certificate_template?.background_url && (
             <div className="manage-certificate-template-settings">
+              {isGeneralOrientation && (
+                <p className="manage-material-training-name">
+                  Posisi berikut berlaku untuk data halaman pertama. Daftar materi halaman kedua dibuat otomatis berdasarkan departemen peserta.
+                </p>
+              )}
               <label className="manage-certificate-template-setting">
                 Field
                 <select
@@ -1043,7 +1065,7 @@ function ManageMaterialPage({ role }) {
                 setEditTrainingTitle(event.target.value);
                 setEditTrainingError("");
               }}
-              disabled={editTrainingLoading}
+              disabled={editTrainingLoading || editingTraining.is_general_orientation}
               autoFocus
             />
             {editTrainingError && (
@@ -1056,7 +1078,7 @@ function ManageMaterialPage({ role }) {
                 type="checkbox"
                 checked={editTrainingActive}
                 onChange={(event) => setEditTrainingActive(event.target.checked)}
-                disabled={editTrainingLoading}
+                disabled={editTrainingLoading || editingTraining.is_general_orientation}
               />
               Pelatihan aktif
             </label>

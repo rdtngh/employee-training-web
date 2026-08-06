@@ -49,10 +49,16 @@ function AdminCertificatePreview() {
     setDownloading(true);
     setError("");
     try {
-      await downloadCertificateAsPng(
-        pngPayload,
-        buildCertificatePngFilename(pngPayload, certificate.training?.id)
-      );
+      if (certificate.training?.is_general_orientation) {
+        certificateService.saveCertificateBlob(
+          await certificateService.downloadCertificateFile(certificate.id)
+        );
+      } else {
+        await downloadCertificateAsPng(
+          pngPayload,
+          buildCertificatePngFilename(pngPayload, certificate.training?.id)
+        );
+      }
     } catch (downloadError) {
       setError(downloadError.message || "Sertifikat gagal didownload.");
     } finally {
@@ -74,7 +80,11 @@ function AdminCertificatePreview() {
       {error && <p className="employee-certificate-state employee-certificate-error" role="alert">{error}</p>}
       {!loading && !error && certificate && (
         <section className="employee-certificate-stage">
-          <Certificate
+          {certificate.training?.is_general_orientation ? (
+            <p className="employee-certificate-state">
+              Sertifikat Orientasi Umum terdiri dari dua halaman dan tersedia sebagai PDF.
+            </p>
+          ) : <Certificate
             employeeName={certificate.employee?.name}
             trainingTitle={certificate.training?.title}
             certificateNumber={certificate.certificate_number}
@@ -83,7 +93,7 @@ function AdminCertificatePreview() {
             year={certificate.year}
             completionDate={certificate.completion_date || certificate.issued_at}
             certificateTemplate={certificate.training?.certificate_template}
-          />
+          />}
         </section>
       )}
       <button type="button" className="employee-certificate-back" onClick={() => navigate(-1)}>Back</button>

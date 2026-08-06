@@ -305,6 +305,7 @@ class QuestionController extends Controller
 
             if ($questionText = $this->extractQuestionText($line)) {
                 if ($current !== null) {
+                    $this->resolveUnlabeledOptionLines($current);
                     $questions[] = $current;
                 }
 
@@ -320,6 +321,7 @@ class QuestionController extends Controller
                 }
 
                 [$optionLabel, $optionText] = $option;
+                $this->resolveUnlabeledOptionLines($current, false);
 
                 if (! in_array($optionLabel, self::ANSWERS, true)) {
                     $current['_format_errors'][] = 'Option '.$optionLabel.' tidak didukung. Gunakan A sampai D.';
@@ -354,6 +356,7 @@ class QuestionController extends Controller
                     continue;
                 }
 
+                $this->resolveUnlabeledOptionLines($current, true);
                 $current['correct_answer'] = $answer;
 
                 continue;
@@ -368,6 +371,7 @@ class QuestionController extends Controller
             $current['image_data'] ??= $imageData;
 
             if (trim($current['correct_answer'] ?? '') !== '') {
+                $this->resolveUnlabeledOptionLines($current);
                 $questions[] = $current;
                 $current = $this->emptyParsedQuestion($line);
 
@@ -378,21 +382,65 @@ class QuestionController extends Controller
                 ->contains(fn ($key) => trim($current[$key] ?? '') !== '');
 
             if ($hasOptionOrAnswer) {
-                $current['_format_errors'][] = 'Baris tidak dikenali: '.$line;
+                $lastOption = collect(self::ANSWERS)
+                    ->filter(fn (string $answer) => trim($current['option_'.strtolower($answer)] ?? '') !== '')
+                    ->last();
+
+                if ($lastOption && $this->hasEmptyOptionAfter($current, $lastOption)) {
+                    $key = 'option_'.strtolower($lastOption);
+                    $current[$key] = trim($current[$key].' '.$line);
+                } else {
+                    $current['_format_errors'][] = 'Baris tidak dikenali: '.$line;
+                }
 
                 continue;
             }
 
-            if ($current['question'] !== '') {
-                $current['question'] .= ' '.$line;
-            }
+            $current['_unlabeled_lines'][] = $line;
         }
 
         if ($current !== null) {
+            $this->resolveUnlabeledOptionLines($current);
             $questions[] = $current;
         }
 
         return array_values($questions);
+    }
+
+    private function resolveUnlabeledOptionLines(array &$question, bool $inferOptions = false): void
+    {
+        $lines = $question['_unlabeled_lines'] ?? [];
+        unset($question['_unlabeled_lines']);
+
+        if ($lines === []) {
+            return;
+        }
+
+        $hasOptions = collect(self::ANSWERS)
+            ->contains(fn (string $answer) => trim($question['option_'.strtolower($answer)] ?? '') !== '');
+
+        if ($inferOptions && ! $hasOptions && count($lines) === 4) {
+            foreach (self::ANSWERS as $index => $answer) {
+                $question['option_'.strtolower($answer)] = trim($lines[$index]);
+            }
+
+            return;
+        }
+
+        $question['question'] = trim($question['question'].' '.implode(' ', $lines));
+    }
+
+    private function hasEmptyOptionAfter(array $question, string $lastOption): bool
+    {
+        $lastIndex = array_search($lastOption, self::ANSWERS, true);
+
+        foreach (array_slice(self::ANSWERS, $lastIndex + 1) as $answer) {
+            if (trim($question['option_'.strtolower($answer)] ?? '') === '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function extractQuestionText(string $line): ?string
@@ -400,6 +448,7 @@ class QuestionController extends Controller
         $patterns = [
             '/^\s*(?:soal|pertanyaan|question|q|no\.?)\s*(?:nomor|no\.?)?\s*\d+\s*[\.\):\-\x{2013}\x{2014}]?\s*(.+)$/iu',
             '/^\s*\d+\s*[\.\):\-\x{2013}\x{2014}]\s*(.+)$/u',
+            '/^\s*\d+\s+(?=[\pL])(.+)$/u',
         ];
 
         foreach ($patterns as $pattern) {

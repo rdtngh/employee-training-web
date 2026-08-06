@@ -12,12 +12,18 @@ function PdfTemplatePage({ src, pageNumber, className = "" }) {
     async function renderPage() {
       try {
         setError("");
+        const response = await fetch(src);
+        if (!response.ok) {
+          throw new Error(`PDF request failed with status ${response.status}`);
+        }
+
+        const pdfData = new Uint8Array(await response.arrayBuffer());
         const [{ getDocument, GlobalWorkerOptions }, { default: pdfWorkerUrl }] = await Promise.all([
-          import("pdfjs-dist"),
-          import("pdfjs-dist/build/pdf.worker.min.mjs?url"),
+          import("pdfjs-dist/legacy/build/pdf.mjs"),
+          import("pdfjs-dist/legacy/build/pdf.worker.min.mjs?url"),
         ]);
         GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
-        loadingTask = getDocument(src);
+        loadingTask = getDocument({ data: pdfData });
         const document = await loadingTask.promise;
         const page = await document.getPage(pageNumber);
         const initialViewport = page.getViewport({ scale: 1 });
@@ -32,6 +38,7 @@ function PdfTemplatePage({ src, pageNumber, className = "" }) {
         await renderTask.promise;
       } catch (renderError) {
         if (!cancelled && renderError?.name !== "RenderingCancelledException") {
+          console.error("Failed to render certificate PDF template", renderError);
           setError("Halaman PDF gagal ditampilkan.");
         }
       }

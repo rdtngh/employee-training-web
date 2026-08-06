@@ -482,3 +482,31 @@
   border-radius: 10px;
   background: #f8fafc;
 }
+
+.manage-certificate-template-pdf-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  pointer-events: none;
+}
+
+.manage-certificate-materials-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 18px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.manage-certificate-materials-table-box {
+  position: absolute;
+  overflow: hidden;
+  border: 2px dashed #dc2626;
+  background: rgba(254, 226, 226, 0.65);
+  color: #991b1b;
+  font-family: Arial, sans-serif;
+  font-weight: 700;
+  cursor: move;
+  touch-action: none;
+}

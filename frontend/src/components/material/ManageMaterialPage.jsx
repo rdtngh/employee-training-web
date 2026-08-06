@@ -9,6 +9,7 @@ import EditMaterialDialog from "./EditMaterialDialog";
 import { useMaterials } from "../../hooks/useMaterials";
 import * as materialService from "../../services/materialService";
 import * as trainingService from "../../services/trainingService";
+import PdfTemplatePage from "../certificate/PdfTemplatePage";
 import listIcon from "../../assets/icons/icon-daftar-materi.svg";
 import addIcon from "../../assets/icons/icon-tambahmateri.svg";
 import "./ManageMaterialPage.css";
@@ -80,6 +81,13 @@ const defaultCertificateTemplateSettings = {
       fontWeight: "400",
     },
   },
+  materials_table: {
+    x: 71,
+    y: 79,
+    width: 699,
+    rowHeight: 25,
+    fontSize: 11,
+  },
 };
 const editorFontFamilies = Object.fromEntries(
   certificateTemplateFontOptions.map((font) => [font.value, font.css])
@@ -95,6 +103,10 @@ const mergeCertificateTemplateSettings = (settings) => ({
       },
     ])
   ),
+  materials_table: {
+    ...defaultCertificateTemplateSettings.materials_table,
+    ...(settings?.materials_table ?? {}),
+  },
 });
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -148,8 +160,10 @@ function ManageMaterialPage({ role }) {
   );
   const [selectedCertificateField, setSelectedCertificateField] = useState("employee_name");
   const [draggingCertificateField, setDraggingCertificateField] = useState(null);
+  const [draggingMaterialsTable, setDraggingMaterialsTable] = useState(null);
   const [certificateEditorScale, setCertificateEditorScale] = useState(1);
   const certificateEditorRef = useRef(null);
+  const materialsTableEditorRef = useRef(null);
   const [toast, setToast] = useState("");
 
   const loadTrainings = useCallback(async () => {
@@ -486,6 +500,7 @@ function ManageMaterialPage({ role }) {
 
   function updateCertificateTemplateField(fieldKey, updates) {
     setCertificateTemplateDraft((current) => ({
+      ...current,
       fields: {
         ...current.fields,
         [fieldKey]: {
@@ -494,6 +509,50 @@ function ManageMaterialPage({ role }) {
         },
       },
     }));
+  }
+
+  function updateMaterialsTable(updates) {
+    setCertificateTemplateDraft((current) => ({
+      ...current,
+      materials_table: {
+        ...current.materials_table,
+        ...updates,
+      },
+    }));
+  }
+
+  function handleMaterialsTablePointerDown(event) {
+    const editor = materialsTableEditorRef.current;
+    if (!editor) return;
+    const rect = editor.getBoundingClientRect();
+    const scale = rect.width / CERTIFICATE_EDITOR_WIDTH;
+    const table = certificateTemplateDraft.materials_table;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    setDraggingMaterialsTable({
+      offsetX: (event.clientX - rect.left) / scale - table.x,
+      offsetY: (event.clientY - rect.top) / scale - table.y,
+    });
+  }
+
+  function handleMaterialsTablePointerMove(event) {
+    if (!draggingMaterialsTable) return;
+    const editor = materialsTableEditorRef.current;
+    if (!editor) return;
+    const rect = editor.getBoundingClientRect();
+    const scale = rect.width / CERTIFICATE_EDITOR_WIDTH;
+    const table = certificateTemplateDraft.materials_table;
+    updateMaterialsTable({
+      x: Math.round(clamp(
+        (event.clientX - rect.left) / scale - draggingMaterialsTable.offsetX,
+        0,
+        CERTIFICATE_EDITOR_WIDTH - table.width
+      )),
+      y: Math.round(clamp(
+        (event.clientY - rect.top) / scale - draggingMaterialsTable.offsetY,
+        0,
+        CERTIFICATE_EDITOR_HEIGHT - table.rowHeight * 7
+      )),
+    });
   }
 
   function certificateEditorPoint(event) {
@@ -826,16 +885,32 @@ function ManageMaterialPage({ role }) {
               </div>
             )}
             {selectedTraining?.certificate_template?.background_url && isGeneralOrientation && (
-              <object
-                className="manage-certificate-template-pdf"
-                data={selectedTraining.certificate_template.background_url}
-                type="application/pdf"
-                aria-label="Preview template PDF Orientasi Umum"
+              <div
+                className="manage-certificate-template-editor"
+                ref={certificateEditorRef}
+                onPointerMove={handleCertificateEditorPointerMove}
+                onPointerUp={handleCertificateEditorPointerUp}
+                onPointerLeave={handleCertificateEditorPointerUp}
               >
-                <a href={selectedTraining.certificate_template.background_url} target="_blank" rel="noreferrer">
-                  Buka template PDF Orientasi Umum
-                </a>
-              </object>
+                <PdfTemplatePage
+                  src={selectedTraining.certificate_template.background_url}
+                  pageNumber={1}
+                  className="manage-certificate-template-pdf-canvas"
+                />
+                {certificateTemplateFields.map((field) => (
+                  <button
+                    type="button"
+                    key={field.key}
+                    className={`manage-certificate-template-field-box${
+                      selectedCertificateField === field.key ? " is-selected" : ""
+                    }`}
+                    style={certificateEditorFieldStyle(field.key)}
+                    onPointerDown={(event) => handleCertificateFieldPointerDown(event, field.key)}
+                  >
+                    {field.sample}
+                  </button>
+                ))}
+              </div>
             )}
             <label className="manage-certificate-template-field" htmlFor="certificate-template-file">
               {isGeneralOrientation
@@ -1015,6 +1090,70 @@ function ManageMaterialPage({ role }) {
               >
                 {certificateTemplateLoading ? "Menyimpan..." : "Simpan Posisi"}
               </button>
+            </div>
+          )}
+
+          {selectedTraining?.certificate_template?.background_url && isGeneralOrientation && (
+            <div className="manage-certificate-materials-section">
+              <h2 className="manage-material-title">Tabel Materi — Halaman 2</h2>
+              <p className="manage-material-training-name">
+                Geser tabel pada preview atau ubah angkanya di bawah ini.
+              </p>
+              <div
+                className="manage-certificate-template-editor"
+                ref={materialsTableEditorRef}
+                onPointerMove={handleMaterialsTablePointerMove}
+                onPointerUp={() => setDraggingMaterialsTable(null)}
+                onPointerLeave={() => setDraggingMaterialsTable(null)}
+              >
+                <PdfTemplatePage
+                  src={selectedTraining.certificate_template.background_url}
+                  pageNumber={2}
+                  className="manage-certificate-template-pdf-canvas"
+                />
+                <button
+                  type="button"
+                  className="manage-certificate-materials-table-box"
+                  onPointerDown={handleMaterialsTablePointerDown}
+                  style={{
+                    left: `${certificateTemplateDraft.materials_table.x * certificateEditorScale}px`,
+                    top: `${certificateTemplateDraft.materials_table.y * certificateEditorScale}px`,
+                    width: `${certificateTemplateDraft.materials_table.width * certificateEditorScale}px`,
+                    height: `${certificateTemplateDraft.materials_table.rowHeight * 7 * certificateEditorScale}px`,
+                    fontSize: `${certificateTemplateDraft.materials_table.fontSize * certificateEditorScale}px`,
+                  }}
+                >
+                  TABEL MATERI (5–6 BARIS)
+                </button>
+              </div>
+              <div className="manage-certificate-template-settings">
+                {[
+                  ["x", "X", 0, 841],
+                  ["y", "Y", 0, 595],
+                  ["width", "Lebar", 120, 841],
+                  ["rowHeight", "Tinggi Baris", 12, 80],
+                  ["fontSize", "Ukuran Font", 8, 40],
+                ].map(([key, label, min, max]) => (
+                  <label className="manage-certificate-template-setting" key={key}>
+                    {label}
+                    <input
+                      type="number"
+                      min={min}
+                      max={max}
+                      value={certificateTemplateDraft.materials_table[key]}
+                      onChange={(event) => updateMaterialsTable({ [key]: Number(event.target.value) })}
+                    />
+                  </label>
+                ))}
+                <button
+                  type="button"
+                  className="manage-certificate-template-save-settings"
+                  onClick={handleSaveCertificateTemplateSettings}
+                  disabled={certificateTemplateLoading}
+                >
+                  {certificateTemplateLoading ? "Menyimpan..." : "Simpan Posisi Tabel"}
+                </button>
+              </div>
             </div>
           )}
         </section>

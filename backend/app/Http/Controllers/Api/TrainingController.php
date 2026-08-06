@@ -332,6 +332,12 @@ class TrainingController extends Controller
                 'in:sans,montserrat,serif,merriweather,lora,cinzel,cormorant,script,dancing,allura,pacifico',
             ],
             'fields.*.fontWeight' => ['nullable', 'in:400,500,600,700'],
+            'materials_table' => ['nullable', 'array'],
+            'materials_table.x' => ['required_with:materials_table', 'numeric', 'min:0', 'max:841'],
+            'materials_table.y' => ['required_with:materials_table', 'numeric', 'min:0', 'max:595'],
+            'materials_table.width' => ['required_with:materials_table', 'numeric', 'min:120', 'max:841'],
+            'materials_table.rowHeight' => ['required_with:materials_table', 'numeric', 'min:12', 'max:80'],
+            'materials_table.fontSize' => ['required_with:materials_table', 'numeric', 'min:8', 'max:40'],
         ]);
 
         $settings = $this->sanitizeCertificateTemplateSettings($validated);
@@ -676,6 +682,13 @@ class TrainingController extends Controller
                     'fontWeight' => '400',
                 ],
             ],
+            'materials_table' => [
+                'x' => 71,
+                'y' => 79,
+                'width' => 699,
+                'rowHeight' => 25,
+                'fontSize' => 11,
+            ],
         ];
     }
 
@@ -699,6 +712,16 @@ class TrainingController extends Controller
                 'fontWeight' => (string) ($input['fontWeight'] ?? $fallback['fontWeight']),
             ];
         }
+
+        $table = $settings['materials_table'] ?? [];
+        $fallbackTable = $defaults['materials_table'];
+        $sanitized['materials_table'] = [
+            'x' => round((float) ($table['x'] ?? $fallbackTable['x']), 2),
+            'y' => round((float) ($table['y'] ?? $fallbackTable['y']), 2),
+            'width' => round((float) ($table['width'] ?? $fallbackTable['width']), 2),
+            'rowHeight' => round((float) ($table['rowHeight'] ?? $fallbackTable['rowHeight']), 2),
+            'fontSize' => round((float) ($table['fontSize'] ?? $fallbackTable['fontSize']), 2),
+        ];
 
         return $sanitized;
     }

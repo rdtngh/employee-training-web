@@ -383,6 +383,13 @@ class CertificateController extends Controller
                     'fontWeight' => '400',
                 ],
             ],
+            'materials_table' => [
+                'x' => 71,
+                'y' => 79,
+                'width' => 699,
+                'rowHeight' => 25,
+                'fontSize' => 11,
+            ],
         ];
     }
 
@@ -538,7 +545,13 @@ class CertificateController extends Controller
                     ->where('user_id', $result->user_id)
                     ->value('department') ?? $result->user?->department;
 
-                $this->writeOrientationMaterials($pdf, $this->orientationMaterials($department), $size);
+                $this->writeOrientationMaterials(
+                    $pdf,
+                    $this->orientationMaterials($department),
+                    $size,
+                    $training->certificate_template_settings['materials_table']
+                        ?? $this->defaultCertificateTemplateSettings()['materials_table']
+                );
             }
         }
 
@@ -581,18 +594,19 @@ class CertificateController extends Controller
         }
     }
 
-    private function writeOrientationMaterials(Fpdi $pdf, array $materials, array $pageSize): void
+    private function writeOrientationMaterials(Fpdi $pdf, array $materials, array $pageSize, array $settings): void
     {
-        $tableWidth = min(255, $pageSize['width'] - 40);
-        $numberWidth = 20;
-        $rowHeight = 9;
-        $x = ($pageSize['width'] - $tableWidth) / 2;
-        $y = 28;
+        $tableWidth = ((float) $settings['width'] / 841) * $pageSize['width'];
+        $numberWidth = $tableWidth * .08;
+        $rowHeight = ((float) $settings['rowHeight'] / 595) * $pageSize['height'];
+        $x = ((float) $settings['x'] / 841) * $pageSize['width'];
+        $y = ((float) $settings['y'] / 595) * $pageSize['height'];
+        $fontSize = (float) $settings['fontSize'];
 
         $pdf->SetTextColor(0, 0, 0);
         $pdf->SetDrawColor(0, 0, 0);
         $pdf->SetLineWidth(.25);
-        $pdf->SetFont('Helvetica', 'B', 11);
+        $pdf->SetFont('Helvetica', 'B', $fontSize);
         $pdf->SetXY($x, $y);
         $pdf->Cell($numberWidth, $rowHeight, 'NO', 1, 0, 'C');
         $pdf->Cell($tableWidth - $numberWidth, $rowHeight, 'MATERI', 1, 1, 'C');

@@ -260,6 +260,9 @@ const drawCustomCertificate = async (context, data) => {
 
   await drawImage(context, certificateTemplate.background_url, 0, 0, WIDTH, HEIGHT);
   drawFieldText(context, data.certificate_number, templateField(certificateTemplate, "certificate_number"));
+  if (data.certificate_number.startsWith("TEST-")) {
+    drawCenteredText(context, "SERTIFIKAT DATA TESTING - BUKAN SERTIFIKAT RESMI", 140, 181, 561, "700 9px Poppins, sans-serif", "#9b1c1c");
+  }
   drawFieldText(context, data.employee_name, templateField(certificateTemplate, "employee_name"));
   drawFieldText(context, data.training_title, templateField(certificateTemplate, "training_title"));
 
@@ -305,6 +308,9 @@ const drawDefaultCertificate = async (context, data) => {
   drawCenteredText(context, "Rumah Sakit Advent", 631, 115, 175, "700 15px Poppins, sans-serif", "#327537");
   drawCenteredText(context, "Bandar Lampung", 631, 133, 175, "700 15px Poppins, sans-serif", "#327537");
   drawCenteredText(context, data.certificate_number, 140, 164, 561, "400 11px Poppins, sans-serif");
+  if (data.certificate_number.startsWith("TEST-")) {
+    drawCenteredText(context, "SERTIFIKAT DATA TESTING - BUKAN SERTIFIKAT RESMI", 140, 181, 561, "700 9px Poppins, sans-serif", "#9b1c1c");
+  }
   drawCenteredText(
     context,
     "Sertifikat ini diberikan kepada:",

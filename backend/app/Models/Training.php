@@ -13,6 +13,7 @@ class Training extends Model
         'start_date',
         'end_date',
         'is_active',
+        'is_testing_certificate',
         'post_test_access_code_hash',
         'post_test_access_code_encrypted',
         'post_test_access_code_updated_at',
@@ -30,6 +31,7 @@ class Training extends Model
         'start_date' => 'date',
         'end_date' => 'date',
         'is_active' => 'boolean',
+        'is_testing_certificate' => 'boolean',
         'post_test_access_code_updated_at' => 'datetime',
         'certificate_template_settings' => 'array',
     ];

@@ -139,6 +139,40 @@ class TrainingHistoryTest extends TestCase
             ->assertJsonPath('data.certificate_number', 'NO: 1/DIKLATLIT-RSABL/I/2027');
     }
 
+    public function test_testing_certificate_does_not_take_an_official_annual_sequence_number(): void
+    {
+        [$admin, $employee] = $this->users();
+        [$testingTraining, $testingPostTest] = $this->trainingWithPostTest('Pelatihan Sosialisasi Pendidikan Dalam Pelayanan');
+        [$hivTraining, $hivPostTest] = $this->trainingWithPostTest('Pelatihan HIV');
+        [$nextTraining, $nextPostTest] = $this->trainingWithPostTest('Pelatihan Berikutnya');
+        $testingTraining->update(['is_testing_certificate' => true]);
+        $date = Carbon::parse('2026-08-01 10:00:00');
+
+        $testingResult = $this->createTestResult($employee, $testingPostTest, 'Lulus', $date);
+        $hivResult = $this->createTestResult($employee, $hivPostTest, 'Lulus', $date->copy()->addDay());
+        $nextResult = $this->createTestResult($employee, $nextPostTest, 'Lulus', $date->copy()->addDays(2));
+        $testingCertificate = Certificate::create(['user_id' => $employee->id, 'test_result_id' => $testingResult->id, 'certificate_number' => 'LEGACY-TEST', 'file_path' => '', 'issued_at' => $date]);
+        $hivCertificate = Certificate::create(['user_id' => $employee->id, 'test_result_id' => $hivResult->id, 'certificate_number' => 'LEGACY-HIV', 'file_path' => '', 'issued_at' => $date->copy()->addDay()]);
+        $nextCertificate = Certificate::create(['user_id' => $employee->id, 'test_result_id' => $nextResult->id, 'certificate_number' => 'LEGACY-NEXT', 'file_path' => '', 'issued_at' => $date->copy()->addDays(2)]);
+
+        Sanctum::actingAs($admin);
+
+        $this->getJson("/api/certificates/{$testingCertificate->id}/preview")
+            ->assertOk()
+            ->assertJsonPath('data.sequence_number', 0)
+            ->assertJsonPath('data.certificate_number', 'TEST-SOSIALISASI-'.str_pad((string) $testingCertificate->id, 4, '0', STR_PAD_LEFT));
+
+        $this->getJson("/api/certificates/{$hivCertificate->id}/preview")
+            ->assertOk()
+            ->assertJsonPath('data.sequence_number', 1)
+            ->assertJsonPath('data.certificate_number', 'NO: 1/DIKLATLIT-RSABL/VIII/2026');
+
+        $this->getJson("/api/certificates/{$nextCertificate->id}/preview")
+            ->assertOk()
+            ->assertJsonPath('data.sequence_number', 2)
+            ->assertJsonPath('data.certificate_number', 'NO: 2/DIKLATLIT-RSABL/VIII/2026');
+    }
+
     public function test_training_department_remains_the_original_snapshot_after_user_department_changes(): void
     {
         [$admin, $employee] = $this->users();

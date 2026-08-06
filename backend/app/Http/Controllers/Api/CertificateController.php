@@ -25,7 +25,7 @@ class CertificateController extends Controller
                 'user:id,employee_number,name,department,position,email',
                 'testResult:id,user_id,test_id,score,status,finished_at',
                 'testResult.test:id,training_id,type',
-                'testResult.test.training:id,title,certificate_template_path,certificate_template_settings',
+                'testResult.test.training:id,title,is_testing_certificate,certificate_template_path,certificate_template_settings',
             ])
             ->whereHas('testResult.test', function ($query) {
                 $query->where('type', 'posttest');
@@ -103,7 +103,7 @@ class CertificateController extends Controller
         $certificate->load([
             'user.role',
             'testResult.user',
-            'testResult.test.training:id,title,certificate_template_path,certificate_template_settings',
+            'testResult.test.training:id,title,is_testing_certificate,certificate_template_path,certificate_template_settings',
         ]);
 
         abort_unless(
@@ -127,7 +127,7 @@ class CertificateController extends Controller
             'user.role:id,name',
             'testResult:id,user_id,test_id,score,status,finished_at',
             'testResult.test:id,training_id,type',
-            'testResult.test.training:id,title,certificate_template_path,certificate_template_settings',
+            'testResult.test.training:id,title,is_testing_certificate,certificate_template_path,certificate_template_settings',
         ]);
 
         abort_unless(
@@ -239,6 +239,7 @@ class CertificateController extends Controller
             'training' => [
                 'id' => $training?->id,
                 'title' => $training?->title,
+                'is_testing_certificate' => $training?->is_testing_certificate ?? false,
                 'certificate_template' => $this->certificateTemplatePayload($training),
             ],
             'result' => [
@@ -252,6 +253,10 @@ class CertificateController extends Controller
 
     private function certificateDisplayNumber(Certificate $certificate, $date): string
     {
+        if ($certificate->testResult?->test?->training?->is_testing_certificate) {
+            return 'TEST-SOSIALISASI-'.str_pad((string) $certificate->id, 4, '0', STR_PAD_LEFT);
+        }
+
         $rawNumber = trim((string) $certificate->certificate_number);
 
         if (Str::startsWith(Str::upper($rawNumber), 'NO:')) {
@@ -336,7 +341,7 @@ class CertificateController extends Controller
 
     private function certificateSequence(Certificate $certificate, $date = null): int
     {
-        if (! $certificate->id) {
+        if (! $certificate->id || $certificate->testResult?->test?->training?->is_testing_certificate) {
             return 0;
         }
 
@@ -349,6 +354,9 @@ class CertificateController extends Controller
         return Certificate::query()
             ->whereHas('testResult.test', function ($query) {
                 $query->where('type', 'posttest');
+            })
+            ->whereHas('testResult.test.training', function ($query) {
+                $query->where('is_testing_certificate', false);
             })
             ->whereHas('user.role', function ($query) {
                 $query->whereIn('name', User::PARTICIPANT_ROLES);
@@ -423,6 +431,7 @@ class CertificateController extends Controller
             'participantName' => Str::title($result->user->name),
             'trainingTitle' => $training->title,
             'certificateNumber' => $this->certificateDisplayNumber($certificate, $completionDate),
+            'isTestingCertificate' => $training->is_testing_certificate,
             'completionDate' => $this->indonesianDate($completionDate),
             'trainingPeriod' => $this->trainingPeriod($training, $completionDate),
             'assets' => $this->certificateAssetDataUris(),

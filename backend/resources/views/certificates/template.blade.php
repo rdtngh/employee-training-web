@@ -161,6 +161,20 @@
             text-align: center;
         }
 
+        .testing-certificate-note {
+            position: absolute;
+            z-index: 5;
+            top: 180px;
+            left: 140px;
+            width: 561px;
+            margin: 0;
+            color: #9b1c1c;
+            font-size: 9px;
+            font-weight: 700;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
         .recipient {
             position: absolute;
             z-index: 5;
@@ -320,6 +334,9 @@
 
             @if ($certificateNumber)
                 <p class="certificate-number">{{ $certificateNumber }}</p>
+            @endif
+            @if ($isTestingCertificate)
+                <p class="testing-certificate-note">Sertifikat Data Testing - Bukan Sertifikat Resmi</p>
             @endif
 
             <section class="recipient">

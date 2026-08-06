@@ -191,6 +191,7 @@ function Certificate({
   const longName = safeEmployeeName.length > 21;
   const veryLongName = safeEmployeeName.length > 34;
   const customTemplateUrl = certificateTemplate?.background_url;
+  const isTestingCertificate = safeCertificateNumber.startsWith("TEST-");
 
   useEffect(() => {
     const preview = previewRef.current;
@@ -291,6 +292,9 @@ function Certificate({
                 {safeCertificateNumber}
               </p>
             )}
+            {isTestingCertificate && (
+              <p className="certificate-testing-note">Sertifikat Data Testing - Bukan Sertifikat Resmi</p>
+            )}
             <h2
               className={[
                 "certificate-custom-field",
@@ -344,6 +348,9 @@ function Certificate({
 
             {safeCertificateNumber && (
               <p className="certificate-number">{safeCertificateNumber}</p>
+            )}
+            {isTestingCertificate && (
+              <p className="certificate-testing-note">Sertifikat Data Testing - Bukan Sertifikat Resmi</p>
             )}
 
             <section className="certificate-recipient">

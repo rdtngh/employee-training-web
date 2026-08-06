@@ -7,19 +7,29 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $targetNames = ['raditya', 'bening apni', 'najlatika'];
-        $users = DB::table('users')
-            ->whereIn(DB::raw('LOWER(TRIM(name))'), $targetNames)
-            ->get(['id', 'name']);
-
-        if ($users->isEmpty()) {
+        if (! DB::table('users')->exists()) {
             return;
         }
 
-        if ($users->count() !== count($targetNames)) {
-            throw new RuntimeException(
-                'Pembersihan riwayat HIV dibatalkan: target Raditya, Bening Apni, dan Najlatika tidak ditemukan secara unik.'
-            );
+        $targetNamePrefixes = ['raditya%', 'bening apni%', 'najlatika%'];
+        $users = collect();
+
+        foreach ($targetNamePrefixes as $namePrefix) {
+            $matches = DB::table('users')
+                ->whereRaw('LOWER(TRIM(name)) LIKE ?', [$namePrefix])
+                ->get(['id', 'name']);
+
+            if ($matches->count() !== 1) {
+                throw new RuntimeException(
+                    'Pembersihan riwayat HIV dibatalkan: setiap target Raditya, Bening Apni, dan Najlatika harus ditemukan tepat satu kali.'
+                );
+            }
+
+            $users->push($matches->first());
+        }
+
+        if ($users->isEmpty()) {
+            return;
         }
 
         $trainings = DB::table('trainings')

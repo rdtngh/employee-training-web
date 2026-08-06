@@ -38,6 +38,7 @@ class UserController extends Controller
                 'department' => $user->department,
                 'role' => $user->role?->name,
                 'isActive' => $user->is_active,
+                'isProtectedSuperadmin' => $user->is_protected_superadmin,
             ]);
 
         return response()->json([
@@ -108,16 +109,17 @@ class UserController extends Controller
                 'department' => $user->department,
                 'role' => $role?->name,
                 'isActive' => $user->is_active,
+                'isProtectedSuperadmin' => $user->is_protected_superadmin,
             ],
         ], 201);
     }
 
     public function update(UserRequest $request, User $user): JsonResponse
     {
-        if ($user->role?->name === 'Super Admin' && $request->role !== 'Super Admin') {
+        if ($user->is_protected_superadmin) {
             return response()->json([
                 'success' => false,
-                'message' => 'Role Super Admin tidak dapat diubah.',
+                'message' => 'Super Admin Utama tidak dapat diedit atau diubah.',
             ], 403);
         }
 
@@ -149,6 +151,7 @@ class UserController extends Controller
                 'department' => $user->department,
                 'role' => $role?->name,
                 'isActive' => $user->is_active,
+                'isProtectedSuperadmin' => $user->is_protected_superadmin,
             ],
         ]);
     }
@@ -306,10 +309,10 @@ class UserController extends Controller
             'is_active' => ['required', 'boolean'],
         ]);
 
-        if ($user->role?->name === 'Super Admin') {
+        if ($user->is_protected_superadmin) {
             return response()->json([
                 'success' => false,
-                'message' => 'Super Admin tidak dapat dinonaktifkan.',
+                'message' => 'Super Admin Utama tidak dapat dinonaktifkan.',
             ], 403);
         }
 

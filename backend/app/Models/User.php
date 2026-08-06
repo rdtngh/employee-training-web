@@ -23,6 +23,7 @@ class User extends Authenticatable
         'email',
         'password',
         'is_active',
+        'is_protected_superadmin',
     ];
 
     protected $hidden = [
@@ -35,6 +36,7 @@ class User extends Authenticatable
         return [
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'is_protected_superadmin' => 'boolean',
         ];
     }
 

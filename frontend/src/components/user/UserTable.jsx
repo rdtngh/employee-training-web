@@ -33,15 +33,17 @@ function UserTable({ users, onEdit, onToggleStatus, emptyMessage = "Belum ada pe
                 <td data-label="Status"><span className={`user-status-badge ${user.isActive ? "is-active" : "is-inactive"}`}>{user.isActive ? "Aktif" : "Nonaktif"}</span></td>
                 <td data-label="Aksi">
                   <div className="user-table-actions">
-                    <button className="btn-edit" type="button" onClick={() => onEdit(user)}>
-                      Edit
-                    </button>
-                    {user.role === "Super Admin" ? (
-                      <span className="muted">Selalu Aktif</span>
+                    {user.isProtectedSuperadmin ? (
+                      <span className="muted">Super Admin Utama</span>
                     ) : (
-                      <button className={user.isActive ? "btn-deactivate" : "btn-activate"} type="button" onClick={() => onToggleStatus(user)}>
-                        {user.isActive ? "Nonaktifkan" : "Aktifkan"}
-                      </button>
+                      <>
+                        <button className="btn-edit" type="button" onClick={() => onEdit(user)}>
+                          Edit
+                        </button>
+                        <button className={user.isActive ? "btn-deactivate" : "btn-activate"} type="button" onClick={() => onToggleStatus(user)}>
+                          {user.isActive ? "Nonaktifkan" : "Aktifkan"}
+                        </button>
+                      </>
                     )}
                   </div>
                 </td>

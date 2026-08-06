@@ -175,15 +175,54 @@ class UserManagementTest extends TestCase
             ->assertOk();
     }
 
-    public function test_super_admin_cannot_be_deactivated(): void
+    public function test_protected_super_admin_cannot_be_edited_or_deactivated(): void
     {
         $superAdminRole = Role::create(['name' => 'Super Admin']);
-        $superAdmin = User::create(['role_id' => $superAdminRole->id, 'employee_number' => 'superadmin', 'name' => 'Super Admin', 'department' => 'IT', 'position' => 'Super Admin', 'email' => null, 'password' => 'superadmin']);
+        Role::create(['name' => 'Admin']);
+        $superAdmin = User::create(['role_id' => $superAdminRole->id, 'employee_number' => 'rennysarah', 'name' => 'Renny Sarah', 'department' => 'IT', 'position' => 'Super Admin', 'email' => null, 'password' => 'rennysarah', 'is_protected_superadmin' => true]);
         Sanctum::actingAs($superAdmin);
+
+        $this->putJson("/api/users/{$superAdmin->id}", [
+            'employee_number' => 'rennysarah',
+            'name' => 'Renny Baru',
+            'department' => 'IT',
+            'role' => 'Admin',
+        ])->assertForbidden();
 
         $this->patchJson("/api/users/{$superAdmin->id}/status", ['is_active' => false])
             ->assertForbidden();
 
-        $this->assertDatabaseHas('users', ['id' => $superAdmin->id, 'is_active' => true]);
+        $this->assertDatabaseHas('users', [
+            'id' => $superAdmin->id,
+            'name' => 'Renny Sarah',
+            'role_id' => $superAdminRole->id,
+            'is_active' => true,
+        ]);
+    }
+
+    public function test_unprotected_super_admin_can_be_changed_to_admin_and_deactivated(): void
+    {
+        $superAdminRole = Role::create(['name' => 'Super Admin']);
+        $adminRole = Role::create(['name' => 'Admin']);
+        $renny = User::create(['role_id' => $superAdminRole->id, 'employee_number' => 'rennysarah', 'name' => 'Renny Sarah', 'department' => 'IT', 'position' => 'Super Admin', 'email' => null, 'password' => 'rennysarah', 'is_protected_superadmin' => true]);
+        $ammin = User::create(['role_id' => $superAdminRole->id, 'employee_number' => 'amminnainggolan', 'name' => 'Ammin Nainggolan', 'department' => 'IT', 'position' => 'Super Admin', 'email' => null, 'password' => 'amminnainggolan']);
+        Sanctum::actingAs($renny);
+
+        $this->putJson("/api/users/{$ammin->id}", [
+            'employee_number' => 'amminnainggolan',
+            'name' => 'Ammin Nainggolan',
+            'department' => 'IT',
+            'role' => 'Admin',
+        ])->assertOk();
+
+        $this->patchJson("/api/users/{$ammin->id}/status", ['is_active' => false])
+            ->assertOk();
+
+        $this->assertDatabaseHas('users', [
+            'id' => $ammin->id,
+            'role_id' => $adminRole->id,
+            'is_active' => false,
+            'is_protected_superadmin' => false,
+        ]);
     }
 }

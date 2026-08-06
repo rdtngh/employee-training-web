@@ -14,6 +14,7 @@ const mapFromApiResponse = (user) => ({
   department: user.department,
   role: user.role,
   isActive: user.isActive ?? true,
+  isProtectedSuperadmin: user.isProtectedSuperadmin ?? false,
 });
 
 export const getAllUsers = async (search = "") => {

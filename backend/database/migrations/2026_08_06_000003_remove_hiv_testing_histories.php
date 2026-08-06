@@ -11,7 +11,7 @@ return new class extends Migration
             return;
         }
 
-        $targetNamePrefixes = ['raditya%', 'bening apni%', 'najlatika%'];
+        $targetNamePrefixes = ['raditya%', 'bening apni%', 'najla%'];
         $users = collect();
 
         foreach ($targetNamePrefixes as $namePrefix) {
@@ -36,9 +36,9 @@ return new class extends Migration
             ->whereRaw("LOWER(title) LIKE '%hiv%'")
             ->get(['id', 'title']);
 
-        if ($trainings->count() !== 1) {
+        if ($trainings->isEmpty()) {
             throw new RuntimeException(
-                'Pembersihan riwayat HIV dibatalkan: pelatihan HIV tidak ditemukan secara unik.'
+                'Pembersihan riwayat HIV dibatalkan: pelatihan HIV tidak ditemukan.'
             );
         }
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { flushSync } from "react-dom";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import * as trainingHistoryService from "../../services/trainingHistoryService";
 import Certificate from "../certificate/Certificate";
 import "../certificate/CertificateDashboard.css";
@@ -22,11 +22,11 @@ const waitForCertificateAssets = () => Promise.all(
 
 function TrainingHistoryDashboard({ historyData, certificateData, certificatesLoading, loading, error, reload, role }) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [actionError, setActionError] = useState("");
-  const [selectedTrainingId, setSelectedTrainingId] = useState("all");
   const [printingCertificates, setPrintingCertificates] = useState([]);
   const histories = useMemo(() => historyData?.histories ?? [], [historyData?.histories]);
   const certificates = useMemo(() => certificateData?.certificates ?? [], [certificateData?.certificates]);
@@ -37,6 +37,20 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
       .map(([id, title]) => ({ id, title }))
       .sort((a, b) => a.title.localeCompare(b.title, "id-ID"));
   }, [histories]);
+  const requestedTrainingId = searchParams.get("training") || "all";
+  const selectedTrainingId = requestedTrainingId === "all" || trainingOptions.some(
+    (training) => training.id === requestedTrainingId
+  ) ? requestedTrainingId : "all";
+
+  function selectTraining(trainingId) {
+    const nextParams = new URLSearchParams(searchParams);
+    if (trainingId === "all") {
+      nextParams.delete("training");
+    } else {
+      nextParams.set("training", trainingId);
+    }
+    setSearchParams(nextParams, { replace: true });
+  }
   const filteredCertificates = useMemo(() => certificates.filter((certificate) =>
     selectedTrainingId === "all" || String(certificate.training?.id) === selectedTrainingId
   ), [certificates, selectedTrainingId]);
@@ -136,7 +150,7 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
       <div className="history-toolbar">
         <label className="history-filter">
           <span>Filter Pelatihan</span>
-          <select value={selectedTrainingId} onChange={(event) => setSelectedTrainingId(event.target.value)}>
+          <select value={selectedTrainingId} onChange={(event) => selectTraining(event.target.value)}>
             <option value="all">Semua pelatihan</option>
             {trainingOptions.map((training) => <option key={training.id} value={training.id}>{training.title}</option>)}
           </select>
@@ -175,7 +189,10 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
                         <button
                           type="button"
                           className="history-view"
-                          onClick={() => navigate(`/${role}/certificates/${history.certificate.id}`)}
+                          onClick={() => navigate({
+                            pathname: `/${role}/certificates/${history.certificate.id}`,
+                            search: searchParams.toString() ? `?${searchParams.toString()}` : "",
+                          })}
                         >
                           Lihat Sertifikat
                         </button>

@@ -12,13 +12,29 @@ const normalizeAnswer = (answer) => String(answer ?? "").toUpperCase();
 
 const toFormAnswer = (answer) => String(answer ?? "").toLowerCase();
 
+const apiOrigin = (() => {
+  try {
+    return new URL(api.defaults.baseURL, globalThis.location?.origin ?? "http://localhost").origin;
+  } catch {
+    return "";
+  }
+})();
+
+const questionImageUrl = (item) => {
+  if (item?.image_path) {
+    return `${apiOrigin}/storage/${String(item.image_path).replace(/^\/+/, "")}`;
+  }
+
+  return item?.image_url ?? null;
+};
+
 const mapQuestionFromApi = (item) => ({
   id: item.id,
   testId: item.test_id,
   trainingId: item.test?.training_id,
   testType: item.test?.type,
   question: item.question,
-  imageUrl: item.image_url ?? item.image_path ?? null,
+  imageUrl: questionImageUrl(item),
   options: {
     a: item.option_a,
     b: item.option_b,
@@ -93,7 +109,17 @@ export const previewExamImport = async ({ trainingId, type, file }) => {
     headers: { "Content-Type": "multipart/form-data" },
   });
 
-  return response.data?.data ?? response.data;
+  const data = response.data?.data ?? response.data;
+
+  return {
+    ...data,
+    questions: (data.questions ?? []).map((question) => ({
+      ...question,
+      image_preview_url: question.image_token
+        ? `${apiOrigin}/storage/${question.image_token}`
+        : question.image_preview_url,
+    })),
+  };
 };
 
 export const importExamQuestions = async ({ trainingId, type, questions }) => {

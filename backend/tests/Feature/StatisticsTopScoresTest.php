@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Certificate;
 use App\Models\Role;
 use App\Models\Test as TrainingTest;
 use App\Models\TestResult;
@@ -64,6 +65,52 @@ class StatisticsTopScoresTest extends TestCase
             ->assertJsonPath('data.top_scores.1.duration_seconds', 180)
             ->assertJsonPath('data.top_scores.2.employee_name', 'Citra Lestari')
             ->assertJsonPath('data.top_scores.2.duration_seconds', 120);
+    }
+
+    public function test_resetting_a_post_test_deletes_its_certificate(): void
+    {
+        $adminRole = Role::create(['name' => 'Admin']);
+        $employeeRole = Role::create(['name' => 'Karyawan']);
+        $admin = $this->employee($adminRole->id, 'admin', 'Admin');
+        $employee = $this->employee($employeeRole->id, 'employee', 'Employee');
+        $training = Training::create(['title' => 'Pelatihan HIV', 'is_active' => true]);
+        $postTest = TrainingTest::create([
+            'training_id' => $training->id,
+            'type' => 'posttest',
+            'duration' => 30,
+            'passing_score' => 70,
+        ]);
+        $result = TestResult::create([
+            'user_id' => $employee->id,
+            'test_id' => $postTest->id,
+            'score' => 90,
+            'correct_answers' => 9,
+            'wrong_answers' => 1,
+            'status' => 'Lulus',
+            'started_at' => now()->subMinutes(5),
+            'finished_at' => now(),
+        ]);
+        $certificate = Certificate::create([
+            'user_id' => $employee->id,
+            'test_result_id' => $result->id,
+            'certificate_number' => 'CERT-HIV-RESET',
+            'file_path' => '',
+            'issued_at' => now(),
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->postJson('/api/statistics/reset', [
+            'training_id' => $training->id,
+            'reset_type' => 'posttest',
+            'user_ids' => [$employee->id],
+        ])->assertOk()
+            ->assertJsonPath('data.updated.test_results', 1)
+            ->assertJsonPath('data.updated.certificates', 1);
+
+        $this->assertDatabaseMissing('certificates', ['id' => $certificate->id]);
+        $this->assertDatabaseHas('test_results', ['id' => $result->id]);
+        $this->assertNotNull($result->fresh()->reset_at);
     }
 
     private function employee(int $roleId, string $username, string $name): User

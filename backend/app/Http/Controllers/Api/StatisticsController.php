@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Certificate;
 use App\Models\TestResult;
 use App\Models\Training;
 use App\Models\User;
@@ -73,7 +74,7 @@ class StatisticsController extends Controller
 
         $types = [$validated['reset_type']];
 
-        $updated = DB::transaction(function () use ($training, $types, $validated) {
+        $reset = DB::transaction(function () use ($training, $types, $validated) {
             $query = TestResult::query()
                 ->whereHas('test', function ($query) use ($training) {
                     $query->where('training_id', $training->id);
@@ -86,7 +87,16 @@ class StatisticsController extends Controller
                 $query->whereIn('user_id', $validated['user_ids']);
             }
 
-            return $query->update(['reset_at' => now()]);
+            $resultIds = (clone $query)->pluck('id');
+            $deletedCertificates = Certificate::query()
+                ->whereIn('test_result_id', $resultIds)
+                ->delete();
+            $updatedResults = $query->update(['reset_at' => now()]);
+
+            return [
+                'test_results' => $updatedResults,
+                'certificates' => $deletedCertificates,
+            ];
         });
 
         return response()->json([
@@ -99,9 +109,9 @@ class StatisticsController extends Controller
                 ],
                 'reset_type' => $validated['reset_type'],
                 'updated' => [
-                    'test_results' => $updated,
+                    'test_results' => $reset['test_results'],
                     'top_score_results' => 0,
-                    'certificates' => 0,
+                    'certificates' => $reset['certificates'],
                     'answers' => 0,
                     'materials' => 0,
                     'results' => 0,

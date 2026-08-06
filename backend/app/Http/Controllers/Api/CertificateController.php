@@ -33,6 +33,7 @@ class CertificateController extends Controller
             ->whereHas('user.role', function ($query) {
                 $query->whereIn('name', User::PARTICIPANT_ROLES);
             })
+            ->whereHas('testResult', fn ($query) => $query->whereNull('reset_at'))
             ->latest('issued_at')
             ->get()
             ->map(fn (Certificate $certificate) => $this->certificatePayload($certificate))
@@ -163,6 +164,7 @@ class CertificateController extends Controller
             ->with(['test.training', 'user'])
             ->where('user_id', $request->user()->id)
             ->where('status', 'Lulus')
+            ->whereNull('reset_at')
             ->whereHas('test', function ($query) use ($training) {
                 $query->where('training_id', $training->id)
                     ->where('type', 'posttest');
@@ -190,6 +192,7 @@ class CertificateController extends Controller
     {
         TestResult::query()
             ->where('status', 'Lulus')
+            ->whereNull('reset_at')
             ->whereHas('test', function ($query) {
                 $query->where('type', 'posttest');
             })
@@ -362,7 +365,8 @@ class CertificateController extends Controller
                 $query->whereIn('name', User::PARTICIPANT_ROLES);
             })
             ->whereHas('testResult', function ($query) use ($year) {
-                $query->whereYear('finished_at', $year);
+                $query->whereYear('finished_at', $year)
+                    ->whereNull('reset_at');
             })
             ->where('id', '<=', $certificate->id)
             ->count();

@@ -11,6 +11,7 @@ class Question extends Model
     protected $fillable = [
         'test_id',
         'question',
+        'image_path',
         'option_a',
         'option_b',
         'option_c',
@@ -18,6 +19,13 @@ class Question extends Model
         'correct_answer',
         'order_number',
     ];
+
+    protected $appends = ['image_url'];
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->image_path ? url('/storage/'.$this->image_path) : null;
+    }
 
     public function test(): BelongsTo
     {

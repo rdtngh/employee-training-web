@@ -114,6 +114,13 @@ function ImportExamDialog({
                   <p className="manage-exam-import-question">
                     {index + 1}. {question.question}
                   </p>
+                  {question.image_preview_url && (
+                    <img
+                      className="manage-exam-import-image"
+                      src={question.image_preview_url}
+                      alt={`Ilustrasi soal ${index + 1}`}
+                    />
+                  )}
                   <div className="manage-exam-import-options">
                     {optionLabels.map((label) => (
                       <span

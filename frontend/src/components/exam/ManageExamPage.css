@@ -397,3 +397,11 @@
     left: 16px;
   }
 }
+.manage-exam-import-image {
+  display: block;
+  max-width: min(100%, 560px);
+  max-height: 320px;
+  margin: 10px 0 14px;
+  object-fit: contain;
+  border-radius: 8px;
+}

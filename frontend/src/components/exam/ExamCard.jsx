@@ -33,6 +33,9 @@ function ExamCard({ question, index, onEdit, onDelete }) {
       </div>
 
       <p className="exam-card-question">{question.question}</p>
+      {question.imageUrl && (
+        <img className="exam-card-image" src={question.imageUrl} alt="Ilustrasi soal" />
+      )}
 
       <div className="exam-card-options">
         {options.map((option) => (

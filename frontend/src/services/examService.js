@@ -18,6 +18,7 @@ const mapQuestionFromApi = (item) => ({
   trainingId: item.test?.training_id,
   testType: item.test?.type,
   question: item.question,
+  imageUrl: item.image_url ?? item.image_path ?? null,
   options: {
     a: item.option_a,
     b: item.option_b,
@@ -35,6 +36,7 @@ const mapQuestionToApi = (question) => ({
   option_c: question.options.c,
   option_d: question.options.d,
   correct_answer: normalizeAnswer(question.correctAnswer),
+  ...(question.imageData ? { image_data: question.imageData } : {}),
   ...(question.trainingId ? { training_id: question.trainingId } : {}),
   ...(question.testType ? { type: question.testType } : {}),
 });

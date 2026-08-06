@@ -174,6 +174,9 @@ function EmployeePreTest() {
             <article className="pretest-question-card">
               <p className="pretest-question-number">Q{currentIndex + 1}</p>
               <h1>{currentQuestion.question}</h1>
+              {currentQuestion.imageUrl && (
+                <img className="employee-question-image" src={currentQuestion.imageUrl} alt="Ilustrasi soal" />
+              )}
               <div className="pretest-options">
                 {optionEntries.map(([optionId, optionText], optionIndex) => (
                   <label key={optionId} className={answers[currentQuestion.id] === optionId ? "selected" : ""}>

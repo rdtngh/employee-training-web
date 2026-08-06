@@ -85,7 +85,7 @@ class TestController extends Controller
         }
 
         $questions = $this->questionsForTest($test)
-            ->select('id', 'test_id', 'question', 'option_a', 'option_b', 'option_c', 'option_d', 'order_number')
+            ->select('id', 'test_id', 'question', 'image_path', 'option_a', 'option_b', 'option_c', 'option_d', 'order_number')
             ->orderBy('order_number')
             ->get();
 

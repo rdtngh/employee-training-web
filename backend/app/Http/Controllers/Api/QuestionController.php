@@ -9,11 +9,14 @@ use App\Models\Training;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class QuestionController extends Controller
 {
     private const TEST_TYPES = ['pretest', 'posttest'];
+
     private const ANSWERS = ['A', 'B', 'C', 'D'];
 
     public function index(Request $request): JsonResponse
@@ -25,7 +28,7 @@ class QuestionController extends Controller
 
         $query = Question::query()
             ->with('test:id,training_id,type')
-            ->select('id', 'test_id', 'question', 'option_a', 'option_b', 'option_c', 'option_d', 'correct_answer', 'order_number')
+            ->select('id', 'test_id', 'question', 'image_path', 'option_a', 'option_b', 'option_c', 'option_d', 'correct_answer', 'order_number')
             ->orderBy('order_number')
             ->orderBy('id');
 
@@ -71,6 +74,7 @@ class QuestionController extends Controller
         $this->validateImportRequest($request);
 
         $questions = $this->parseDocxQuestions($request->file('file')->getRealPath());
+        $questions = $this->prepareQuestionImportPreviewImages($questions);
         $errors = $this->validateParsedQuestions($questions);
 
         return response()->json([
@@ -92,6 +96,8 @@ class QuestionController extends Controller
             'type' => ['required', Rule::in(self::TEST_TYPES)],
             'questions' => ['required', 'array', 'min:1'],
             'questions.*.question' => ['required', 'string'],
+            'questions.*.image_data' => ['nullable', 'string', 'max:15000000'],
+            'questions.*.image_token' => ['nullable', 'string', 'regex:#^question-import-previews/[a-f0-9-]+\.(?:png|jpg|gif|webp)$#'],
             'questions.*.option_a' => ['required', 'string', 'max:255'],
             'questions.*.option_b' => ['required', 'string', 'max:255'],
             'questions.*.option_c' => ['required', 'string', 'max:255'],
@@ -120,6 +126,10 @@ class QuestionController extends Controller
                 return Question::create([
                     'test_id' => $test->id,
                     'question' => trim($question['question']),
+                    'image_path' => $this->storeImportedQuestionImage(
+                        $question['image_data'] ?? null,
+                        $question['image_token'] ?? null
+                    ),
                     'option_a' => trim($question['option_a']),
                     'option_b' => trim($question['option_b']),
                     'option_c' => trim($question['option_c']),
@@ -150,6 +160,10 @@ class QuestionController extends Controller
 
     public function destroy(Question $question): JsonResponse
     {
+        if ($question->image_path) {
+            Storage::disk('public')->delete($question->image_path);
+        }
+
         $question->delete();
 
         return response()->json([
@@ -241,7 +255,7 @@ class QuestionController extends Controller
 
     private function parseDocxQuestions(string $path): array
     {
-        $zip = new \ZipArchive();
+        $zip = new \ZipArchive;
 
         if ($zip->open($path) !== true) {
             return [];
@@ -249,6 +263,7 @@ class QuestionController extends Controller
 
         $documentXml = $zip->getFromName('word/document.xml');
         $numberingXml = $zip->getFromName('word/numbering.xml') ?: '';
+        $imageRelationships = $this->extractDocxImageRelationships($zip);
         $zip->close();
 
         if (! $documentXml) {
@@ -256,14 +271,35 @@ class QuestionController extends Controller
         }
 
         $numbering = $this->buildNumberingDefinitions($numberingXml);
-        $paragraphs = $this->extractParagraphText($documentXml, $numbering);
+        $paragraphs = $this->extractParagraphText($documentXml, $numbering, $imageRelationships);
         $questions = [];
         $current = null;
 
-        foreach ($paragraphs as $line) {
+        $pendingOption = null;
+
+        foreach ($paragraphs as $paragraph) {
+            $line = $paragraph['text'];
+            $imageData = $paragraph['image_data'] ?? null;
             $line = trim(preg_replace('/\s+/u', ' ', $line) ?? '');
 
+            if ($line === '' && $imageData) {
+                if ($current === null) {
+                    $current = $this->emptyParsedQuestion('');
+                }
+                $current['image_data'] ??= $imageData;
+
+                continue;
+            }
+
             if ($line === '') {
+                continue;
+            }
+
+            if ($pendingOption !== null && $current !== null) {
+                $current['option_'.strtolower($pendingOption)] = $line;
+                $current['image_data'] ??= $imageData;
+                $pendingOption = null;
+
                 continue;
             }
 
@@ -272,7 +308,7 @@ class QuestionController extends Controller
                     $questions[] = $current;
                 }
 
-                $current = $this->emptyParsedQuestion($questionText);
+                $current = $this->emptyParsedQuestion($questionText, $imageData);
 
                 continue;
             }
@@ -287,10 +323,22 @@ class QuestionController extends Controller
 
                 if (! in_array($optionLabel, self::ANSWERS, true)) {
                     $current['_format_errors'][] = 'Option '.$optionLabel.' tidak didukung. Gunakan A sampai D.';
+
                     continue;
                 }
 
                 $current['option_'.strtolower($optionLabel)] = $optionText;
+                $current['image_data'] ??= $imageData;
+
+                continue;
+            }
+
+            if ($optionLabel = $this->extractOptionLabel($line)) {
+                if ($current === null) {
+                    $current = $this->emptyParsedQuestion('');
+                }
+                $pendingOption = $optionLabel;
+
                 continue;
             }
 
@@ -302,21 +350,27 @@ class QuestionController extends Controller
 
                 if (! in_array($answer, self::ANSWERS, true)) {
                     $current['_format_errors'][] = 'Jawaban '.$answer.' tidak valid. Gunakan A, B, C, atau D.';
+
                     continue;
                 }
 
                 $current['correct_answer'] = $answer;
+
                 continue;
             }
 
             if ($current === null) {
-                $current = $this->emptyParsedQuestion($line);
+                $current = $this->emptyParsedQuestion($line, $imageData);
+
                 continue;
             }
+
+            $current['image_data'] ??= $imageData;
 
             if (trim($current['correct_answer'] ?? '') !== '') {
                 $questions[] = $current;
                 $current = $this->emptyParsedQuestion($line);
+
                 continue;
             }
 
@@ -325,6 +379,7 @@ class QuestionController extends Controller
 
             if ($hasOptionOrAnswer) {
                 $current['_format_errors'][] = 'Baris tidak dikenali: '.$line;
+
                 continue;
             }
 
@@ -372,6 +427,15 @@ class QuestionController extends Controller
 
                 return $text !== '' ? [$label, $text] : null;
             }
+        }
+
+        return null;
+    }
+
+    private function extractOptionLabel(string $line): ?string
+    {
+        if (preg_match('/^\s*(?:(?:option|opsi|pilihan)\s*)?\(?([A-D])\)?\s*[\.\):\-\x{2013}\x{2014}]?\s*$/iu', $line, $match)) {
+            return strtoupper($match[1]);
         }
 
         return null;
@@ -431,21 +495,25 @@ class QuestionController extends Controller
         return trim(preg_replace('/\s+/u', ' ', mb_strtolower($value, 'UTF-8')) ?? '');
     }
 
-    private function emptyParsedQuestion(string $question): array
+    private function emptyParsedQuestion(string $question, ?string $imageData = null): array
     {
-        return [
+        return array_filter([
             'question' => $question,
+            'image_data' => $imageData,
             'option_a' => '',
             'option_b' => '',
             'option_c' => '',
             'option_d' => '',
             'correct_answer' => '',
-        ];
+        ], static fn ($value, $key) => $key !== 'image_data' || $value !== null, ARRAY_FILTER_USE_BOTH);
     }
 
-    private function extractParagraphText(string $documentXml, array $numbering = []): array
-    {
-        $dom = new \DOMDocument();
+    private function extractParagraphText(
+        string $documentXml,
+        array $numbering = [],
+        array $imageRelationships = []
+    ): array {
+        $dom = new \DOMDocument;
         $previous = libxml_use_internal_errors(true);
         $loaded = $dom->loadXML($documentXml, LIBXML_NONET);
         libxml_clear_errors();
@@ -457,6 +525,8 @@ class QuestionController extends Controller
 
         $xpath = new \DOMXPath($dom);
         $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+        $xpath->registerNamespace('a', 'http://schemas.openxmlformats.org/drawingml/2006/main');
+        $xpath->registerNamespace('r', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships');
 
         $paragraphs = [];
         $numberCounters = [];
@@ -464,17 +534,29 @@ class QuestionController extends Controller
         foreach ($xpath->query('//w:p') as $paragraph) {
             $text = $this->paragraphTextWithBreaks($paragraph);
             $label = $this->paragraphNumberingLabel($xpath, $paragraph, $numbering, $numberCounters);
+            $imageData = null;
+            $imageNode = $xpath->query('.//a:blip[@r:embed]', $paragraph)->item(0);
+            if ($imageNode instanceof \DOMElement) {
+                $relationshipId = $imageNode->getAttributeNS(
+                    'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
+                    'embed'
+                );
+                $imageData = $imageRelationships[$relationshipId] ?? null;
+            }
 
             $lines = preg_split('/\R/u', $text) ?: [];
 
             foreach ($lines as $index => $line) {
                 $line = trim($line);
 
-                if ($line === '') {
+                if ($line === '' && ! $imageData) {
                     continue;
                 }
 
-                $paragraphs[] = trim(($index === 0 ? $label : '').' '.$line);
+                $paragraphs[] = [
+                    'text' => trim(($index === 0 ? $label : '').' '.$line),
+                    'image_data' => $index === 0 ? $imageData : null,
+                ];
             }
         }
 
@@ -522,13 +604,134 @@ class QuestionController extends Controller
         return $text;
     }
 
+    private function extractDocxImageRelationships(\ZipArchive $zip): array
+    {
+        $relationshipsXml = $zip->getFromName('word/_rels/document.xml.rels');
+
+        if (! $relationshipsXml) {
+            return [];
+        }
+
+        $dom = new \DOMDocument;
+        $previous = libxml_use_internal_errors(true);
+        $loaded = $dom->loadXML($relationshipsXml, LIBXML_NONET);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+
+        if (! $loaded) {
+            return [];
+        }
+
+        $images = [];
+
+        foreach ($dom->getElementsByTagName('Relationship') as $relationship) {
+            if (! str_ends_with($relationship->getAttribute('Type'), '/image')) {
+                continue;
+            }
+
+            $target = str_replace('\\', '/', $relationship->getAttribute('Target'));
+            $target = preg_replace('#^(?:\.\./)+#', '', $target);
+            $entry = str_starts_with($target, 'word/') ? $target : 'word/'.ltrim($target, '/');
+            $contents = $zip->getFromName($entry);
+
+            if ($contents === false || strlen($contents) > 8 * 1024 * 1024) {
+                continue;
+            }
+
+            $extension = strtolower(pathinfo($entry, PATHINFO_EXTENSION));
+            $mime = match ($extension) {
+                'jpg', 'jpeg' => 'image/jpeg',
+                'gif' => 'image/gif',
+                'webp' => 'image/webp',
+                default => 'image/png',
+            };
+
+            $images[$relationship->getAttribute('Id')] = 'data:'.$mime.';base64,'.base64_encode($contents);
+        }
+
+        return $images;
+    }
+
+    private function prepareQuestionImportPreviewImages(array $questions): array
+    {
+        foreach (Storage::disk('public')->files('question-import-previews') as $file) {
+            if (Storage::disk('public')->lastModified($file) < now()->subDay()->timestamp) {
+                Storage::disk('public')->delete($file);
+            }
+        }
+
+        return collect($questions)->map(function (array $question) {
+            $imageData = $question['image_data'] ?? null;
+            unset($question['image_data']);
+
+            if (! $imageData || ! preg_match('#^data:(image/(?:png|jpeg|gif|webp));base64,(.+)$#s', $imageData, $match)) {
+                return $question;
+            }
+
+            $contents = base64_decode(preg_replace('/\s+/', '', $match[2]), true);
+            if ($contents === false || strlen($contents) > 8 * 1024 * 1024) {
+                return $question;
+            }
+
+            $extension = match ($match[1]) {
+                'image/jpeg' => 'jpg',
+                'image/gif' => 'gif',
+                'image/webp' => 'webp',
+                default => 'png',
+            };
+            $token = 'question-import-previews/'.Str::uuid().'.'.$extension;
+            Storage::disk('public')->put($token, $contents);
+            $question['image_token'] = $token;
+            $question['image_preview_url'] = url('/storage/'.$token);
+
+            return $question;
+        })->all();
+    }
+
+    private function storeImportedQuestionImage(?string $imageData, ?string $imageToken = null): ?string
+    {
+        if ($imageToken && preg_match('#^question-import-previews/[a-f0-9-]+\.(png|jpg|gif|webp)$#', $imageToken, $match)) {
+            if (Storage::disk('public')->exists($imageToken)) {
+                $path = 'question-images/'.Str::uuid().'.'.$match[1];
+                Storage::disk('public')->move($imageToken, $path);
+
+                return $path;
+            }
+        }
+
+        if (! $imageData) {
+            return null;
+        }
+
+        if (! preg_match('#^data:(image/(?:png|jpeg|gif|webp));base64,([A-Za-z0-9+/=\r\n]+)$#', $imageData, $match)) {
+            return null;
+        }
+
+        $contents = base64_decode(preg_replace('/\s+/', '', $match[2]), true);
+
+        if ($contents === false || strlen($contents) > 8 * 1024 * 1024) {
+            return null;
+        }
+
+        $extension = match ($match[1]) {
+            'image/jpeg' => 'jpg',
+            'image/gif' => 'gif',
+            'image/webp' => 'webp',
+            default => 'png',
+        };
+        $path = 'question-images/'.Str::uuid().'.'.$extension;
+        Storage::disk('public')->put($path, $contents);
+
+        return $path;
+    }
+
     private function buildNumberingDefinitions(string $numberingXml): array
     {
         if ($numberingXml === '') {
             return [];
         }
 
-        $dom = new \DOMDocument();
+        $dom = new \DOMDocument;
         $previous = libxml_use_internal_errors(true);
         $loaded = $dom->loadXML($numberingXml, LIBXML_NONET);
         libxml_clear_errors();

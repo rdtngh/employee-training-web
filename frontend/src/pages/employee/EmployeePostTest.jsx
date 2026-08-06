@@ -298,6 +298,9 @@ function EmployeePostTest() {
             <article className="pretest-question-card">
               <p className="pretest-question-number">Q{currentIndex + 1} / {questions.length}</p>
               <h1>{question.question}</h1>
+              {question.imageUrl && (
+                <img className="employee-question-image" src={question.imageUrl} alt="Ilustrasi soal" />
+              )}
               <div className="pretest-options">
                 {options.map(([optionId, text], optionIndex) => (
                   <label key={optionId} className={answers[question.id] === optionId ? "selected" : ""}>

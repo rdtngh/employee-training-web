@@ -108,3 +108,11 @@
 @media (min-width: 761px) and (max-width: 1100px) {
   .pretest-modal { left: calc(240px + (100vw - 240px) / 2); }
 }
+.employee-question-image {
+  display: block;
+  max-width: min(100%, 680px);
+  max-height: 440px;
+  margin: 16px auto 22px;
+  object-fit: contain;
+  border-radius: 10px;
+}

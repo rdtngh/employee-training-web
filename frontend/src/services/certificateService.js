@@ -112,6 +112,11 @@ export const saveCertificateBlob = ({ blob, filename }) => {
 };
 
 export const getAdminCertificatePreview = async (certificateId) => {
-  const response = await api.get(`/certificates/${certificateId}/preview`);
+  const response = await api.get(`/certificates/${certificateId}/preview`, {
+    params: { _: Date.now() },
+    headers: {
+      "Cache-Control": "no-cache",
+    },
+  });
   return response.data?.data ?? response.data;
 };

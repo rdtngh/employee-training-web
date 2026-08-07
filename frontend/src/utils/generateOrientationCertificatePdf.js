@@ -27,7 +27,7 @@ const formatDate = (value) => {
 };
 
 const renderTemplatePages = async (source) => {
-  const response = await fetch(source, { credentials: "same-origin" });
+  const response = await fetch(source, { cache: "no-store", credentials: "same-origin" });
   if (!response.ok) throw new Error("Template PDF sertifikat gagal dimuat.");
 
   const [{ getDocument, GlobalWorkerOptions }, { default: workerUrl }] = await Promise.all([

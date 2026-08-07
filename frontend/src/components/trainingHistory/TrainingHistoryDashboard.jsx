@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import * as certificateService from "../../services/certificateService";
 import * as trainingHistoryService from "../../services/trainingHistoryService";
 import Certificate from "../certificate/Certificate";
 import "../certificate/CertificateDashboard.css";
@@ -28,6 +29,7 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
   const [deleting, setDeleting] = useState(false);
   const [actionError, setActionError] = useState("");
   const [printingCertificates, setPrintingCertificates] = useState([]);
+  const [bulkDownloading, setBulkDownloading] = useState(false);
   const histories = useMemo(() => historyData?.histories ?? [], [historyData?.histories]);
   const certificates = useMemo(() => certificateData?.certificates ?? [], [certificateData?.certificates]);
   const trainingOptions = useMemo(() => {
@@ -74,6 +76,35 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
       setActionError("Tidak ada sertifikat pada pelatihan yang dipilih.");
       return;
     }
+
+    const orientationCertificates = filteredCertificates.filter(
+      (certificate) => certificate.training?.is_general_orientation
+    );
+
+    if (orientationCertificates.length > 0) {
+      if (orientationCertificates.length !== filteredCertificates.length) {
+        setActionError("Download massal Orientasi Umum hanya tersedia saat filter Pelatihan memilih Orientasi Umum.");
+        return;
+      }
+
+      setActionError("");
+      setBulkDownloading(true);
+
+      try {
+        for (const certificate of orientationCertificates) {
+          certificateService.saveCertificateBlob(
+            await certificateService.downloadCertificateFile(certificate.id)
+          );
+        }
+      } catch (downloadError) {
+        setActionError(downloadError.message || "Sertifikat Orientasi Umum gagal didownload.");
+      } finally {
+        setBulkDownloading(false);
+      }
+
+      return;
+    }
+
     setActionError("");
     flushSync(() => setPrintingCertificates(filteredCertificates));
     document.documentElement.classList.add("is-certificate-printing");
@@ -159,8 +190,8 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
           <span>Cari riwayat</span>
           <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nama atau username..." />
         </label>
-        <button type="button" className="history-download-all" onClick={printFilteredCertificates} disabled={certificatesLoading || filteredCertificates.length === 0}>
-          {certificatesLoading ? "Memuat..." : `Download Semua PDF (${filteredCertificates.length})`}
+        <button type="button" className="history-download-all" onClick={printFilteredCertificates} disabled={certificatesLoading || bulkDownloading || filteredCertificates.length === 0}>
+          {certificatesLoading || bulkDownloading ? "Memuat..." : `Download Semua PDF (${filteredCertificates.length})`}
         </button>
       </div>
 

@@ -288,6 +288,9 @@ class CertificateController extends Controller
                 'certificate_template' => $this->certificateTemplatePayload($training),
                 'is_general_orientation' => $training ? $this->isGeneralOrientation($training) : false,
             ],
+            'orientation_materials' => $training && $this->isGeneralOrientation($training)
+                ? $this->orientationMaterials($department)
+                : [],
             'result' => [
                 'id' => $result?->id,
                 'score' => $result?->score,
@@ -599,7 +602,10 @@ class CertificateController extends Controller
             $y = ((float) $field['y'] / 595) * $pageSize['height'];
             $width = ((float) $field['width'] / 841) * $pageSize['width'];
             $fontSize = max(8, min(96, (float) $field['fontSize']));
-            $style = ((string) ($field['fontWeight'] ?? '400')) >= '600' ? 'B' : '';
+            [$fontFamily, $fontStyle] = $this->orientationPdfFont(
+                (string) ($field['fontFamily'] ?? 'sans'),
+                (string) ($field['fontWeight'] ?? '400')
+            );
             $align = match ($field['align'] ?? 'center') {
                 'left' => 'L',
                 'right' => 'R',
@@ -607,10 +613,31 @@ class CertificateController extends Controller
             };
 
             $pdf->SetTextColor(...$this->hexToRgb($field['color'] ?? '#000000'));
-            $pdf->SetFont('Helvetica', $style, $fontSize);
+            $pdf->SetFont($fontFamily, $fontStyle, $fontSize);
             $pdf->SetXY($x, $y);
             $pdf->Cell($width, 8, $this->pdfLatinText($value), 0, 0, $align);
         }
+    }
+
+    /**
+     * FPDF only ships with PDF core fonts. Keep every editor option meaningful in
+     * generated orientation PDFs by mapping it to the closest available family.
+     */
+    private function orientationPdfFont(string $fontFamily, string $fontWeight): array
+    {
+        $bold = (int) $fontWeight >= 600;
+        $serifFonts = ['serif', 'merriweather', 'lora', 'cinzel', 'cormorant'];
+        $scriptFonts = ['script', 'dancing', 'allura', 'pacifico'];
+
+        if (in_array($fontFamily, $scriptFonts, true)) {
+            return ['Times', $bold ? 'BI' : 'I'];
+        }
+
+        if (in_array($fontFamily, $serifFonts, true)) {
+            return ['Times', $bold ? 'B' : ''];
+        }
+
+        return ['Helvetica', $bold ? 'B' : ''];
     }
 
     private function writeOrientationMaterials(Fpdi $pdf, array $materials, array $pageSize, array $settings): void

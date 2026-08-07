@@ -7,6 +7,7 @@ import {
   buildCertificatePngFilename,
   downloadCertificateAsPng,
 } from "../../utils/downloadCertificateAsPng";
+import { generateOrientationCertificatePdf } from "../../utils/generateOrientationCertificatePdf";
 import "../../pages/employee/EmployeeCertificatePage.css";
 
 function AdminCertificatePreview() {
@@ -17,8 +18,8 @@ function AdminCertificatePreview() {
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
   const loadPdfPreview = useCallback(
-    () => certificateService.downloadCertificateFile(certificateId),
-    [certificateId]
+    () => generateOrientationCertificatePdf(certificate),
+    [certificate]
   );
 
   useEffect(() => {
@@ -56,7 +57,7 @@ function AdminCertificatePreview() {
     try {
       if (certificate.training?.is_general_orientation) {
         certificateService.saveCertificateBlob(
-          await certificateService.downloadCertificateFile(certificate.id)
+          await generateOrientationCertificatePdf(certificate)
         );
       } else {
         await downloadCertificateAsPng(

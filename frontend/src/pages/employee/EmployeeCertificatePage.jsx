@@ -8,6 +8,7 @@ import {
   buildCertificatePngFilename,
   downloadCertificateAsPng,
 } from "../../utils/downloadCertificateAsPng";
+import { generateOrientationCertificatePdf } from "../../utils/generateOrientationCertificatePdf";
 import "./EmployeeCertificatePage.css";
 
 const defaultCertificateData = {
@@ -29,8 +30,8 @@ function EmployeeCertificatePage() {
   const [error, setError] = useState("");
   const [downloadError, setDownloadError] = useState("");
   const loadPdfPreview = useCallback(
-    () => certificateService.downloadCertificate(trainingId),
-    [trainingId]
+    () => generateOrientationCertificatePdf(certificateData),
+    [certificateData]
   );
 
   useEffect(() => {
@@ -67,7 +68,7 @@ function EmployeeCertificatePage() {
     try {
       if (certificateData.is_general_orientation) {
         certificateService.saveCertificateBlob(
-          await certificateService.downloadCertificate(trainingId)
+          await generateOrientationCertificatePdf(certificateData)
         );
       } else {
         await downloadCertificateAsPng(

@@ -1,4 +1,4 @@
-# 14 - Deployment Guide cPanel
+# 2 - Deployment Guide cPanel
 **Employee Training Web - React Vite Frontend + Laravel Backend di cPanel**
 
 | | |
@@ -32,6 +32,7 @@
 13. [Setup CI/CD ke cPanel](#13-setup-cicd-ke-cpanel)
 14. [Perintah Maintenance](#14-perintah-maintenance)
 15. [Troubleshooting](#15-troubleshooting)
+16. [Checklist Serah Terima Production](#16-checklist-serah-terima-production)
 
 ---
 
@@ -711,6 +712,7 @@ Pastikan tersedia:
 - Database production sudah dibuat.
 - File `.env` production sudah ada di server dan tidak ikut di-commit.
 - Branch production sudah ditentukan, contoh `main`.
+- Deploy manual pertama sudah berhasil minimal satu kali sebelum CI/CD diaktifkan.
 
 Struktur server yang diasumsikan:
 
@@ -719,6 +721,23 @@ Struktur server yang diasumsikan:
   employee-training-backend/
   public_html/
 ```
+
+Data yang perlu disiapkan klien sebelum setup CI/CD:
+
+| Kebutuhan | Contoh |
+|---|---|
+| Domain frontend | `https://training.example.com` |
+| Subdomain API | `https://api.training.example.com` |
+| Username cPanel | `cpaneluser` |
+| Host SSH cPanel | `server-hosting-klien.com` |
+| Port SSH | `22` |
+| Path backend | `/home/cpaneluser/employee-training-backend` |
+| Path frontend | `/home/cpaneluser/public_html` |
+| Database name | `cpaneluser_training` |
+| Database username | `cpaneluser_training_user` |
+| Database password | password dari cPanel |
+
+Jika salah satu data di atas belum jelas, minta hosting provider mengonfirmasi sebelum workflow dijalankan.
 
 ### 13.2 Buat SSH Key untuk GitHub Actions
 
@@ -962,6 +981,64 @@ Catatan:
 - [ ] Workflow `.github/workflows/deploy-cpanel.yml` sudah di-commit.
 - [ ] Test deploy manual dari tab **Actions** berhasil.
 - [ ] Push ke `main` otomatis mengubah website production.
+
+### 13.7 Strategi Rollback Jika Deploy Gagal
+
+Rollback paling sederhana adalah kembali ke commit production terakhir yang stabil.
+
+Langkah rollback dari GitHub:
+
+1. Buka repository GitHub.
+2. Cari commit terakhir yang stabil.
+3. Revert commit bermasalah, atau push ulang commit stabil ke branch `main`.
+4. GitHub Actions akan deploy ulang versi stabil ke cPanel.
+
+Jika frontend bermasalah tetapi backend aman:
+
+```powershell
+git checkout COMMIT_STABIL
+cd frontend
+npm install
+npm run build
+```
+
+Lalu upload ulang isi:
+
+```text
+frontend/dist/
+```
+
+ke:
+
+```text
+/home/CPANEL_USER/public_html
+```
+
+Jika backend bermasalah setelah migration:
+
+- Cek dulu `storage/logs/laravel.log`.
+- Jangan langsung menghapus database production.
+- Restore database dari backup jika migration mengubah data penting dan tidak bisa diperbaiki dengan migration baru.
+- Simpan backup database sebelum deploy besar.
+
+Backup database sebelum deploy besar bisa dilakukan dari phpMyAdmin:
+
+```text
+phpMyAdmin -> pilih database -> Export -> SQL -> Download
+```
+
+### 13.8 Batasan cPanel Shared Hosting
+
+Tidak semua cPanel punya kemampuan yang sama. Jika menemukan batasan berikut, eskalasikan ke hosting provider:
+
+- Tidak bisa memilih PHP 8.3 atau lebih baru.
+- Tidak bisa mengubah document root subdomain ke `backend/public`.
+- SSH/Terminal tidak tersedia.
+- Composer tidak tersedia dan upload folder `vendor` terlalu besar.
+- Cron job dibatasi terlalu ketat.
+- Upload file sering timeout karena limit hosting rendah.
+
+Jika beberapa batasan di atas tidak bisa dibuka oleh provider, gunakan VPS untuk backend Laravel dan cPanel hanya untuk frontend statis.
 
 ---
 
@@ -1225,3 +1302,79 @@ Catatan:
 - Untuk traffic besar atau job panjang, VPS lebih direkomendasikan.
 
 ---
+
+## 16. Checklist Serah Terima Production
+
+Gunakan checklist ini saat klien melakukan deploy pertama atau saat pindah hosting.
+
+### 16.1 Checklist Hosting
+
+- [ ] PHP 8.3 atau lebih baru aktif.
+- [ ] Extension PHP yang dibutuhkan sudah aktif.
+- [ ] Domain frontend aktif.
+- [ ] Subdomain API aktif.
+- [ ] SSL aktif untuk domain frontend.
+- [ ] SSL aktif untuk subdomain API.
+- [ ] Document root API mengarah ke `backend/public`.
+- [ ] Folder backend Laravel berada di luar `public_html`.
+
+### 16.2 Checklist Database
+
+- [ ] Database MySQL sudah dibuat.
+- [ ] User database sudah dibuat.
+- [ ] User database punya **ALL PRIVILEGES**.
+- [ ] Credential database sudah masuk ke `.env`.
+- [ ] Database lama sudah diimport jika ini migrasi hosting.
+- [ ] `php artisan migrate --force` sudah berhasil.
+- [ ] Backup database production sudah disimpan sebelum deploy besar.
+
+### 16.3 Checklist Backend
+
+- [ ] File `.env` backend production sudah dibuat.
+- [ ] `APP_ENV=production`.
+- [ ] `APP_DEBUG=false`.
+- [ ] `APP_URL` mengarah ke subdomain API HTTPS.
+- [ ] `FRONTEND_URL` mengarah ke domain frontend HTTPS.
+- [ ] `CORS_ALLOWED_ORIGINS` mengarah ke domain frontend HTTPS.
+- [ ] `APP_KEY` sudah terisi.
+- [ ] Folder `vendor` sudah tersedia.
+- [ ] Folder `storage` writable.
+- [ ] Folder `bootstrap/cache` writable.
+- [ ] `php artisan storage:link` sudah berhasil.
+- [ ] `php artisan config:cache` sudah berhasil.
+- [ ] `php artisan route:cache` sudah berhasil.
+- [ ] `php artisan view:cache` sudah berhasil.
+
+### 16.4 Checklist Frontend
+
+- [ ] `frontend/.env.production` mengarah ke API production.
+- [ ] `npm run build` berhasil.
+- [ ] Isi `frontend/dist` sudah diupload ke `public_html`.
+- [ ] `public_html/.htaccess` sudah ada.
+- [ ] Halaman frontend bisa dibuka.
+- [ ] Refresh halaman `/login` tidak 404.
+
+### 16.5 Checklist Fitur
+
+- [ ] Login berhasil.
+- [ ] Logout berhasil.
+- [ ] Dashboard sesuai role tampil.
+- [ ] Data training tampil.
+- [ ] Admin bisa mengelola user jika role sesuai.
+- [ ] Admin bisa mengelola materi.
+- [ ] Upload material berhasil.
+- [ ] Download material berhasil.
+- [ ] Pre-test dan post-test bisa diakses.
+- [ ] Certificate bisa dibuat atau diunduh.
+- [ ] Tidak ada error CORS di browser DevTools.
+- [ ] Tidak ada error baru di `storage/logs/laravel.log`.
+
+### 16.6 Checklist CI/CD
+
+- [ ] Deploy manual pertama sudah berhasil.
+- [ ] GitHub Secrets sudah lengkap.
+- [ ] Workflow GitHub Actions sudah tersedia.
+- [ ] Deploy manual dari tab **Actions** berhasil.
+- [ ] Push ke branch `main` berhasil auto deploy.
+- [ ] Klien tahu cara melihat status deploy di tab **Actions**.
+- [ ] Klien tahu cara rollback ke commit stabil.

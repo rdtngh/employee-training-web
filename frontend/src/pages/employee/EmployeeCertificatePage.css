@@ -91,6 +91,14 @@
   box-shadow: 0 2px 8px rgba(17, 24, 39, 0.08);
 }
 
+.certificate-pdf-preview {
+  width: 100%;
+  min-height: 70vh;
+  border: 0;
+  border-radius: 8px;
+  background: #fff;
+}
+
 .employee-certificate-state {
   display: grid;
   min-height: 180px;

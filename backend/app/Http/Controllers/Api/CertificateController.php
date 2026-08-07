@@ -486,6 +486,24 @@ class CertificateController extends Controller
             return $this->buildOrientationPdf($certificate, $result, $training, $completionDate);
         }
 
+        $customTemplate = null;
+        if ($training->certificate_template_path) {
+            $templatePath = Storage::disk('local')->path($training->certificate_template_path);
+            if (is_file($templatePath)) {
+                $extension = strtolower(pathinfo($templatePath, PATHINFO_EXTENSION));
+                $mime = match ($extension) {
+                    'jpg', 'jpeg' => 'image/jpeg',
+                    'webp' => 'image/webp',
+                    default => 'image/png',
+                };
+                $customTemplate = [
+                    'background' => 'data:'.$mime.';base64,'.base64_encode(file_get_contents($templatePath)),
+                    'settings' => $training->certificate_template_settings
+                        ?: $this->defaultCertificateTemplateSettings(),
+                ];
+            }
+        }
+
         return Pdf::loadView('certificates.template', [
             'participantName' => Str::title($result->user->name),
             'trainingTitle' => $training->title,
@@ -494,6 +512,7 @@ class CertificateController extends Controller
             'completionDate' => $this->indonesianDate($completionDate),
             'trainingPeriod' => $this->trainingPeriod($training, $completionDate),
             'assets' => $this->certificateAssetDataUris(),
+            'customTemplate' => $customTemplate,
         ])
             ->setPaper('a4', 'landscape')
             ->output();

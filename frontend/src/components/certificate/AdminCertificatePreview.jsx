@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Certificate from "./Certificate";
+import CertificatePdfPreview from "./CertificatePdfPreview";
 import * as certificateService from "../../services/certificateService";
 import {
   buildCertificatePngFilename,
@@ -15,6 +16,10 @@ function AdminCertificatePreview() {
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
+  const loadPdfPreview = useCallback(
+    () => certificateService.downloadCertificateFile(certificateId),
+    [certificateId]
+  );
 
   useEffect(() => {
     let active = true;
@@ -81,9 +86,7 @@ function AdminCertificatePreview() {
       {!loading && !error && certificate && (
         <section className="employee-certificate-stage">
           {certificate.training?.is_general_orientation ? (
-            <p className="employee-certificate-state">
-              Sertifikat Orientasi Umum terdiri dari dua halaman dan tersedia sebagai PDF.
-            </p>
+            <CertificatePdfPreview loadPdf={loadPdfPreview} />
           ) : <Certificate
             employeeName={certificate.employee?.name}
             trainingTitle={certificate.training?.title}

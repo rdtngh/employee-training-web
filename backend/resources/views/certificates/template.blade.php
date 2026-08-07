@@ -26,6 +26,23 @@
             background: #ffffff;
         }
 
+        .custom-background {
+            position: absolute;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            width: 841px;
+            height: 595px;
+        }
+
+        .custom-field {
+            position: absolute;
+            z-index: 2;
+            margin: 0;
+            line-height: 1.2;
+            overflow: hidden;
+        }
+
         .asset {
             position: absolute;
             display: block;
@@ -294,6 +311,42 @@
 </head>
 <body>
     <main class="certificate">
+        @if ($customTemplate)
+            <img src="{{ $customTemplate['background'] }}" class="custom-background" alt="">
+            @php
+                $fontFamilies = [
+                    'sans' => 'DejaVu Sans, Arial, sans-serif',
+                    'montserrat' => 'DejaVu Sans, Arial, sans-serif',
+                    'serif' => 'DejaVu Serif, Georgia, serif',
+                    'merriweather' => 'DejaVu Serif, Georgia, serif',
+                    'lora' => 'DejaVu Serif, Georgia, serif',
+                    'cinzel' => 'DejaVu Serif, Georgia, serif',
+                    'cormorant' => 'DejaVu Serif, Georgia, serif',
+                    'script' => 'cursive',
+                    'dancing' => 'cursive',
+                    'allura' => 'cursive',
+                    'pacifico' => 'cursive',
+                ];
+                $customValues = [
+                    'certificate_number' => $certificateNumber,
+                    'employee_name' => $participantName,
+                    'training_title' => $trainingTitle,
+                    'completion_date' => $completionDate ? 'Bandar Lampung, '.$completionDate : '',
+                ];
+            @endphp
+            @foreach ($customValues as $fieldKey => $fieldValue)
+                @if ($fieldValue !== '')
+                    @php
+                        $field = $customTemplate['settings']['fields'][$fieldKey];
+                        $family = $fontFamilies[$field['fontFamily'] ?? 'sans'] ?? $fontFamilies['sans'];
+                    @endphp
+                    <p class="custom-field" style="left: {{ $field['x'] }}px; top: {{ $field['y'] }}px; width: {{ $field['width'] }}px; color: {{ $field['color'] }}; font-size: {{ $field['fontSize'] }}px; font-family: {{ $family }}; font-weight: {{ $field['fontWeight'] }}; text-align: {{ $field['align'] }};">{{ $fieldValue }}</p>
+                @endif
+            @endforeach
+            @if ($isTestingCertificate)
+                <p class="testing-certificate-note">Sertifikat Data Testing - Bukan Sertifikat Resmi</p>
+            @endif
+        @else
         @if ($assets['bgDaun'])
             <img src="{{ $assets['bgDaun'] }}" class="asset bg-daun" alt="">
         @endif
@@ -365,6 +418,7 @@
                 <p class="director-title">Direktur RSABL</p>
             </section>
         </section>
+        @endif
     </main>
 </body>
 </html>

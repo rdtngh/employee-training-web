@@ -1,25 +1,12 @@
-import { useMemo, useState } from "react";
-import { flushSync } from "react-dom";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import * as certificateService from "../../services/certificateService";
 import * as trainingHistoryService from "../../services/trainingHistoryService";
+import { createCertificatePdfBlob } from "../../utils/downloadCertificateAsPng";
 import Certificate from "../certificate/Certificate";
 import "../certificate/CertificateDashboard.css";
+import "../../pages/employee/EmployeeCertificatePage.css";
 import "./TrainingHistoryDashboard.css";
-
-const waitForNextPaint = () => new Promise((resolve) => {
-  requestAnimationFrame(() => requestAnimationFrame(resolve));
-});
-
-const waitForCertificateAssets = () => Promise.all(
-  [...document.querySelectorAll(".certificate-print-page img")].map((image) => {
-    if (image.complete) return Promise.resolve();
-    return new Promise((resolve) => {
-      image.addEventListener("load", resolve, { once: true });
-      image.addEventListener("error", resolve, { once: true });
-    });
-  })
-);
 
 function TrainingHistoryDashboard({ historyData, certificateData, certificatesLoading, loading, error, reload, role }) {
   const navigate = useNavigate();
@@ -28,8 +15,8 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [actionError, setActionError] = useState("");
-  const [printingCertificates, setPrintingCertificates] = useState([]);
   const [bulkDownloading, setBulkDownloading] = useState(false);
+  const [bulkPreview, setBulkPreview] = useState(null);
   const histories = useMemo(() => historyData?.histories ?? [], [historyData?.histories]);
   const certificates = useMemo(() => certificateData?.certificates ?? [], [certificateData?.certificates]);
   const trainingOptions = useMemo(() => {
@@ -71,6 +58,12 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
     });
   }, [histories, query, selectedTrainingId]);
 
+  useEffect(() => () => {
+    if (bulkPreview?.url) {
+      URL.revokeObjectURL(bulkPreview.url);
+    }
+  }, [bulkPreview?.url]);
+
   async function printFilteredCertificates() {
     if (filteredCertificates.length === 0) {
       setActionError("Tidak ada sertifikat pada pelatihan yang dipilih.");
@@ -81,50 +74,17 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
       (certificate) => certificate.training?.is_general_orientation
     );
 
-    if (orientationCertificates.length > 0) {
-      if (orientationCertificates.length !== filteredCertificates.length) {
-        setActionError("Download massal Orientasi Umum hanya tersedia saat filter Pelatihan memilih Orientasi Umum.");
-        return;
-      }
-
-      setActionError("");
-      setBulkDownloading(true);
-
-      try {
-        for (const certificate of orientationCertificates) {
-          certificateService.saveCertificateBlob(
-            await certificateService.downloadCertificateFile(certificate.id)
-          );
-        }
-      } catch (downloadError) {
-        setActionError(downloadError.message || "Sertifikat Orientasi Umum gagal didownload.");
-      } finally {
-        setBulkDownloading(false);
-      }
-
-      return;
-    }
-
     setActionError("");
-    flushSync(() => setPrintingCertificates(filteredCertificates));
-    document.documentElement.classList.add("is-certificate-printing");
-    document.body.classList.add("is-certificate-printing");
-    const finishPrint = () => window.setTimeout(() => {
-      document.documentElement.classList.remove("is-certificate-printing");
-      document.body.classList.remove("is-certificate-printing");
-      setPrintingCertificates([]);
-      window.removeEventListener("afterprint", finishPrint);
-    }, 500);
+    setBulkDownloading(true);
+
     try {
-      await document.fonts?.ready;
-      await waitForNextPaint();
-      await waitForCertificateAssets();
-      await waitForNextPaint();
-      window.addEventListener("afterprint", finishPrint);
-      window.print();
-    } catch (printError) {
-      setActionError(printError.message || "Sertifikat gagal disiapkan.");
-      finishPrint();
+      const file = await createCertificatePdfBlob(filteredCertificates);
+      const url = URL.createObjectURL(file.blob);
+      setBulkPreview({ ...file, url });
+    } catch (downloadError) {
+      setActionError(downloadError.message || "Sertifikat gabungan gagal dibuat.");
+    } finally {
+      setBulkDownloading(false);
     }
   }
 
@@ -148,23 +108,48 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
     }
   }
 
-  if (printingCertificates.length > 0) {
+  function closeBulkPreview() {
+    if (bulkPreview?.url) {
+      URL.revokeObjectURL(bulkPreview.url);
+    }
+
+    setBulkPreview(null);
+  }
+
+  function downloadBulkPreview() {
+    if (!bulkPreview) return;
+
+    certificateService.saveCertificateBlob(bulkPreview);
+  }
+
+  if (bulkPreview) {
     return (
-      <main className="certificate-print-page" aria-label="Sertifikat siap dicetak">
-        {printingCertificates.map((certificate) => (
-          <section className="certificate-print-stage" key={certificate.id}>
-            <Certificate
-              employeeName={certificate.employee?.name}
-              trainingTitle={certificate.training?.title}
-              certificateNumber={certificate.certificate_number}
-              sequenceNumber={certificate.sequence_number}
-              romanMonth={certificate.roman_month}
-              year={certificate.year}
-              completionDate={certificate.completion_date || certificate.result?.finished_at || certificate.issued_at}
-              certificateTemplate={certificate.training?.certificate_template}
-            />
-          </section>
-        ))}
+      <main className="employee-certificate-page">
+        <header className="employee-certificate-header">
+          <div>
+            <h1>Preview Sertifikat</h1>
+            <p>PDF gabungan berisi {bulkPreview.count} sertifikat, {bulkPreview.pageCount} halaman.</p>
+          </div>
+          <div className="employee-certificate-actions">
+            <button type="button" onClick={closeBulkPreview}>
+              Batal
+            </button>
+            <button
+              type="button"
+              className="employee-certificate-download"
+              onClick={downloadBulkPreview}
+            >
+              Download PDF
+            </button>
+          </div>
+        </header>
+        <section className="employee-certificate-stage">
+          <iframe
+            className="certificate-pdf-preview"
+            src={bulkPreview.url}
+            title="Preview sertifikat gabungan"
+          />
+        </section>
       </main>
     );
   }

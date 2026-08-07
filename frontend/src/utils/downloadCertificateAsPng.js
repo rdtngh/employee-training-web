@@ -1,5 +1,7 @@
 import { certificateAssets } from "../components/certificate/certificateAssets";
 import { downloadFile } from "./downloadFile";
+import { jsPDF } from "jspdf";
+import { renderOrientationCertificatePages } from "./generateOrientationCertificatePdf";
 
 const WIDTH = 841;
 const HEIGHT = 595;
@@ -420,3 +422,85 @@ export async function downloadCertificateAsPng(data, filename) {
 
   downloadFile({ blob, filename });
 }
+
+export async function createCertificateCanvas(data) {
+  await document.fonts?.ready;
+
+  const scale = 2;
+  const canvas = document.createElement("canvas");
+  canvas.width = WIDTH * scale;
+  canvas.height = HEIGHT * scale;
+
+  const context = canvas.getContext("2d");
+  context.scale(scale, scale);
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, WIDTH, HEIGHT);
+
+  const normalizedData = {
+    ...data,
+    employee_name: formatCertificateName(data.employee_name),
+    certificate_number: buildCertificateNumber({
+      certificateNumber: data.certificate_number,
+      sequenceNumber: data.sequence_number,
+      romanMonth: data.roman_month,
+      year: data.year,
+      completionDate: data.completion_date || data.issued_at,
+    }),
+  };
+
+  if (normalizedData.certificate_template?.background_url) {
+    await drawCustomCertificate(context, normalizedData);
+  } else {
+    await drawDefaultCertificate(context, normalizedData);
+  }
+
+  return canvas;
+}
+
+export async function createCertificatePdfBlob(certificates) {
+  if (!certificates?.length) {
+    throw new Error("Tidak ada sertifikat untuk dibuat.");
+  }
+
+  const pdf = new jsPDF({
+    orientation: "landscape",
+    unit: "px",
+    format: [WIDTH, HEIGHT],
+    hotfixes: ["px_scaling"],
+  });
+
+  let pageCount = 0;
+
+  for (let index = 0; index < certificates.length; index += 1) {
+    const certificate = certificates[index];
+    const isOrientation = certificate.training?.is_general_orientation;
+
+    if (isOrientation) {
+      const pages = await renderOrientationCertificatePages(certificate);
+      for (let pageIndex = 0; pageIndex < pages.length; pageIndex += 1) {
+        if (pageCount > 0 || (index > 0 && pageIndex === 0)) {
+          pdf.addPage([WIDTH, HEIGHT], "landscape");
+        }
+        pdf.addImage(pages[pageIndex], "PNG", 0, 0, WIDTH, HEIGHT);
+        pageCount += 1;
+      }
+    } else {
+      const canvas = await createCertificateCanvas(certificate);
+      if (pageCount > 0) {
+        pdf.addPage([WIDTH, HEIGHT], "landscape");
+      }
+      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, WIDTH, HEIGHT);
+      pageCount += 1;
+    }
+  }
+
+  const filename = `sertifikat-gabungan-${certificates.length}-peserta.pdf`;
+
+  return {
+    blob: pdf.output("blob"),
+    filename,
+    count: certificates.length,
+    pageCount,
+  };
+}
+

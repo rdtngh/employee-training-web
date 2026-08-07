@@ -90,13 +90,20 @@ const drawMaterials = (context, materials, settings) => {
   context.restore();
 };
 
-export async function generateOrientationCertificatePdf(data) {
-  const template = data.certificate_template || data.training?.certificate_template;
-  if (!template?.background_url) throw new Error("Template sertifikat belum tersedia.");
+const cloneCanvas = (source) => {
+  const canvas = window.document.createElement("canvas");
+  canvas.width = source.width;
+  canvas.height = source.height;
+  canvas.getContext("2d").drawImage(source, 0, 0);
+  return canvas;
+};
 
-  await document.fonts?.ready;
-  const [firstPage, secondPage] = await renderTemplatePages(template.background_url);
+const drawCertificatePages = (data, templatePages) => {
+  const template = data.certificate_template || data.training?.certificate_template;
   const fields = template.settings?.fields || {};
+  const [firstTemplatePage, secondTemplatePage] = templatePages;
+  const firstPage = cloneCanvas(firstTemplatePage);
+  const secondPage = cloneCanvas(secondTemplatePage);
   const employeeName = data.employee_name || data.employee?.name || "";
   const trainingTitle = data.training_title || data.training?.title || "";
   const date = formatDate(data.completion_date || data.issued_at);
@@ -107,9 +114,58 @@ export async function generateOrientationCertificatePdf(data) {
   drawField(firstPage.getContext("2d"), date ? `Diselenggarakan pada tanggal ${date}` : "", fields.completion_date);
   drawMaterials(secondPage.getContext("2d"), data.orientation_materials, template.settings?.materials_table);
 
+  return [firstPage, secondPage];
+};
+
+const createPdfFromCertificates = async (certificates) => {
+  const firstCertificate = certificates[0];
+  const template = firstCertificate?.certificate_template || firstCertificate?.training?.certificate_template;
+  if (!template?.background_url) throw new Error("Template sertifikat belum tersedia.");
+
+  await document.fonts?.ready;
+  const templatePages = await renderTemplatePages(template.background_url);
   const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [WIDTH, HEIGHT], hotfixes: ["px_scaling"] });
-  pdf.addImage(firstPage, "PNG", 0, 0, WIDTH, HEIGHT);
-  pdf.addPage([WIDTH, HEIGHT], "landscape");
-  pdf.addImage(secondPage, "PNG", 0, 0, WIDTH, HEIGHT);
+
+  certificates.forEach((certificate, certificateIndex) => {
+    const pages = drawCertificatePages(certificate, templatePages);
+
+    pages.forEach((page, pageIndex) => {
+      if (certificateIndex > 0 || pageIndex > 0) {
+        pdf.addPage([WIDTH, HEIGHT], "landscape");
+      }
+
+      pdf.addImage(page, "PNG", 0, 0, WIDTH, HEIGHT);
+    });
+  });
+
+  return pdf;
+};
+
+export async function renderOrientationCertificatePages(data) {
+  const template = data.certificate_template || data.training?.certificate_template;
+  if (!template?.background_url) {
+    throw new Error("Template sertifikat belum tersedia.");
+  }
+
+  await document.fonts?.ready;
+  const templatePages = await renderTemplatePages(template.background_url);
+  return drawCertificatePages(data, templatePages);
+}
+
+export async function generateOrientationCertificatePdf(data) {
+  const pdf = await createPdfFromCertificates([data]);
+
   return { blob: pdf.output("blob"), filename: `sertifikat-${data.training?.id || data.training_id || "orientasi-umum"}.pdf` };
+}
+
+export async function generateOrientationCertificatesPdf(certificates) {
+  if (!certificates.length) throw new Error("Tidak ada sertifikat untuk dibuat.");
+
+  const pdf = await createPdfFromCertificates(certificates);
+  const trainingId = certificates[0]?.training?.id || certificates[0]?.training_id || "orientasi-umum";
+
+  return {
+    blob: pdf.output("blob"),
+    filename: `sertifikat-${trainingId}-gabungan-${certificates.length}-peserta.pdf`,
+  };
 }

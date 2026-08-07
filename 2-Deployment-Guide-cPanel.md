@@ -29,8 +29,9 @@
 10. [Migrasi Data dari Hosting Lama](#10-migrasi-data-dari-hosting-lama)
 11. [SSL dan HTTPS](#11-ssl-dan-https)
 12. [Verifikasi Final](#12-verifikasi-final)
-13. [Perintah Maintenance](#13-perintah-maintenance)
-14. [Troubleshooting](#14-troubleshooting)
+13. [Setup CI/CD ke cPanel](#13-setup-cicd-ke-cpanel)
+14. [Perintah Maintenance](#14-perintah-maintenance)
+15. [Troubleshooting](#15-troubleshooting)
 
 ---
 
@@ -683,9 +684,290 @@ php artisan config:cache
 
 ---
 
-## 13. Perintah Maintenance
+## 13. Setup CI/CD ke cPanel
 
-### 13.1 Update Backend
+CI/CD dipakai agar setiap ada update di branch production, misalnya `main`, website di cPanel ikut terupdate otomatis tanpa upload manual berulang kali.
+
+Recommended flow:
+
+```text
+Developer push ke main
+GitHub Actions berjalan
+Frontend dibuild menjadi dist
+Backend dikirim atau diperbarui di cPanel
+Command Laravel dijalankan di cPanel
+Website production otomatis berubah
+```
+
+Untuk project ini, opsi terbaik adalah **GitHub Actions + SSH ke cPanel**. Alasannya backend Laravel perlu menjalankan command seperti `composer install`, `php artisan migrate`, dan `php artisan config:cache`. FTP saja bisa untuk upload file, tetapi kurang ideal untuk menjalankan command Laravel.
+
+### 13.1 Prasyarat CI/CD
+
+Pastikan tersedia:
+
+- Repository GitHub berisi project `employee-training-web`.
+- cPanel memiliki SSH/Terminal aktif.
+- Subdomain API sudah mengarah ke `employee-training-backend/public`.
+- Database production sudah dibuat.
+- File `.env` production sudah ada di server dan tidak ikut di-commit.
+- Branch production sudah ditentukan, contoh `main`.
+
+Struktur server yang diasumsikan:
+
+```text
+/home/CPANEL_USER/
+  employee-training-backend/
+  public_html/
+```
+
+### 13.2 Buat SSH Key untuk GitHub Actions
+
+Dari komputer lokal atau Terminal cPanel, buat SSH key khusus deploy:
+
+```bash
+ssh-keygen -t ed25519 -C "github-actions-cpanel-deploy"
+```
+
+Simpan public key ke cPanel:
+
+```text
+~/.ssh/authorized_keys
+```
+
+Simpan private key sebagai GitHub Secret.
+
+Di GitHub:
+
+1. Buka repository.
+2. Masuk ke **Settings**.
+3. Pilih **Secrets and variables**.
+4. Pilih **Actions**.
+5. Tambahkan secret berikut:
+
+```text
+CPANEL_HOST
+CPANEL_PORT
+CPANEL_USER
+CPANEL_SSH_PRIVATE_KEY
+CPANEL_BACKEND_PATH
+CPANEL_FRONTEND_PATH
+VITE_API_BASE_URL
+```
+
+Contoh value:
+
+```text
+CPANEL_HOST=server-hosting-klien.com
+CPANEL_PORT=22
+CPANEL_USER=cpaneluser
+CPANEL_BACKEND_PATH=/home/cpaneluser/employee-training-backend
+CPANEL_FRONTEND_PATH=/home/cpaneluser/public_html
+VITE_API_BASE_URL=https://api.training.example.com/api
+```
+
+Catatan:
+
+- Jangan simpan password database atau isi `.env` production di file repository.
+- `.env` backend production tetap dibuat langsung di server cPanel.
+- Private key SSH hanya disimpan di GitHub Secrets, jangan di-commit.
+
+### 13.3 Workflow GitHub Actions via SSH
+
+Buat file di repository:
+
+```text
+.github/workflows/deploy-cpanel.yml
+```
+
+Isi workflow:
+
+```yaml
+name: Deploy to cPanel
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_API_TIMEOUT: 15000
+        run: npm run build
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.CPANEL_SSH_PRIVATE_KEY }}" > ~/.ssh/cpanel_deploy_key
+          chmod 600 ~/.ssh/cpanel_deploy_key
+          ssh-keyscan -p "${{ secrets.CPANEL_PORT }}" "${{ secrets.CPANEL_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload frontend build
+        run: |
+          rsync -az --delete \
+            --exclude ".well-known" \
+            --exclude "cgi-bin" \
+            -e "ssh -i ~/.ssh/cpanel_deploy_key -p ${{ secrets.CPANEL_PORT }}" \
+            frontend/dist/ ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }}:${{ secrets.CPANEL_FRONTEND_PATH }}/
+
+      - name: Upload backend source
+        run: |
+          rsync -az --delete \
+            --exclude ".env" \
+            --exclude "vendor" \
+            --exclude "node_modules" \
+            --exclude "storage/app" \
+            --exclude "storage/logs" \
+            --exclude "storage/framework/cache" \
+            --exclude "storage/framework/sessions" \
+            --exclude "storage/framework/views" \
+            --exclude "public/storage" \
+            -e "ssh -i ~/.ssh/cpanel_deploy_key -p ${{ secrets.CPANEL_PORT }}" \
+            backend/ ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }}:${{ secrets.CPANEL_BACKEND_PATH }}/
+
+      - name: Run Laravel deploy commands
+        run: |
+          ssh -i ~/.ssh/cpanel_deploy_key -p "${{ secrets.CPANEL_PORT }}" ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }} '
+            cd "${{ secrets.CPANEL_BACKEND_PATH }}" &&
+            composer install --no-dev --optimize-autoloader &&
+            php artisan migrate --force &&
+            php artisan storage:link &&
+            php artisan optimize:clear &&
+            php artisan config:cache &&
+            php artisan route:cache &&
+            php artisan view:cache
+          '
+```
+
+Penjelasan singkat:
+
+- `frontend/dist` diupload ke `public_html`.
+- Folder `backend` diupload ke `employee-training-backend`.
+- File `.env`, `vendor`, `node_modules`, dan data upload di `storage/app` tidak ditimpa.
+- Command Laravel dijalankan setelah file backend selesai diupload.
+- Trigger otomatis berjalan setiap push ke branch `main`.
+- `workflow_dispatch` membuat deploy bisa dijalankan manual dari tab **Actions**.
+
+### 13.4 Proteksi Branch Production
+
+Untuk mengurangi risiko production berubah karena commit yang belum siap:
+
+1. Gunakan branch `main` khusus production.
+2. Aktifkan pull request sebelum merge ke `main`.
+3. Aktifkan required status checks jika test sudah tersedia.
+4. Batasi siapa yang boleh merge ke `main`.
+
+Flow kerja yang disarankan:
+
+```text
+feature branch -> pull request -> review -> merge ke main -> auto deploy ke cPanel
+```
+
+### 13.5 Opsi Fallback: Deploy Frontend via FTP
+
+Jika hosting tidak menyediakan SSH, frontend masih bisa otomatis lewat FTP.
+
+Contoh workflow frontend-only:
+
+```yaml
+name: Deploy Frontend to cPanel FTP
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_API_TIMEOUT: 15000
+        run: npm run build
+
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: frontend/dist/
+          server-dir: /public_html/
+          dangerous-clean-slate: false
+```
+
+Secrets tambahan untuk FTP:
+
+```text
+FTP_SERVER
+FTP_USERNAME
+FTP_PASSWORD
+```
+
+Catatan:
+
+- Opsi FTP cocok untuk frontend statis.
+- Untuk backend Laravel, FTP tidak cukup ideal karena tidak bisa menjalankan `composer install`, `migrate`, dan cache command.
+- Jika backend juga harus otomatis tanpa SSH, mintalah hosting provider mengaktifkan SSH atau gunakan VPS.
+
+### 13.6 Checklist CI/CD
+
+- [ ] SSH cPanel aktif.
+- [ ] SSH key deploy sudah dibuat.
+- [ ] Public key sudah masuk ke `~/.ssh/authorized_keys` cPanel.
+- [ ] Private key sudah masuk ke GitHub Secret `CPANEL_SSH_PRIVATE_KEY`.
+- [ ] `CPANEL_HOST`, `CPANEL_PORT`, `CPANEL_USER`, `CPANEL_BACKEND_PATH`, dan `CPANEL_FRONTEND_PATH` sudah benar.
+- [ ] `VITE_API_BASE_URL` di GitHub Secret sudah memakai URL API production.
+- [ ] File `.env` backend production sudah ada di server.
+- [ ] Workflow `.github/workflows/deploy-cpanel.yml` sudah di-commit.
+- [ ] Test deploy manual dari tab **Actions** berhasil.
+- [ ] Push ke `main` otomatis mengubah website production.
+
+---
+
+## 14. Perintah Maintenance
+
+### 14.1 Update Backend
 
 Upload perubahan backend ke:
 
@@ -705,7 +987,7 @@ php artisan route:cache
 php artisan view:cache
 ```
 
-### 13.2 Update Frontend
+### 14.2 Update Frontend
 
 Dari lokal:
 
@@ -727,7 +1009,7 @@ ke:
 /home/CPANEL_USER/public_html
 ```
 
-### 13.3 Clear Cache Laravel
+### 14.3 Clear Cache Laravel
 
 ```bash
 cd ~/employee-training-backend
@@ -737,7 +1019,7 @@ php artisan route:cache
 php artisan view:cache
 ```
 
-### 13.4 Cek Log Laravel
+### 14.4 Cek Log Laravel
 
 ```bash
 cd ~/employee-training-backend
@@ -750,7 +1032,7 @@ Jika command `tail` tidak tersedia, buka file berikut lewat File Manager:
 employee-training-backend/storage/logs/laravel.log
 ```
 
-### 13.5 Mode Maintenance
+### 14.5 Mode Maintenance
 
 Aktifkan maintenance:
 
@@ -767,9 +1049,9 @@ php artisan up
 
 ---
 
-## 14. Troubleshooting
+## 15. Troubleshooting
 
-### 14.1 Halaman Frontend 404 Saat Refresh
+### 15.1 Halaman Frontend 404 Saat Refresh
 
 Penyebab:
 
@@ -781,7 +1063,7 @@ Solusi:
 - Upload `frontend/public/.htaccess` ke `public_html/.htaccess`.
 - Pastikan isi `.htaccess` sesuai bagian [9.3](#93-pastikan-htaccess-frontend-ada).
 
-### 14.2 API 404 atau Menampilkan File List
+### 15.2 API 404 atau Menampilkan File List
 
 Penyebab:
 
@@ -795,7 +1077,7 @@ Solusi:
 /home/CPANEL_USER/employee-training-backend/public
 ```
 
-### 14.3 Error 500 dari Backend
+### 15.3 Error 500 dari Backend
 
 Penyebab umum:
 
@@ -821,7 +1103,7 @@ Lalu cek:
 storage/logs/laravel.log
 ```
 
-### 14.4 Composer Gagal Karena PHP Version
+### 15.4 Composer Gagal Karena PHP Version
 
 Project ini membutuhkan PHP 8.3 atau lebih baru.
 
@@ -830,7 +1112,7 @@ Solusi:
 - Ubah PHP version di cPanel ke PHP 8.3+.
 - Jika hosting tidak menyediakan PHP 8.3+, pindah ke paket hosting yang mendukung PHP 8.3+ atau gunakan VPS.
 
-### 14.5 CORS Error Saat Login
+### 15.5 CORS Error Saat Login
 
 Penyebab:
 
@@ -868,7 +1150,7 @@ cd frontend
 npm run build
 ```
 
-### 14.6 Upload File Gagal
+### 15.6 Upload File Gagal
 
 Penyebab:
 
@@ -892,7 +1174,7 @@ cd ~/employee-training-backend
 chmod -R 775 storage bootstrap/cache
 ```
 
-### 14.7 Download File atau Certificate Gagal
+### 15.7 Download File atau Certificate Gagal
 
 Penyebab:
 
@@ -914,7 +1196,7 @@ Pastikan folder berikut sudah dipindahkan dari hosting lama:
 storage/app/
 ```
 
-### 14.8 Queue Tidak Jalan di Shared Hosting
+### 15.8 Queue Tidak Jalan di Shared Hosting
 
 Project memakai:
 

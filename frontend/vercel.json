@@ -1,8 +1,9 @@
 {
-  "rewrites": [
+  "redirects": [
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "https://diklat.rsabl.com/$1",
+      "permanent": true
     }
   ]
 }

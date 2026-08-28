@@ -19,8 +19,8 @@ function PdfTemplatePage({ src, pageNumber, className = "" }) {
 
         const pdfData = new Uint8Array(await response.arrayBuffer());
         const [{ getDocument, GlobalWorkerOptions }, { default: pdfWorkerUrl }] = await Promise.all([
-          import("pdfjs-dist/legacy/build/pdf.mjs"),
-          import("pdfjs-dist/legacy/build/pdf.worker.min.mjs?url"),
+          import("pdfjs-dist/build/pdf.mjs"),
+          import("pdfjs-dist/build/pdf.worker.min.mjs?url"),
         ]);
         GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
         loadingTask = getDocument({ data: pdfData });

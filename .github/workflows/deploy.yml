@@ -30,4 +30,4 @@ jobs:
         server: ${{ secrets.FTP_SERVER }}
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
-        local-dir: ./dist/  # PENTING: Ubah jadi ./build/ jika Anda memakai React
+        local-dir: ./dist/  # PENTING: Ubah jadi ./build/ jika Anda memakai Reactt

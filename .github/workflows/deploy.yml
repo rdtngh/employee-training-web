@@ -24,12 +24,7 @@ jobs:
         cd frontend
         npm install
 
-        # --- MULAI MEMBUAT .ENV SEMENTARA ---
-        touch .env
-        echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> .env
-        echo "VITE_APP_NAME=${{ secrets.VITE_APP_NAME }}" >> .env
-        # (Silakan tambahkan baris echo lain jika ada variabel tambahan)
-        # --- SELESAI ---
+        
 
         npm run build
 

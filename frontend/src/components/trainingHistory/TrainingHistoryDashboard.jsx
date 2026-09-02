@@ -14,11 +14,19 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
   const [query, setQuery] = useState("");
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  
+  // State baru untuk fitur Edit Tanggal
+  const [pendingEditDate, setPendingEditDate] = useState(null);
+  const [newDate, setNewDate] = useState("");
+  const [updatingDate, setUpdatingDate] = useState(false);
+
   const [actionError, setActionError] = useState("");
   const [bulkDownloading, setBulkDownloading] = useState(false);
   const [bulkPreview, setBulkPreview] = useState(null);
+  
   const histories = useMemo(() => historyData?.histories ?? [], [historyData?.histories]);
   const certificates = useMemo(() => certificateData?.certificates ?? [], [certificateData?.certificates]);
+  
   const trainingOptions = useMemo(() => {
     const options = new Map();
     histories.forEach((history) => options.set(String(history.training.id), history.training.title));
@@ -26,6 +34,7 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
       .map(([id, title]) => ({ id, title }))
       .sort((a, b) => a.title.localeCompare(b.title, "id-ID"));
   }, [histories]);
+  
   const requestedTrainingId = searchParams.get("training") || "all";
   const selectedTrainingId = requestedTrainingId === "all" || trainingOptions.some(
     (training) => training.id === requestedTrainingId
@@ -40,9 +49,11 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
     }
     setSearchParams(nextParams, { replace: true });
   }
+
   const filteredCertificates = useMemo(() => certificates.filter((certificate) =>
     selectedTrainingId === "all" || String(certificate.training?.id) === selectedTrainingId
   ), [certificates, selectedTrainingId]);
+
   const filtered = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     return histories.filter((history) => {
@@ -69,10 +80,6 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
       setActionError("Tidak ada sertifikat pada pelatihan yang dipilih.");
       return;
     }
-
-    const orientationCertificates = filteredCertificates.filter(
-      (certificate) => certificate.training?.is_general_orientation
-    );
 
     setActionError("");
     setBulkDownloading(true);
@@ -108,17 +115,45 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
     }
   }
 
+  // Fungsi untuk mengeksekusi penyimpanan tanggal baru ke Backend
+  async function confirmEditDate() {
+    if (!pendingEditDate || !newDate || !pendingEditDate.certificate?.id) return;
+    setUpdatingDate(true);
+    setActionError("");
+    try {
+      const response = await fetch(`https://apidiklat.rsabl.com/api/certificates/${pendingEditDate.certificate.id}/date`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        credentials: "include", // <-- Kunci agar Cookie Session/XSRF ikut terkirim
+        body: JSON.stringify({ new_date: newDate })
+      });
+
+      if (!response.ok) {
+        throw new Error("Gagal mengubah tanggal sertifikat.");
+      }
+
+      setPendingEditDate(null);
+      setNewDate("");
+      reload(); 
+    } catch (error) {
+      setActionError(error.message || "Gagal mengubah tanggal.");
+    } finally {
+      setUpdatingDate(false);
+    }
+  }
+
   function closeBulkPreview() {
     if (bulkPreview?.url) {
       URL.revokeObjectURL(bulkPreview.url);
     }
-
     setBulkPreview(null);
   }
 
   function downloadBulkPreview() {
     if (!bulkPreview) return;
-
     certificateService.saveCertificateBlob(bulkPreview);
   }
 
@@ -200,20 +235,37 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
                   <td data-label="Status">{history.result.status} ({history.result.score})</td>
                   <td data-label="Sertifikat">{history.certificate ? "Tersedia" : "Tidak tersedia"}</td>
                   <td data-label="Aksi">
-                    <div className="history-actions">
+                    <div className="history-actions" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                       {history.certificate && (
-                        <button
-                          type="button"
-                          className="history-view"
-                          onClick={() => navigate({
-                            pathname: `/${role}/certificates/${history.certificate.id}`,
-                            search: searchParams.toString() ? `?${searchParams.toString()}` : "",
-                          })}
-                        >
-                          Lihat Sertifikat
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            className="history-view"
+                            onClick={() => navigate({
+                              pathname: `/${role}/certificates/${history.certificate.id}`,
+                              search: searchParams.toString() ? `?${searchParams.toString()}` : "",
+                            })}
+                          >
+                            Lihat
+                          </button>
+
+                          {/* Tombol Edit Tanggal */}
+                          <button
+                            type="button"
+                            style={{ backgroundColor: '#f59e0b', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                            onClick={() => {
+                              setPendingEditDate(history);
+                              const currentDate = history.result?.finished_at 
+                                ? new Date(history.result.finished_at).toISOString().split('T')[0] 
+                                : new Date().toISOString().split('T')[0];
+                              setNewDate(currentDate);
+                            }}
+                          >
+                            Edit Tgl
+                          </button>
+                        </>
                       )}
-                      <button type="button" className="history-delete" onClick={() => setPendingDelete(history)}>Hapus Riwayat</button>
+                      <button type="button" className="history-delete" onClick={() => setPendingDelete(history)}>Hapus</button>
                     </div>
                   </td>
                 </tr>
@@ -225,6 +277,40 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
 
       <button type="button" className="history-back" onClick={() => navigate(-1)}>Back</button>
 
+      {/* Modal Dialog Edit Tanggal */}
+      {pendingEditDate && (
+        <div className="history-dialog-backdrop" role="presentation" onMouseDown={() => !updatingDate && setPendingEditDate(null)}>
+          <section className="history-dialog" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
+            <h2>Edit Tanggal Sertifikat</h2>
+            <p>Ubah tanggal kelulusan/sertifikat untuk peserta <strong>{pendingEditDate.employee?.name}</strong> pada pelatihan <strong>{pendingEditDate.training?.title}</strong>.</p>
+            
+            <div style={{ margin: "20px 0", display: "flex", flexDirection: "column", gap: "8px" }}>
+              <label htmlFor="certificateDateInput" style={{ fontWeight: "bold", fontSize: "14px" }}>Tanggal Baru:</label>
+              <input 
+                id="certificateDateInput"
+                type="date" 
+                value={newDate} 
+                onChange={(e) => setNewDate(e.target.value)}
+                style={{ padding: "8px", borderRadius: "4px", border: "1px solid #ccc", fontSize: "14px" }}
+              />
+            </div>
+
+            <div className="history-dialog-actions">
+              <button type="button" onClick={() => setPendingEditDate(null)} disabled={updatingDate}>Batal</button>
+              <button 
+                type="button" 
+                style={{ backgroundColor: '#f59e0b', color: '#white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }} 
+                onClick={confirmEditDate} 
+                disabled={updatingDate || !newDate}
+              >
+                {updatingDate ? "Menyimpan..." : "Simpan Tanggal"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* Modal Dialog Hapus Riwayat */}
       {pendingDelete && (
         <div className="history-dialog-backdrop" role="presentation" onMouseDown={() => !deleting && setPendingDelete(null)}>
           <section className="history-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-history-title" onMouseDown={(event) => event.stopPropagation()}>

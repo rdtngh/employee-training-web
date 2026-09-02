@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { certificateAssets } from "./certificateAssets";
 import "./Certificate.css";
 
-const formatCertificateName = (value) =>
-  String(value || "")
+const formatCertificateName = (value) => {
+  return String(value || "")
     .trim()
-    .toLocaleLowerCase("id-ID")
-    .replace(/(^|[\s-])(\S)/g, (match) => match.toLocaleUpperCase("id-ID"));
+    .toLowerCase()
+    .replace(/\b([a-z])/g, (match) => match.toUpperCase());
+};
 
 const ROMAN_MONTHS = [
   "",

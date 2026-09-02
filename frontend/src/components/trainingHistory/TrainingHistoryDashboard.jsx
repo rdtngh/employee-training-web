@@ -120,26 +120,36 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
     if (!pendingEditDate || !newDate || !pendingEditDate.certificate?.id) return;
     setUpdatingDate(true);
     setActionError("");
+    
     try {
+      // 1. Ambil token secara dinamis dari Local Storage
+      const myToken = localStorage.getItem('authToken'); 
+
+      // 2. Pastikan token ada sebelum melakukan request
+      if (!myToken) {
+         throw new Error("Sesi login tidak valid. Silakan login ulang.");
+      }
+
+      // 3. Kirim request dengan token yang sudah terambil otomatis
       const response = await fetch(`https://apidiklat.rsabl.com/api/certificates/${pendingEditDate.certificate.id}/date`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
+          "Authorization": `Bearer ${myToken}` // Token disisipkan di sini
         },
-        credentials: "include", // <-- Kunci agar Cookie Session/XSRF ikut terkirim
         body: JSON.stringify({ new_date: newDate })
       });
 
       if (!response.ok) {
-        throw new Error("Gagal mengubah tanggal sertifikat.");
+          throw new Error("Gagal mengubah tanggal sertifikat.");
       }
 
       setPendingEditDate(null);
       setNewDate("");
-      reload(); 
+      reload(); // Refresh data tabel
     } catch (error) {
-      setActionError(error.message || "Gagal mengubah tanggal.");
+      setActionError(error.message || "Terjadi kesalahan sistem.");
     } finally {
       setUpdatingDate(false);
     }

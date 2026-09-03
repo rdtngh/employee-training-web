@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import * as certificateService from "../../services/certificateService";
 import * as trainingHistoryService from "../../services/trainingHistoryService";
-import { createCertificatePdfBlob } from "../../utils/downloadCertificateAsPng";
 import Certificate from "../certificate/Certificate";
 import "../certificate/CertificateDashboard.css";
 import "../../pages/employee/EmployeeCertificatePage.css";
@@ -75,6 +74,9 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
     }
   }, [bulkPreview?.url]);
 
+  // ====================================================================
+  // DI SINI PERUBAHANNYA: MENGGUNAKAN API BATCH DOWNLOAD BACKEND
+  // ====================================================================
   async function printFilteredCertificates() {
     if (filteredCertificates.length === 0) {
       setActionError("Tidak ada sertifikat pada pelatihan yang dipilih.");
@@ -85,9 +87,38 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
     setBulkDownloading(true);
 
     try {
-      const file = await createCertificatePdfBlob(filteredCertificates);
-      const url = URL.createObjectURL(file.blob);
-      setBulkPreview({ ...file, url });
+      // 1. Ambil array ID sertifikat yang terfilter
+      const selectedIds = filteredCertificates.map(cert => cert.id);
+      const myToken = localStorage.getItem('authToken');
+
+      if (!myToken) throw new Error("Sesi login tidak valid. Silakan login ulang.");
+
+      // 2. Tembak API Backend
+      const response = await fetch(`https://apidiklat.rsabl.com/api/certificates/batch-download`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/pdf",
+          "Authorization": `Bearer ${myToken}`
+        },
+        body: JSON.stringify({ certificate_ids: selectedIds })
+      });
+
+      if (!response.ok) {
+        throw new Error("Gagal mengambil file sertifikat dari server.");
+      }
+
+      // 3. Ubah response menjadi Blob PDF dan buat URL Preview-nya
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      // 4. Set ke state agar Modal Preview muncul (sama seperti sebelumnya)
+      setBulkPreview({ 
+        blob: blob, 
+        url: url, 
+        count: selectedIds.length 
+      });
+      
     } catch (downloadError) {
       setActionError(downloadError.message || "Sertifikat gabungan gagal dibuat.");
     } finally {
@@ -115,39 +146,30 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
     }
   }
 
-  // Fungsi untuk mengeksekusi penyimpanan tanggal baru ke Backend
   async function confirmEditDate() {
     if (!pendingEditDate || !newDate || !pendingEditDate.certificate?.id) return;
     setUpdatingDate(true);
     setActionError("");
     
     try {
-      // 1. Ambil token secara dinamis dari Local Storage
       const myToken = localStorage.getItem('authToken'); 
+      if (!myToken) throw new Error("Sesi login tidak valid. Silakan login ulang.");
 
-      // 2. Pastikan token ada sebelum melakukan request
-      if (!myToken) {
-         throw new Error("Sesi login tidak valid. Silakan login ulang.");
-      }
-
-      // 3. Kirim request dengan token yang sudah terambil otomatis
       const response = await fetch(`https://apidiklat.rsabl.com/api/certificates/${pendingEditDate.certificate.id}/date`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
-          "Authorization": `Bearer ${myToken}` // Token disisipkan di sini
+          "Authorization": `Bearer ${myToken}` 
         },
         body: JSON.stringify({ new_date: newDate })
       });
 
-      if (!response.ok) {
-          throw new Error("Gagal mengubah tanggal sertifikat.");
-      }
+      if (!response.ok) throw new Error("Gagal mengubah tanggal sertifikat.");
 
       setPendingEditDate(null);
       setNewDate("");
-      reload(); // Refresh data tabel
+      reload(); 
     } catch (error) {
       setActionError(error.message || "Terjadi kesalahan sistem.");
     } finally {
@@ -164,7 +186,14 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
 
   function downloadBulkPreview() {
     if (!bulkPreview) return;
-    certificateService.saveCertificateBlob(bulkPreview);
+    
+    // Trik download langsung Blob tanpa panggil service tambahan jika format service beda
+    const link = document.createElement('a');
+    link.href = bulkPreview.url;
+    link.setAttribute('download', `Batch_Sertifikat_${Date.now()}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   }
 
   if (bulkPreview) {
@@ -173,7 +202,7 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
         <header className="employee-certificate-header">
           <div>
             <h1>Preview Sertifikat</h1>
-            <p>PDF gabungan berisi {bulkPreview.count} sertifikat, {bulkPreview.pageCount} halaman.</p>
+            <p>PDF gabungan berisi <strong>{bulkPreview.count}</strong> sertifikat siap diunduh.</p>
           </div>
           <div className="employee-certificate-actions">
             <button type="button" onClick={closeBulkPreview}>
@@ -221,7 +250,7 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
           <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nama atau username..." />
         </label>
         <button type="button" className="history-download-all" onClick={printFilteredCertificates} disabled={certificatesLoading || bulkDownloading || filteredCertificates.length === 0}>
-          {certificatesLoading || bulkDownloading ? "Memuat..." : `Download Semua PDF (${filteredCertificates.length})`}
+          {certificatesLoading || bulkDownloading ? "Memuat PDF..." : `Download Semua PDF (${filteredCertificates.length})`}
         </button>
       </div>
 
@@ -309,7 +338,7 @@ function TrainingHistoryDashboard({ historyData, certificateData, certificatesLo
               <button type="button" onClick={() => setPendingEditDate(null)} disabled={updatingDate}>Batal</button>
               <button 
                 type="button" 
-                style={{ backgroundColor: '#f59e0b', color: '#white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }} 
+                style={{ backgroundColor: '#f59e0b', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }} 
                 onClick={confirmEditDate} 
                 disabled={updatingDate || !newDate}
               >

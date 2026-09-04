@@ -120,3 +120,10 @@ export const getAdminCertificatePreview = async (certificateId) => {
   });
   return response.data?.data ?? response.data;
 };
+
+export const batchDownloadCertificates = async (certificateIds) => {
+  const response = await api.post("/certificates/batch-download", {
+    certificate_ids: certificateIds,
+  });
+  return response.data?.data ?? response.data;
+};
